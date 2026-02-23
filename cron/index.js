@@ -3,6 +3,7 @@ const { startGamePowerCleanup } = require("./gamePowerCleanup");
 const { startDepositMonitoring } = require("./depositsCron");
 const { startWithdrawalMonitoring } = require("./withdrawalsCron");
 const { startBackupCron } = require("./backupCron");
+const { startCallbackQueueProcessing } = require("./callbackQueueCron");
 
 function startCronTasks({ engine, io, persistMinerProfile, run, buildPublicState, syncEngineMiners }) {
   const miningTimers = startMiningLoop(
@@ -14,13 +15,15 @@ function startCronTasks({ engine, io, persistMinerProfile, run, buildPublicState
   // NOTE: Withdrawal monitoring disabled - now using manual admin approval
   // const withdrawalTimers = startWithdrawalMonitoring();
   const backupTimers = startBackupCron({ run });
+  const callbackQueueTimers = startCallbackQueueProcessing();
 
   return {
     ...miningTimers,
     ...cleanupTimers,
     ...depositTimers,
     // ...withdrawalTimers,
-    ...backupTimers
+    ...backupTimers,
+    ...callbackQueueTimers
   };
 }
 

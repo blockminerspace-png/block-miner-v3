@@ -936,6 +936,45 @@ async function initializeDatabase() {
   await run(`
     CREATE INDEX IF NOT EXISTS idx_auto_mining_gpu_logs_action ON auto_mining_gpu_logs(action)
   `);
+
+  // Callback queue table - stores callbacks for async processing
+  await run(`
+    CREATE TABLE IF NOT EXISTS callback_queue (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      callback_type TEXT NOT NULL,
+      user_id INTEGER,
+      username TEXT,
+      amount REAL,
+      exchange_rate REAL,
+      payout_amount REAL,
+      data JSON,
+      status TEXT NOT NULL DEFAULT 'pending',
+      error_message TEXT,
+      retry_count INTEGER NOT NULL DEFAULT 0,
+      max_retries INTEGER NOT NULL DEFAULT 3,
+      request_ip TEXT,
+      callback_hash TEXT,
+      created_at INTEGER NOT NULL,
+      processed_at INTEGER,
+      next_retry_at INTEGER
+    )
+  `);
+
+  await run(`
+    CREATE INDEX IF NOT EXISTS idx_callback_queue_status ON callback_queue(status)
+  `);
+
+  await run(`
+    CREATE INDEX IF NOT EXISTS idx_callback_queue_user_id ON callback_queue(user_id)
+  `);
+
+  await run(`
+    CREATE INDEX IF NOT EXISTS idx_callback_queue_created_at ON callback_queue(created_at)
+  `);
+
+  await run(`
+    CREATE INDEX IF NOT EXISTS idx_callback_queue_next_retry_at ON callback_queue(next_retry_at)
+  `);
 }
 
 module.exports = {

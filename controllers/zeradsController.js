@@ -360,70 +360,183 @@ async function handlePtcCallback(req, res) {
     duplicateKey
   });
 
-  await run("BEGIN IMMEDIATE");
+  // Queue callback for async background processing instead of inline processing
   try {
     await run(
       `
-        INSERT INTO zerads_ptc_callbacks
-          (user_id, username, amount_zer, exchange_rate, payout_amount, clicks, request_ip, callback_hash, callback_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO callback_queue
+          (callback_type, user_id, username, amount, exchange_rate, payout_amount, data, status, 
+           request_ip, callback_hash, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
+        "zerads_ptc",
         user.id,
         normalizedUser,
         toFixedNumber(amount, 8),
         ZERADS_PTC_EXCHANGE_RATE,
         payoutAmount,
-        clicks,
+        JSON.stringify({
+          clicks,
+          externalCallbackId: externalCallbackId || null,
+          requestFingerprint,
+          fallbackBucket,
+          duplicateKey
+        }),
+        "pending",
         requestIp || null,
         callbackHash,
         Date.now()
       ]
     );
 
-    if (payoutAmount > 0) {
-      await run("UPDATE users SET usdc_balance = usdc_balance + ? WHERE id = ?", [payoutAmount, user.id]);
-    }
+    logger.info("ZerAds callback queued for background processing", {
+      userId: user.id,
+      username: normalizedUser,
+      amountZer: toFixedNumber(amount, 8),
+      payoutAmount,
+      clicks,
+      requestIp
+    });
 
-    if (amount > 0) {
-      await run("UPDATE users SET zer_balance = zer_balance + ? WHERE id = ?", [toFixedNumber(amount, 8), user.id]);
-    }
+    // Return immediately without waiting for processing
+    res.status(200).send("ok");
 
-    await run("COMMIT");
+    // Process callback in background without blocking the response
+    setImmediate(async () => {
+      try {
+        await processQueuedCallback(user.id, callbackHash);
+      } catch (error) {
+        logger.error("Background callback processing failed", {
+          error: error.message,
+          userId: user.id,
+          username: normalizedUser,
+          callbackHash
+        });
+      }
+    });
   } catch (error) {
-    await run("ROLLBACK").catch(() => undefined);
-
     if (String(error?.message || "").toLowerCase().includes("unique")) {
       logger.info("Duplicate ZerAds callback ignored", { requestIp, user: normalizedUser, callbackHash });
       res.status(200).send("ok_duplicate");
       return;
     }
 
-    logger.error("Failed to process ZerAds callback", {
+    logger.error("Failed to queue ZerAds callback", {
       error: error.message,
       user: normalizedUser,
       requestIp,
       amount
     });
     res.status(500).send("server_error");
-    return;
   }
-
-  logger.info("ZerAds callback credited", {
-    userId: user.id,
-    username: normalizedUser,
-    amountZer: toFixedNumber(amount, 8),
-    payoutAmount,
-    clicks,
-    requestIp
-  });
-
-  res.status(200).send("ok");
 }
+
+async function processQueuedCallback(userId, callbackHash) {
+  let queueItem = null;
+
+  try {
+    queueItem = await get(
+      "SELECT * FROM callback_queue WHERE user_id = ? AND callback_hash = ? AND status = 'pending' LIMIT 1",
+      [userId, callbackHash]
+    );
+
+    if (!queueItem?.id) {
+      logger.warn("Callback queue item not found", { userId, callbackHash });
+      return;
+    }
+
+    const payoutAmount = queueItem.payout_amount;
+    const amountZer = queueItem.amount;
+
+    await run("BEGIN IMMEDIATE");
+    try {
+      // Insert into zerads_ptc_callbacks for historical tracking
+      await run(
+        `
+          INSERT INTO zerads_ptc_callbacks
+            (user_id, username, amount_zer, exchange_rate, payout_amount, clicks, request_ip, callback_hash, callback_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          userId,
+          queueItem.username,
+          amountZer,
+          queueItem.exchange_rate,
+          payoutAmount,
+          (queueItem.data ? JSON.parse(queueItem.data).clicks : 0) || 0,
+          queueItem.request_ip || null,
+          callbackHash,
+          Date.now()
+        ]
+      );
+
+      // Credit balances
+      if (payoutAmount > 0) {
+        await run("UPDATE users SET usdc_balance = usdc_balance + ? WHERE id = ?", [payoutAmount, userId]);
+      }
+
+      if (amountZer > 0) {
+        await run("UPDATE users SET zer_balance = zer_balance + ? WHERE id = ?", [amountZer, userId]);
+      }
+
+      // Also update pol_balance for wallet sync
+      if (payoutAmount > 0) {
+        await run("UPDATE users SET pol_balance = pol_balance + ? WHERE id = ?", [payoutAmount, userId]);
+      }
+
+      // Update queue item as processed
+      await run(
+        "UPDATE callback_queue SET status = ?, processed_at = ? WHERE id = ?",
+        ["completed", Date.now(), queueItem.id]
+      );
+
+      await run("COMMIT");
+
+      logger.info("ZerAds callback processed from queue", {
+        userId,
+        username: queueItem.username,
+        amountZer,
+        payoutAmount,
+        callbackHash
+      });
+    } catch (error) {
+      await run("ROLLBACK").catch(() => undefined);
+      throw error;
+    }
+  } catch (error) {
+    logger.error("Error processing queued callback", {
+      error: error.message,
+      userId,
+      callbackHash,
+      queueItemId: queueItem?.id
+    });
+
+    if (queueItem?.id) {
+      const nextRetryAt = Date.now() + (5 * 1000); // Retry after 5 seconds
+      const retryCount = (queueItem.retry_count || 0) + 1;
+
+      await run(
+        "UPDATE callback_queue SET status = ?, retry_count = ?, error_message = ?, next_retry_at = ? WHERE id = ?",
+        [
+          retryCount >= (queueItem.max_retries || 3) ? "failed" : "pending",
+          retryCount,
+          error.message,
+          nextRetryAt,
+          queueItem.id
+        ]
+      ).catch(() => undefined);
+    }
+
+    throw error;
+  }
+}
+
 
 module.exports = {
   getPtcLink,
   getOfferwallLink,
   getStats,
-  handlePtcCallback
+  handlePtcCallback,
+  processQueuedCallback
 };
