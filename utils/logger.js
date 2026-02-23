@@ -164,10 +164,29 @@ class Logger {
   /**
    * Format log message
    */
-  _formatMessage(level, message, data = {}) {
+  _formatMessage(level, message, data = {}, forConsole = false) {
     const timestamp = new Date().toISOString();
-    const dataStr = Object.keys(data).length > 0 ? ` | ${JSON.stringify(data)}` : "";
-    return `[${timestamp}] [${level}] [${this.module}] ${message}${dataStr}`;
+    
+    // No data, simple format
+    if (Object.keys(data).length === 0) {
+      return `[${timestamp}] [${level}] [${this.module}] ${message}`;
+    }
+    
+    // For file output, always use compact JSON
+    if (!forConsole) {
+      const dataStr = JSON.stringify(data);
+      return `[${timestamp}] [${level}] [${this.module}] ${message} | ${dataStr}`;
+    }
+    
+    // For console in development, use pretty-printed JSON
+    if (process.env.NODE_ENV !== "production") {
+      const dataStr = JSON.stringify(data, null, 2);
+      return `[${timestamp}] [${level}] [${this.module}] ${message}\n${dataStr}`;
+    }
+    
+    // For console in production, use compact JSON
+    const dataStr = JSON.stringify(data);
+    return `[${timestamp}] [${level}] [${this.module}] ${message} | ${dataStr}`;
   }
 
   /**
@@ -178,7 +197,7 @@ class Logger {
    * @param {string} category - Optional log category
    */
   _writeToFile(level, message, data, category = null) {
-    const content = this._formatMessage(level, message, data);
+    const content = this._formatMessage(level, message, data, false);
 
     try {
       const stream = getOrCreateStream(level, category);
@@ -201,7 +220,7 @@ class Logger {
 
     const color = COLORS[level] || COLORS.INFO;
     const reset = COLORS.RESET;
-    const content = this._formatMessage(level, message, data);
+    const content = this._formatMessage(level, message, data, true);
     
     if (process.env.NODE_ENV === "production") {
       if (level === LOG_LEVELS.ERROR) console.error(content);
