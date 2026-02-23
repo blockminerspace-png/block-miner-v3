@@ -699,39 +699,56 @@ async function persistMinerProfile(miner) {
   }
 
   const now = Date.now();
-  await run(
-    `
-      INSERT INTO users_temp_power (user_id, username, wallet_address, rigs, base_hash_rate, balance, lifetime_mined, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(user_id) DO UPDATE SET
-        username = excluded.username,
-        wallet_address = excluded.wallet_address,
-        rigs = excluded.rigs,
-        base_hash_rate = excluded.base_hash_rate,
-        balance = excluded.balance,
-        lifetime_mined = excluded.lifetime_mined,
-        updated_at = excluded.updated_at
-    `,
-    [
-      miner.userId,
-      miner.username,
-      miner.walletAddress,
-      miner.rigs,
-      miner.baseHashRate,
-      miner.balance,
-      miner.lifetimeMined,
-      now,
-      now
-    ]
-  );
+  try {
+    await run(
+      `
+        INSERT INTO users_temp_power (user_id, username, wallet_address, rigs, base_hash_rate, balance, lifetime_mined, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+          username = excluded.username,
+          wallet_address = excluded.wallet_address,
+          rigs = excluded.rigs,
+          base_hash_rate = excluded.base_hash_rate,
+          balance = excluded.balance,
+          lifetime_mined = excluded.lifetime_mined,
+          updated_at = excluded.updated_at
+      `,
+      [
+        miner.userId,
+        miner.username,
+        miner.walletAddress,
+        miner.rigs,
+        miner.baseHashRate,
+        miner.balance,
+        miner.lifetimeMined,
+        now,
+        now
+      ]
+    );
 
-  await run("UPDATE users SET pol_balance = ? WHERE id = ?", [miner.balance, miner.userId]);
+    await run("UPDATE users SET pol_balance = ? WHERE id = ?", [miner.balance, miner.userId]);
+
+    logger.debug("Miner profile persisted", {
+      userId: miner.userId,
+      username: miner.username,
+      balance: miner.balance.toFixed(8),
+      lifetimeMined: miner.lifetimeMined.toFixed(8)
+    });
+  } catch (error) {
+    logger.error("Failed to persist miner profile", {
+      userId: miner.userId,
+      error: error.message
+    });
+  }
 }
 
 async function syncEngineMiners() {
   const profiles = await all(
     "SELECT user_id, username, wallet_address, rigs, base_hash_rate, balance, lifetime_mined FROM users_temp_power"
   );
+
+  let createdCount = 0;
+  let updatedCount = 0;
 
   for (const profile of profiles) {
     if (!profile?.user_id) {
@@ -751,6 +768,7 @@ async function syncEngineMiners() {
           lifetimeMined: profile.lifetime_mined
         }
       });
+      createdCount += 1;
       continue;
     }
 
@@ -760,6 +778,16 @@ async function syncEngineMiners() {
     existingMiner.baseHashRate = Number(profile.base_hash_rate || 0);
     existingMiner.balance = Number(profile.balance || 0);
     existingMiner.lifetimeMined = Number(profile.lifetime_mined || 0);
+    updatedCount += 1;
+  }
+
+  if (createdCount > 0 || updatedCount > 0) {
+    logger.debug("Engine miners synced", {
+      totalMiners: profiles.length,
+      created: createdCount,
+      updated: updatedCount,
+      engineMiners: engine.miners.size
+    });
   }
 }
 

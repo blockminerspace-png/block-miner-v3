@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require("uuid");
+const logger = require("../utils/logger").child("MiningEngine");
 
 class MiningEngine {
   constructor() {
@@ -155,6 +156,9 @@ class MiningEngine {
     
     const totalWork = [...this.roundWork.values()].reduce((sum, value) => sum + value, 0);
     if (totalWork <= 0) {
+      logger.debug("No work accumulated in round, skipping distribution", {
+        blockNumber: this.blockNumber
+      });
       this.roundWork.forEach((_, minerId) => this.roundWork.set(minerId, 0));
       return;
     }
@@ -162,6 +166,7 @@ class MiningEngine {
     // Fixed reward per block (0.1 POL) - no randomness to ensure consistent payouts
     const blockReward = this.rewardBase;
     const minedBlockNumber = this.blockNumber;
+    const minerRewards = [];
 
     for (const [minerId, work] of this.roundWork.entries()) {
       const miner = this.miners.get(minerId);
@@ -178,7 +183,26 @@ class MiningEngine {
       miner.lifetimeMined += reward;
       this.totalMinted += reward;
       this.roundWork.set(minerId, 0);
+
+      minerRewards.push({
+        minerId: miner.id,
+        username: miner.username,
+        work: work.toFixed(2),
+        share: (share * 100).toFixed(2),
+        reward: reward.toFixed(8),
+        newBalance: miner.balance.toFixed(8)
+      });
     }
+
+    // Log distribution details
+    logger.info("Block rewards distributed", {
+      blockNumber: minedBlockNumber,
+      blockReward,
+      totalWork: totalWork.toFixed(2),
+      minerCount: minerRewards.length,
+      totalDistributed: minerRewards.reduce((sum, r) => sum + parseFloat(r.reward), 0).toFixed(8),
+      miners: minerRewards
+    });
 
     this.lastReward = blockReward;
     this.blockHistory.unshift({
@@ -229,6 +253,12 @@ class MiningEngine {
     this.tokenPrice = Math.max(0.05, this.tokenPrice + priceNoise + demandFactor);
 
     if (now >= this.nextBlockAt) {
+      logger.info("Block time reached, distributing rewards", {
+        blockNumber: this.blockNumber,
+        activeMiners,
+        totalHashRate: totalHashRate.toFixed(2),
+        minerCount: this.miners.size
+      });
       this.distributeRewards();
     }
 
