@@ -142,18 +142,24 @@ class MiningEngine {
       return 0;
     }
 
-    const randomVariance = 0.9 + Math.random() * 0.2;
-    return miner.baseHashRate * miner.boostMultiplier * randomVariance;
+    // Deterministic hash rate based on base GHS and any active boosts
+    return miner.baseHashRate * miner.boostMultiplier;
   }
 
   distributeRewards() {
+    // Pool Mining Model: Distribute fixed block reward proportionally to all miners
+    // based on their cumulative work (GHS * time) during this block period
+    // Example: 1 user 10 GHS = gets all 0.1 POL
+    //          2 users 10 GHS each = each gets 0.05 POL (50% share each)
+    //          1 user 5 GHS + 1 user 15 GHS = gets 0.025 + 0.075 POL
+    
     const totalWork = [...this.roundWork.values()].reduce((sum, value) => sum + value, 0);
     if (totalWork <= 0) {
       this.roundWork.forEach((_, minerId) => this.roundWork.set(minerId, 0));
       return;
     }
 
-    // Fixed reward per block - no randomness to ensure consistent payouts
+    // Fixed reward per block (0.1 POL) - no randomness to ensure consistent payouts
     const blockReward = this.rewardBase;
     const minedBlockNumber = this.blockNumber;
 
@@ -164,7 +170,9 @@ class MiningEngine {
         continue;
       }
 
+      // Miner's percentage share of total network work
       const share = work / totalWork;
+      // Miner's reward = block reward * their share
       const reward = blockReward * share;
       miner.balance += reward;
       miner.lifetimeMined += reward;
@@ -192,6 +200,8 @@ class MiningEngine {
   }
 
   tick() {
+    // Each second, accumulate work from each active miner based on their GHS
+    // Work = GHS per second (accumulated over block duration = 10 minutes)
     const now = Date.now();
 
     let totalHashRate = 0;
