@@ -1,109 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#090f22" />
-  <link rel="icon" href="/assets/favcon/favicon.ico" type="image/x-icon" />
-  <link rel="apple-touch-icon" href="/assets/favcon/apple-touch-icon.png" />
-  <title>PTP | Paid To Promote</title>
-  <link rel="stylesheet" href="/css/layout.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-  <style>
-    .maintenance-container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 60vh;
-      padding: 20px;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#090f22" />
+    <link rel="icon" href="/assets/favcon/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" href="/assets/favcon/apple-touch-icon.png" />
+    <title>PTP | Paid To Promote</title>
+    <link rel="stylesheet" href="/css/layout.css" />
+    <link rel="stylesheet" href="/css/ptp.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  </head>
+  <body>
+    <div id="layoutInclude"></div>
 
-    .maintenance-box {
-      background: linear-gradient(135deg, #1e2140 0%, #2a2d4a 100%);
-      border: 2px solid #4a4f7a;
-      border-radius: 12px;
-      padding: 40px 30px;
-      text-align: center;
-      max-width: 500px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    }
+    <main class="app ptp-main">
+      <section class="ptp-hero">
+        <h1><i class="bi bi-megaphone-fill"></i> Paid To Promote</h1>
+        <p class="hero-desc">Promote your link for <strong>$0.10 USDC</strong> and earn <strong>$0.10 USDC</strong> for every 1,000 impressions!</p>
+      </section>
 
-    .maintenance-icon {
-      font-size: 64px;
-      color: #ffa500;
-      margin-bottom: 20px;
-      animation: pulse 2s infinite;
-    }
+      <section class="ptp-section">
+        <div class="ptp-section-head">
+          <h2><i class="bi bi-share"></i> Promote</h2>
+          <p>Copy your unique link and share to earn per 1,000 impressions (CPM).</p>
+        </div>
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.7; transform: scale(1.05); }
-    }
+        <article class="ptp-card">
+          <h3>Your Promo Link</h3>
+          <div class="ptp-link-box">
+            <input id="ptpLink" type="text" readonly placeholder="Loading link..." />
+            <button id="copyPtpLink" class="btn-copy" type="button" aria-label="Copy link">
+              <i class="bi bi-clipboard-check"></i>
+            </button>
+          </div>
+          <small>Earn $0.10 USDC per 1,000 impressions</small>
+          <p id="ptpLinkFeedback" class="ptp-feedback"></p>
 
-    .maintenance-box h1 {
-      color: #fff;
-      font-size: 28px;
-      margin-bottom: 15px;
-      font-weight: 700;
-    }
+          <div class="earnings-display">
+            <div id="earningsDisplay">Loading earnings...</div>
+          </div>
+          <div id="earningsChart" class="earnings-chart"></div>
+          <div id="earningsChartAxis" class="earnings-chart-axis"></div>
+          <p id="earningsFeedback" class="ptp-feedback"></p>
+        </article>
+      </section>
 
-    .maintenance-box p {
-      color: #b0b5d0;
-      font-size: 16px;
-      line-height: 1.6;
-      margin-bottom: 10px;
-    }
+      <section class="ptp-section">
+        <div class="ptp-section-head">
+          <h2><i class="bi bi-megaphone"></i> Advertise</h2>
+          <p>Create your ad campaign and track your links.</p>
+        </div>
 
-    .maintenance-status {
-      background: rgba(255, 165, 0, 0.1);
-      border-left: 4px solid #ffa500;
-      padding: 15px;
-      margin-top: 20px;
-      border-radius: 6px;
-      color: #ffd699;
-      font-size: 14px;
-    }
+        <div class="ptp-grid">
+        <article class="ptp-card">
+          <h3><i class="bi bi-plus-circle-fill"></i> Create Ad</h3>
+          <form id="createAdForm" class="ptp-form">
+            <label class="ptp-field" for="adTitle">
+              <span>Title</span>
+              <input id="adTitle" type="text" maxlength="120" placeholder="Ex: My new project" required />
+            </label>
+            <label class="ptp-field" for="adUrl">
+              <span>URL</span>
+              <input id="adUrl" type="text" placeholder="https://seusite.com" required />
+            </label>
+            <label class="ptp-field" for="adViews">
+              <span>Views</span>
+              <input id="adViews" type="number" min="1" max="10000000" step="1" placeholder="1000" required />
+            </label>
+            <button class="btn primary" type="submit"><i class="bi bi-check2-circle"></i> Create ad</button>
+          </form>
+          <p id="createAdFeedback" class="ptp-feedback"></p>
+        </article>
 
-    .maintenance-box .btn {
-      margin-top: 25px;
-      display: inline-block;
-      padding: 12px 30px;
-      background: linear-gradient(135deg, #ffa500 0%, #ff8c00 100%);
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.3s ease;
-    }
+        <article class="ptp-card">
+          <h3><i class="bi bi-collection-play-fill"></i> My Ads</h3>
+          <div id="adsList" class="ads-list"></div>
+          <p id="manageAdsFeedback" class="ptp-feedback"></p>
+        </article>
+        </div>
+      </section>
+    </main>
 
-    .maintenance-box .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(255, 165, 0, 0.3);
-    }
-  </style>
-  <script src="/js/layout.js" defer></script>
-</head>
-<body>
-  <div id="layoutInclude"></div>
-  <main class="maintenance-container">
-    <div class="maintenance-box">
-      <div class="maintenance-icon">
-        <i class="bi bi-tools"></i>
-      </div>
-      <h1>Manutenção Planejada</h1>
-      <p>O sistema PTP está sob manutenção neste momento.</p>
-      <p>Estamos trabalhando para melhorar sua experiência. Por favor, tente novamente em breve.</p>
-      <div class="maintenance-status">
-        <strong>Status:</strong> Em manutenção<br>
-        <small>Esperado retorno: dentro de algumas horas</small>
-      </div>
-      <a href="/dashboard" class="btn">
-        <i class="bi bi-arrow-left"></i> Voltar ao Dashboard
-      </a>
-    </div>
-  </main>
-</body>
+    <script src="/js/layout.js"></script>
+    <script src="/js/ptp.js"></script>
+  </body>
 </html>

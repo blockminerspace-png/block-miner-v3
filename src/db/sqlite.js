@@ -318,9 +318,16 @@ async function initializeDatabase() {
       slot_size INTEGER NOT NULL DEFAULT 1,
       image_url TEXT,
       is_active INTEGER NOT NULL DEFAULT 1,
+      show_in_shop INTEGER NOT NULL DEFAULT 1,
       created_at INTEGER NOT NULL
     )
   `);
+
+  try {
+    await run("ALTER TABLE miners ADD COLUMN show_in_shop INTEGER NOT NULL DEFAULT 1");
+  } catch {
+    // Column already exists.
+  }
 
   const faucetMinerSlug = config.faucet?.rewardMinerSlug || "faucet-1ghs";
   const faucetMinerName = "Faucet Miner";
@@ -1010,6 +1017,7 @@ async function initializeDatabase() {
       user_id INTEGER NOT NULL,
       shortlink_type TEXT NOT NULL DEFAULT 'internal',
       current_step INTEGER NOT NULL DEFAULT 0,
+      daily_runs INTEGER NOT NULL DEFAULT 0,
       completed_at INTEGER,
       reset_at INTEGER,
       created_at INTEGER NOT NULL,
@@ -1024,6 +1032,42 @@ async function initializeDatabase() {
   await run(`
     CREATE INDEX IF NOT EXISTS idx_shortlink_completions_completed_at ON shortlink_completions(completed_at)
   `);
+
+  await run(`
+    CREATE TABLE IF NOT EXISTS shortlink_rewards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      shortlink_type TEXT NOT NULL,
+      miner_id INTEGER NOT NULL,
+      reward_name TEXT NOT NULL,
+      hash_rate REAL NOT NULL DEFAULT 0,
+      slot_size INTEGER NOT NULL DEFAULT 1,
+      image_url TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (miner_id) REFERENCES miners(id)
+    )
+  `);
+
+  await run(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_shortlink_rewards_type ON shortlink_rewards(shortlink_type)
+  `);
+
+  await run(`
+    CREATE INDEX IF NOT EXISTS idx_shortlink_rewards_miner_id ON shortlink_rewards(miner_id)
+  `);
+
+  try {
+    await run("ALTER TABLE shortlink_completions ADD COLUMN daily_runs INTEGER NOT NULL DEFAULT 0");
+  } catch {
+    // Column already exists.
+  }
+
+  try {
+    await run("ALTER TABLE shortlink_completions ADD COLUMN reset_at INTEGER");
+  } catch {
+    // Column already exists.
+  }
 }
 
 module.exports = {

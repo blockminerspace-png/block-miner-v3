@@ -6,11 +6,14 @@ const { createRateLimiter } = require("../middleware/rateLimit");
 
 const shortlinkLimiter = createRateLimiter({
   windowMs: 60 * 1000,
-  max: 10
+  max: 60
 });
 
 // Get shortlink status
 router.get("/status", requireAuth, shortlinkLimiter, shortlinkController.getShortlinkStatus);
+
+// Start shortlink from step 1
+router.post("/start", requireAuth, shortlinkLimiter, shortlinkController.startShortlink);
 
 // Complete shortlink step
 router.post("/complete-step", requireAuth, shortlinkLimiter, shortlinkController.completeShortlinkStep);

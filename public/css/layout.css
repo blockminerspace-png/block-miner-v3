@@ -22,6 +22,15 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+button,
+input,
+select,
+textarea {
+  font-family: "Segoe UI Variable", "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
 
 body.with-layout {
   margin: 0;

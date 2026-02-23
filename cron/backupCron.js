@@ -1,5 +1,6 @@
 const logger = require("../utils/logger").child("BackupCron");
 const { createDatabaseBackup, pruneBackups, getBackupConfig } = require("../utils/backup");
+const { createCronActionRunner } = require("./cronActionRunner");
 const cron = require('node-cron');
 const config = require('../src/config');
 
@@ -30,6 +31,7 @@ function getIntervalMs() {
 }
 
 function startBackupCron({ run }) {
+  const runCronAction = createCronActionRunner({ logger, cronName: "BackupCron" });
   const enabled = parseBoolean(process.env.BACKUP_ENABLED, true);
   if (!enabled) {
     logger.info("Backup cron disabled via BACKUP_ENABLED");
@@ -42,14 +44,33 @@ function startBackupCron({ run }) {
   const intervalMs = getIntervalMs();
 
   const tick = async () => {
-    const config = getBackupConfig();
-    try {
-      const result = await createDatabaseBackup({ run, ...config, logger });
-      logger.info("Database backup created", { backupFile: result.backupFile, method: result.method });
-      await pruneBackups({ ...config, logger });
-    } catch (error) {
-      logger.error("Backup cron tick failed", { error: error.message });
-    }
+    await runCronAction({
+      action: "backup_tick",
+      meta: { trigger: "scheduler" },
+      prepare: async () => ({ backupConfig: getBackupConfig(), hasRunFn: typeof run === "function" }),
+      validate: async ({ hasRunFn }) => {
+        if (!hasRunFn) {
+          return { ok: false, reason: "missing_run_function" };
+        }
+        return { ok: true };
+      },
+      sanitize: async ({ backupConfig }) => ({
+        backupConfig
+      }),
+      execute: async ({ backupConfig }) => {
+        const result = await createDatabaseBackup({ run, ...backupConfig, logger });
+        await pruneBackups({ ...backupConfig, logger });
+        return result;
+      },
+      confirm: async ({ executionResult }) => ({
+        ok: Boolean(executionResult?.backupFile),
+        reason: executionResult?.backupFile ? null : "missing_backup_file",
+        details: {
+          backupFile: executionResult?.backupFile || null,
+          method: executionResult?.method || null
+        }
+      })
+    });
   };
 
   // If configuration provides a cron expression, schedule with node-cron

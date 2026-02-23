@@ -1,5 +1,8 @@
 const logger = require("../utils/logger").child("ShortlinkResetCron");
 const shortlinkModel = require("../models/shortlinkModel");
+const { createCronActionRunner } = require("./cronActionRunner");
+
+const runCronAction = createCronActionRunner({ logger, cronName: "ShortlinkResetCron" });
 
 // Get next 9 AM BRT time
 function getNext9AMBRT() {
@@ -22,17 +25,20 @@ function getNext9AMBRT() {
 }
 
 async function resetShortlinks() {
-  try {
-    const result = await shortlinkModel.resetAllShortlinks();
-    
-    logger.info("Shortlink reset executed", {
-      updatedRows: result.changes
-    });
-  } catch (error) {
-    logger.error("Failed to reset shortlinks", {
-      error: error.message
-    });
-  }
+  await runCronAction({
+    action: "reset_shortlinks",
+    logStart: false,
+    validate: async () => ({ ok: typeof shortlinkModel.resetAllShortlinks === "function", reason: "missing_reset_function" }),
+    sanitize: async () => ({}),
+    execute: async () => {
+      const result = await shortlinkModel.resetAllShortlinks();
+      return { updatedRows: Number(result?.changes || 0) };
+    },
+    confirm: async ({ executionResult }) => ({
+      ok: true,
+      details: { updatedRows: executionResult.updatedRows }
+    })
+  });
 }
 
 function startShortlinkResetCron() {
@@ -45,15 +51,13 @@ function startShortlinkResetCron() {
     });
     
     // Schedule first reset
-    let resetTimer = setTimeout(() => {
+    const resetTimer = setTimeout(() => {
       resetShortlinks();
       
       // After first reset, schedule it to run every 24 hours
-      const dailyResetTimer = setInterval(() => {
+      setInterval(() => {
         resetShortlinks();
       }, 24 * 60 * 60 * 1000); // Every 24 hours
-      
-      return dailyResetTimer;
     }, msUntilNext9AM);
     
     return {
