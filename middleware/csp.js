@@ -30,7 +30,7 @@ function baseDirectives({ allowWebSockets }) {
     fontSrc: ["'self'", "https://cdn.jsdelivr.net", "data:"],
 
     // Keep compatibility with current HTML (inline styles) and CDN scripts.
-    scriptSrc: ["'self'", "https://cdn.jsdelivr.net"],
+    scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
     styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
 
     connectSrc: allowWebSockets ? ["'self'", "https:", "ws:", "wss:"] : ["'self'", "https:"],
