@@ -1,8 +1,14 @@
 const OFFERWALLS = [
   {
-    key: "zerads",
-    name: "ZerAds",
+    key: "zerads-ptc",
+    name: "ZerAds PTC",
     type: "PTC",
+    logoPath: "/assets/logos/offerwall/zerads.png"
+  },
+  {
+    key: "zerads-offerwall",
+    name: "ZerAds Offerwall",
+    type: "Offerwall",
     logoPath: "/assets/logos/offerwall/zerads.png"
   }
 ];
@@ -23,16 +29,17 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-function renderOfferwallCards(ptcUrl = "") {
+function renderOfferwallCards(links = {}) {
   const grid = document.getElementById("offerwallGrid");
   if (!grid) return;
-
-  const hasUrl = Boolean(String(ptcUrl || "").trim());
 
   grid.innerHTML = OFFERWALLS.map((item) => {
     const safeName = escapeHtml(item.name);
     const safeType = escapeHtml(item.type);
     const safeLogoPath = escapeHtml(item.logoPath);
+    const itemUrl = String(links[item.key] || "").trim();
+    const hasUrl = Boolean(itemUrl);
+    const actionText = item.type === "Offerwall" ? "Open Offerwall" : "Start PTC";
 
     return `
       <article class="offerwall-item">
@@ -52,59 +59,52 @@ function renderOfferwallCards(ptcUrl = "") {
         </div>
         <a
           class="btn primary offerwall-open-btn${hasUrl ? "" : " is-disabled"}"
-          href="${hasUrl ? escapeHtml(ptcUrl) : "#"}"
+          href="${hasUrl ? escapeHtml(itemUrl) : "#"}"
           target="_blank"
           rel="noopener noreferrer"
           aria-disabled="${hasUrl ? "false" : "true"}"
         >
-          Start PTC
+          ${actionText}
         </a>
       </article>
     `;
   }).join("");
 }
 
-async function loadPtcLink() {
-  const startBtn = document.getElementById("startZeradsPtcBtn");
-
+async function loadOfferwallLinks() {
   try {
-    const response = await fetch("/api/zerads/ptc-link", {
-      method: "GET",
-      credentials: "include"
-    });
-    const data = await response.json();
+    const [ptcResponse, offerwallResponse] = await Promise.all([
+      fetch("/api/zerads/ptc-link", {
+        method: "GET",
+        credentials: "include"
+      }),
+      fetch("/api/zerads/offerwall-link", {
+        method: "GET",
+        credentials: "include"
+      })
+    ]);
 
-    if (!data.ok || !data.ptcUrl) {
-      if (startBtn) {
-        startBtn.href = "#";
-        startBtn.setAttribute("aria-disabled", "true");
-        startBtn.style.pointerEvents = "none";
-        startBtn.style.opacity = "0.7";
-      }
-      renderOfferwallCards("");
-      setFeedback(data.message || "Unable to load ZerAds link.", true);
+    const ptcData = await ptcResponse.json();
+    const offerwallData = await offerwallResponse.json();
+
+    const links = {
+      "zerads-ptc": ptcData?.ok ? ptcData.ptcUrl : "",
+      "zerads-offerwall": offerwallData?.ok ? offerwallData.offerwallUrl : ""
+    };
+
+    const hasAnyLink = Boolean(links["zerads-ptc"] || links["zerads-offerwall"]);
+    renderOfferwallCards(links);
+
+    if (!hasAnyLink) {
+      const message = ptcData?.message || offerwallData?.message || "Unable to load ZerAds links.";
+      setFeedback(message, true);
       return;
     }
 
-    if (startBtn) {
-      startBtn.href = data.ptcUrl;
-      startBtn.setAttribute("aria-disabled", "false");
-      startBtn.style.pointerEvents = "auto";
-      startBtn.style.opacity = "1";
-    }
-
-    renderOfferwallCards(data.ptcUrl);
-
-    setFeedback("PTC button ready. Click to start.");
+    setFeedback("PTC and Offerwall links are ready.");
   } catch (error) {
-    if (startBtn) {
-      startBtn.href = "#";
-      startBtn.setAttribute("aria-disabled", "true");
-      startBtn.style.pointerEvents = "none";
-      startBtn.style.opacity = "0.7";
-    }
-    renderOfferwallCards("");
-    setFeedback("Connection error while loading ZerAds link.", true);
+    renderOfferwallCards({});
+    setFeedback("Connection error while loading ZerAds links.", true);
     console.error(error);
   }
 }
@@ -155,8 +155,8 @@ async function loadStats() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  renderOfferwallCards("");
-  loadPtcLink();
+  renderOfferwallCards({});
+  loadOfferwallLinks();
   loadStats();
 
   setInterval(() => {
