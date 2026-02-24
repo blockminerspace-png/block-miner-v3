@@ -248,6 +248,7 @@ class MiningEngine {
 
     let totalHashRate = 0;
     let activeMiners = 0;
+    const minerDetails = [];
 
     for (const [minerId, miner] of this.miners.entries()) {
       if (miner.boostEndsAt > 0 && now >= miner.boostEndsAt) {
@@ -261,6 +262,17 @@ class MiningEngine {
         activeMiners += 1;
       }
       this.roundWork.set(minerId, (this.roundWork.get(minerId) || 0) + hashRate);
+      
+      // Track miner details for debug logging
+      minerDetails.push({
+        userId: miner.userId,
+        username: miner.username,
+        baseHashRate: miner.baseHashRate,
+        active: miner.active,
+        connected: miner.connected,
+        hashRate,
+        accumulatedWork: this.roundWork.get(minerId) || 0
+      });
     }
 
     this.currentNetworkHashRate = totalHashRate;
@@ -275,7 +287,8 @@ class MiningEngine {
         blockNumber: this.blockNumber,
         activeMiners,
         totalHashRate: totalHashRate.toFixed(2),
-        minerCount: this.miners.size
+        minerCount: this.miners.size,
+        minerDetails
       });
       this.distributeRewards();
     }

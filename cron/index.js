@@ -6,10 +6,10 @@ const { startBackupCron } = require("./backupCron");
 const { startCallbackQueueProcessing } = require("./callbackQueueCron");
 const { startShortlinkResetCron } = require("./shortlinkResetCron");
 
-function startCronTasks({ engine, io, persistMinerProfile, run, buildPublicState, syncEngineMiners }) {
+function startCronTasks({ engine, io, persistMinerProfile, run, buildPublicState, syncEngineMiners, syncUserBaseHashRate }) {
   const miningTimers = startMiningLoop(
     { engine, io, persistMinerProfile, buildPublicState },
-    { syncEngineMiners }
+    { syncEngineMiners, syncUserBaseHashRate }
   );
   const cleanupTimers = startGamePowerCleanup({ run });
   const depositTimers = startDepositMonitoring();

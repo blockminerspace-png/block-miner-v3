@@ -8,6 +8,7 @@ function startMiningLoop({ engine, io, persistMinerProfile, buildPublicState }, 
   const persistMs = Number(options.persistMs || DEFAULT_PERSIST_MS);
   const startupProbeMs = Number(options.startupProbeMs || 10_000);
   const syncEngineMiners = typeof options.syncEngineMiners === "function" ? options.syncEngineMiners : null;
+  const syncUserBaseHashRate = typeof options.syncUserBaseHashRate === "function" ? options.syncUserBaseHashRate : null;
   const runCronAction = createCronActionRunner({ logger, cronName: "MiningCron" });
   const startedAt = Date.now();
   const startupMetrics = {
@@ -89,9 +90,18 @@ function startMiningLoop({ engine, io, persistMinerProfile, buildPublicState }, 
         miners: [...engine.miners.values()]
       }),
       execute: async ({ miners }) => {
+        // Sync baseHashRate for all users with machines before persisting
+        if (syncUserBaseHashRate) {
+          const userIds = [...new Set(miners.map((m) => m.userId).filter(Boolean))];
+          await Promise.all(userIds.map((userId) => syncUserBaseHashRate(userId)));
+        }
+        
+        // Sync engine miners from database
         if (syncEngineMiners) {
           await syncEngineMiners();
         }
+        
+        // Persist all miner profiles
         const saves = miners.map((miner) => persistMinerProfile(miner));
         const settled = await Promise.allSettled(saves);
         const fulfilled = settled.filter((entry) => entry.status === "fulfilled").length;

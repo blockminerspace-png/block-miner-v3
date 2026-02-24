@@ -836,13 +836,25 @@ initializeDatabase()
 
     await syncEngineMiners();
 
+    // Sync baseHashRate for all users on startup
+    try {
+      const users = await all("SELECT DISTINCT user_id FROM users_temp_power WHERE user_id IS NOT NULL");
+      const userIds = users.map((u) => u.user_id);
+      logger.info("Syncing baseHashRate for all users on startup", { userCount: userIds.length });
+      await Promise.all(userIds.map((userId) => publicStateService.syncUserBaseHashRate(userId)));
+      logger.info("BaseHashRate sync completed");
+    } catch (error) {
+      logger.error("Failed to sync baseHashRate on startup", { error: error.message });
+    }
+
     startCronTasks({
       engine,
       io,
       persistMinerProfile,
       run,
       buildPublicState: publicStateService.buildPublicState,
-      syncEngineMiners
+      syncEngineMiners,
+      syncUserBaseHashRate: publicStateService.syncUserBaseHashRate
     });
     server.listen(PORT, "0.0.0.0", () => {
       logger.info(`BlockMiner server started on port ${PORT}`, { env: process.env.NODE_ENV });
