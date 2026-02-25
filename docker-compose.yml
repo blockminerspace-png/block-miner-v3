@@ -3,8 +3,10 @@ services:
     build: .
     ports:
       - "127.0.0.1:3000:3000"
+
     env_file:
       - .env
+
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -12,10 +14,14 @@ services:
       BACKUP_DIR: /app/backups
       BACKUP_RETENTION_DAYS: 7
       BACKUP_INTERVAL_HOURS: 24
+      BACKUP_CLOUD_ENABLED: "true"
+      BACKUP_CLOUD_REMOTE: "gdrive:BlockMinerBackups"
+
     volumes:
       - ./data:/app/data
       - ./backups:/app/backups
       - /root/.config/rclone:/root/.config/rclone:ro
+
     restart: unless-stopped
 
   nginx:
