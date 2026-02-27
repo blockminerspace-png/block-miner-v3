@@ -55,11 +55,46 @@ if (JWT_SECRET.length < 32) {
   throw new Error("CRITICAL: JWT_SECRET must be at least 32 characters long for security");
 }
 
+function parsePositiveInt(value, fallback) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+const HTTP_GLOBAL_RATE_WINDOW_MS = parsePositiveInt(process.env.HTTP_GLOBAL_RATE_WINDOW_MS, 60_000);
+const HTTP_GLOBAL_RATE_MAX = parsePositiveInt(process.env.HTTP_GLOBAL_RATE_MAX, 240);
+const HTTP_API_RATE_WINDOW_MS = parsePositiveInt(process.env.HTTP_API_RATE_WINDOW_MS, 60_000);
+const HTTP_API_RATE_MAX = parsePositiveInt(process.env.HTTP_API_RATE_MAX, 120);
+const SOCKET_MAX_HTTP_BUFFER_SIZE = parsePositiveInt(process.env.SOCKET_MAX_HTTP_BUFFER_SIZE, 64 * 1024);
+const SOCKET_PING_INTERVAL_MS = parsePositiveInt(process.env.SOCKET_PING_INTERVAL_MS, 25_000);
+const SOCKET_PING_TIMEOUT_MS = parsePositiveInt(process.env.SOCKET_PING_TIMEOUT_MS, 20_000);
+const SOCKET_CONNECT_TIMEOUT_MS = parsePositiveInt(process.env.SOCKET_CONNECT_TIMEOUT_MS, 10_000);
+const SERVER_REQUEST_TIMEOUT_MS = parsePositiveInt(process.env.SERVER_REQUEST_TIMEOUT_MS, 30_000);
+const SERVER_HEADERS_TIMEOUT_MS = parsePositiveInt(process.env.SERVER_HEADERS_TIMEOUT_MS, 35_000);
+const SERVER_KEEPALIVE_TIMEOUT_MS = parsePositiveInt(process.env.SERVER_KEEPALIVE_TIMEOUT_MS, 5_000);
+
 const app = express();
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true
+  },
+  maxHttpBufferSize: SOCKET_MAX_HTTP_BUFFER_SIZE,
+  pingInterval: SOCKET_PING_INTERVAL_MS,
+  pingTimeout: SOCKET_PING_TIMEOUT_MS,
+  connectTimeout: SOCKET_CONNECT_TIMEOUT_MS,
+  allowEIO3: false,
+  transports: ["websocket", "polling"]
+});
 const engine = new MiningEngine();
 engine.setRewardLogger(logMiningReward); // Register reward logging callback
 const publicStateService = createPublicStateService({ engine, get, run, all });
@@ -317,6 +352,31 @@ app.use(createCspMiddleware());
 
 // CSRF protection for cookie-authenticated unsafe requests
 app.use(createCsrfMiddleware());
+
+const globalLimiterStaticPrefixes = ["/assets", "/css", "/js", "/includes", "/public"];
+const globalLimiter = createRateLimiter({
+  windowMs: HTTP_GLOBAL_RATE_WINDOW_MS,
+  max: HTTP_GLOBAL_RATE_MAX,
+  keyGenerator: (req) => `${req.ip}:global`,
+  skip: (req) => {
+    if (req.method === "OPTIONS") return true;
+
+    const routePath = req.path || "/";
+    if (routePath === "/api/health") return true;
+    if (routePath.startsWith("/socket.io/")) return true;
+
+    return globalLimiterStaticPrefixes.some((prefix) => routePath.startsWith(prefix));
+  }
+});
+const apiLimiter = createRateLimiter({
+  windowMs: HTTP_API_RATE_WINDOW_MS,
+  max: HTTP_API_RATE_MAX,
+  keyGenerator: (req) => `${req.ip}:api`,
+  skip: (req) => req.method === "OPTIONS"
+});
+
+app.use(globalLimiter);
+app.use("/api", apiLimiter);
 
 const blockedPrefixes = ["/controllers", "/models", "/src", "/utils", "/data", "/cron", "/routes"];
 const blockedExtensions = new Set([".js", ".map", ".sql", ".sqlite", ".db", ".env", ".log"]);
@@ -1035,6 +1095,10 @@ registerMinerSocketHandlers({
 });
 
 const PORT = process.env.PORT || 3000;
+
+server.requestTimeout = SERVER_REQUEST_TIMEOUT_MS;
+server.headersTimeout = Math.max(SERVER_HEADERS_TIMEOUT_MS, SERVER_KEEPALIVE_TIMEOUT_MS + 1_000);
+server.keepAliveTimeout = SERVER_KEEPALIVE_TIMEOUT_MS;
 
 function getLocalIpv4Addresses() {
   const interfaces = os.networkInterfaces();

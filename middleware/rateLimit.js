@@ -2,6 +2,9 @@ function createRateLimiter({
   windowMs = 60_000,
   max = 30,
   keyGenerator,
+  skip,
+  message = "Too many requests. Slow down.",
+  statusCode = 429,
   cleanupIntervalMs = 5 * 60_000,
   staleAfterMs = windowMs * 2,
   maxKeys = 10_000
@@ -37,6 +40,11 @@ function createRateLimiter({
   }
 
   return (req, res, next) => {
+    if (typeof skip === "function" && skip(req)) {
+      next();
+      return;
+    }
+
     const now = Date.now();
 
     if (cleanupIntervalMs > 0 && now - lastCleanupAt >= cleanupIntervalMs) {
@@ -57,8 +65,16 @@ function createRateLimiter({
     entry.count += 1;
     hits.set(key, entry);
 
+    const remaining = Math.max(max - entry.count, 0);
+    const retryAfterSeconds = Math.max(Math.ceil((entry.resetAt - now) / 1000), 1);
+
+    res.setHeader("X-RateLimit-Limit", String(max));
+    res.setHeader("X-RateLimit-Remaining", String(remaining));
+    res.setHeader("X-RateLimit-Reset", String(Math.ceil(entry.resetAt / 1000)));
+
     if (entry.count > max) {
-      res.status(429).json({ ok: false, message: "Too many requests. Slow down." });
+      res.setHeader("Retry-After", String(retryAfterSeconds));
+      res.status(statusCode).json({ ok: false, message });
       return;
     }
 
