@@ -25,7 +25,7 @@ function baseDirectives({ allowWebSockets }) {
     defaultSrc: ["'self'"],
     baseUri: ["'self'"],
     frameAncestors: ["'self'"],
-    frameSrc: ["'self'", "https://www.youtube.com", "https://www.youtube-nocookie.com"],
+    frameSrc: ["'self'", "https://www.youtube.com", "https://www.youtube-nocookie.com", "https://ad.a-ads.com"],
     objectSrc: ["'none'"],
     imgSrc: ["'self'", "data:", "https:"],
     fontSrc: ["'self'", "https://cdn.jsdelivr.net", "data:"],

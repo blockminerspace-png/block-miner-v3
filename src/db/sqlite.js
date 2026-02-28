@@ -420,6 +420,29 @@ async function initializeDatabase() {
   `);
 
   await run(`
+    CREATE TABLE IF NOT EXISTS faucet_partner_visits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      day_key TEXT NOT NULL,
+      opened_at INTEGER NOT NULL,
+      eligible_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
+  await run(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_faucet_partner_visits_user_day
+      ON faucet_partner_visits(user_id, day_key)
+  `);
+
+  await run(`
+    CREATE INDEX IF NOT EXISTS idx_faucet_partner_visits_eligible_at
+      ON faucet_partner_visits(eligible_at)
+  `);
+
+  await run(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_checkins_user_date
       ON daily_checkins(user_id, checkin_date)
   `);

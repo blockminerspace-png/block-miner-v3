@@ -9,6 +9,7 @@ const faucetLimiter = createRateLimiter({ windowMs: 60_000, max: 20 });
 const faucetClaimLimiter = createRateLimiter({ windowMs: 60_000, max: 6 });
 
 router.get("/status", requireAuth, faucetLimiter, faucetController.getStatus);
+router.post("/partner/start", requireAuth, faucetLimiter, faucetController.startPartnerVisit);
 router.post("/claim", requireAuth, faucetClaimLimiter, faucetController.claim);
 
 module.exports = router;

@@ -4,7 +4,7 @@ const shortlinkRewardModel = require("../models/shortlinkRewardModel");
 const logger = require("../utils/logger").child("ShortlinkController");
 
 const TOTAL_STEPS = 3;
-const MAX_DAILY_RUNS = 10;
+const MAX_DAILY_RUNS = 1;
 
 // Get shortlink status
 async function getShortlinkStatus(req, res) {
@@ -47,7 +47,7 @@ async function startShortlink(req, res) {
     if (completedRuns >= MAX_DAILY_RUNS && Number(status.current_step || 0) === 0) {
       return res.status(400).json({
         ok: false,
-        message: "Daily limit reached. You can run this shortlink up to 10 times per day."
+        message: "Daily limit reached. You can run this shortlink once per day."
       });
     }
 
@@ -92,7 +92,7 @@ async function completeShortlinkStep(req, res) {
     if (completedRuns >= MAX_DAILY_RUNS && Number(status.current_step || 0) === 0) {
       return res.status(400).json({
         ok: false,
-        message: "Daily limit reached. You can run this shortlink up to 10 times per day."
+        message: "Daily limit reached. You can run this shortlink once per day."
       });
     }
 

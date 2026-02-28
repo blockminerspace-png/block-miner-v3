@@ -31,6 +31,7 @@ const { createAdminAuthRouter } = require("./routes/admin-auth");
 const { requireAdmin } = require("./middleware/admin");
 const { adminPageAuth } = require("./middleware/adminPageAuth");
 const { requireAdminAuth } = require("./middleware/adminAuth");
+const { getTokenFromRequest } = require("./utils/token");
 const { getUserById } = require("./models/userModel");
 const { verifyAccessToken } = require("./utils/authTokens");
 const { getOrCreateMinerProfile } = require("./models/minerProfileModel");
@@ -64,6 +65,7 @@ const HTTP_GLOBAL_RATE_WINDOW_MS = parsePositiveInt(process.env.HTTP_GLOBAL_RATE
 const HTTP_GLOBAL_RATE_MAX = parsePositiveInt(process.env.HTTP_GLOBAL_RATE_MAX, 240);
 const HTTP_API_RATE_WINDOW_MS = parsePositiveInt(process.env.HTTP_API_RATE_WINDOW_MS, 60_000);
 const HTTP_API_RATE_MAX = parsePositiveInt(process.env.HTTP_API_RATE_MAX, 120);
+const BLOCK_DIRECT_API_NAVIGATION = String(process.env.BLOCK_DIRECT_API_NAVIGATION || "true").toLowerCase() !== "false";
 const SOCKET_MAX_HTTP_BUFFER_SIZE = parsePositiveInt(process.env.SOCKET_MAX_HTTP_BUFFER_SIZE, 64 * 1024);
 const SOCKET_PING_INTERVAL_MS = parsePositiveInt(process.env.SOCKET_PING_INTERVAL_MS, 25_000);
 const SOCKET_PING_TIMEOUT_MS = parsePositiveInt(process.env.SOCKET_PING_TIMEOUT_MS, 20_000);
@@ -127,6 +129,288 @@ const YOUTUBE_WATCH_CLAIM_INTERVAL_MS = 60_000;
 const YOUTUBE_WATCH_BOOST_DURATION_MS = 24 * 60 * 60 * 1000;
 
 let usersPowersGamesHasCheckinId = null;
+
+const LOG_CATEGORY_DIRS = Object.freeze({
+  audit: path.join(__dirname, "storage", "logs", "audit"),
+  critical: path.join(__dirname, "storage", "logs", "critical"),
+  general: path.join(__dirname, "storage", "logs", "general"),
+  security: path.join(__dirname, "storage", "logs", "security"),
+  transactions: path.join(__dirname, "storage", "logs", "transactions")
+});
+const LOG_LEVEL_SET = new Set(["ERROR", "WARN", "INFO", "DEBUG"]);
+const LOG_LINE_REGEX = /^\[([^\]]+)]\s+\[([^\]]+)]\s+\[([^\]]+)]\s+([\s\S]*)$/;
+
+function parseCsvList(value) {
+  return String(value || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function parseDateQuery(value) {
+  if (!value) return null;
+  const asNumber = Number(value);
+  if (Number.isFinite(asNumber) && asNumber > 0) {
+    return asNumber;
+  }
+
+  const parsed = Date.parse(String(value));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function clampInt(value, min, max, fallback) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function parseLogLine(rawLine, category, fileName) {
+  const line = String(rawLine || "").trim();
+  if (!line) return null;
+
+  const match = line.match(LOG_LINE_REGEX);
+  if (!match) {
+    return {
+      timestamp: null,
+      level: "INFO",
+      module: "Unknown",
+      message: line,
+      details: null,
+      category,
+      file: fileName
+    };
+  }
+
+  const timestampRaw = match[1] || "";
+  const levelRaw = String(match[2] || "INFO").toUpperCase();
+  const moduleName = match[3] || "Unknown";
+  const payload = match[4] || "";
+  const separatorIndex = payload.indexOf(" | ");
+  const message = separatorIndex >= 0 ? payload.slice(0, separatorIndex).trim() : payload.trim();
+  const detailsRaw = separatorIndex >= 0 ? payload.slice(separatorIndex + 3).trim() : "";
+
+  let details = null;
+  if (detailsRaw) {
+    try {
+      details = JSON.parse(detailsRaw);
+    } catch {
+      details = detailsRaw;
+    }
+  }
+
+  const timestampMs = Date.parse(timestampRaw);
+
+  return {
+    timestamp: Number.isFinite(timestampMs) ? timestampMs : null,
+    level: LOG_LEVEL_SET.has(levelRaw) ? levelRaw : "INFO",
+    module: moduleName,
+    message,
+    details,
+    category,
+    file: fileName
+  };
+}
+
+async function listCategoryLogFiles(category) {
+  const categoryDir = LOG_CATEGORY_DIRS[category];
+  if (!categoryDir) return [];
+
+  const entries = await fs.readdir(categoryDir, { withFileTypes: true }).catch(() => []);
+  const files = entries
+    .filter((entry) => entry.isFile())
+    .map((entry) => entry.name)
+    .filter((name) => /\.log(\.\d+)?$/i.test(name));
+
+  const filesWithStats = await Promise.all(
+    files.map(async (name) => {
+      const filePath = path.join(categoryDir, name);
+      const stat = await fs.stat(filePath).catch(() => null);
+      return {
+        name,
+        filePath,
+        modifiedAt: Number(stat?.mtimeMs || 0)
+      };
+    })
+  );
+
+  return filesWithStats
+    .filter((item) => item.modifiedAt > 0)
+    .sort((a, b) => b.modifiedAt - a.modifiedAt);
+}
+
+async function readTailLines(filePath, maxLines = 400, maxBytes = 256 * 1024) {
+  const handle = await fs.open(filePath, "r");
+  try {
+    const stat = await handle.stat();
+    const fileSize = Number(stat?.size || 0);
+    if (fileSize <= 0) return [];
+
+    const readSize = Math.min(fileSize, maxBytes);
+    const start = Math.max(0, fileSize - readSize);
+    const buffer = Buffer.alloc(readSize);
+    await handle.read(buffer, 0, readSize, start);
+
+    const text = buffer.toString("utf8");
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length <= maxLines) {
+      return lines;
+    }
+
+    return lines.slice(lines.length - maxLines);
+  } finally {
+    await handle.close();
+  }
+}
+
+function buildLogSummary(events, categories, bucketMinutes) {
+  const byLevel = { ERROR: 0, WARN: 0, INFO: 0, DEBUG: 0 };
+  const byCategory = Object.fromEntries(categories.map((category) => [category, 0]));
+  const bucketSizeMs = Math.max(1, bucketMinutes) * 60 * 1000;
+  const buckets = new Map();
+
+  for (const event of events) {
+    if (!event) continue;
+
+    if (byLevel[event.level] !== undefined) {
+      byLevel[event.level] += 1;
+    }
+
+    if (byCategory[event.category] !== undefined) {
+      byCategory[event.category] += 1;
+    }
+
+    if (!event.timestamp) continue;
+    const bucketTs = Math.floor(event.timestamp / bucketSizeMs) * bucketSizeMs;
+    const bucket = buckets.get(bucketTs) || {
+      timestamp: bucketTs,
+      total: 0,
+      errors: 0,
+      warnings: 0,
+      byCategory: Object.fromEntries(categories.map((category) => [category, 0]))
+    };
+
+    bucket.total += 1;
+    if (event.level === "ERROR") bucket.errors += 1;
+    if (event.level === "WARN") bucket.warnings += 1;
+    bucket.byCategory[event.category] = Number(bucket.byCategory[event.category] || 0) + 1;
+    buckets.set(bucketTs, bucket);
+  }
+
+  const series = Array.from(buckets.values()).sort((a, b) => a.timestamp - b.timestamp);
+  const peakErrorBucket = series.reduce(
+    (best, current) => (current.errors > (best?.errors || 0) ? current : best),
+    null
+  );
+
+  return {
+    total: events.length,
+    byLevel,
+    byCategory,
+    peakErrorBucket,
+    bucketMinutes,
+    series
+  };
+}
+
+function sanitizeText(value, maxLength = 64) {
+  return String(value || "")
+    .replace(/[\u0000-\u001F\u007F]/g, "")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function sanitizePublicLeaderboard(entries) {
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+
+  return entries.map((entry) => ({
+    username: sanitizeText(entry?.username || "Miner"),
+    rigs: Number(entry?.rigs || 0),
+    active: Boolean(entry?.active),
+    lifetimeMined: Number(entry?.lifetimeMined || 0),
+    currentHashRate: Number(entry?.currentHashRate || 0)
+  }));
+}
+
+function sanitizeStatePayload(state, { includePrivateMiner = false } = {}) {
+  const safeState = {
+    serverTime: Number(state?.serverTime || Date.now()),
+    tokenSymbol: sanitizeText(state?.tokenSymbol || "POL", 16),
+    tokenPrice: Number(state?.tokenPrice || 0),
+    blockReward: Number(state?.blockReward || 0),
+    blockNumber: Number(state?.blockNumber || 0),
+    blockTarget: Number(state?.blockTarget || 0),
+    blockProgress: Number(state?.blockProgress || 0),
+    blockDurationSeconds: Number(state?.blockDurationSeconds || 0),
+    blockCountdownSeconds: Number(state?.blockCountdownSeconds || 0),
+    totalMiners: Number(state?.totalMiners || 0),
+    activeMiners: Number(state?.activeMiners || 0),
+    networkHashRate: Number(state?.networkHashRate || 0),
+    totalMinted: Number(state?.totalMinted || 0),
+    lastReward: Number(state?.lastReward || 0),
+    blockEtaSeconds: Number(state?.blockEtaSeconds || 0),
+    blockHistory: Array.isArray(state?.blockHistory) ? state.blockHistory : [],
+    leaderboard: sanitizePublicLeaderboard(state?.leaderboard)
+  };
+
+  if (!includePrivateMiner || !state?.miner) {
+    safeState.miner = null;
+    return safeState;
+  }
+
+  safeState.miner = {
+    id: sanitizeText(state.miner.id, 80),
+    username: sanitizeText(state.miner.username, 64),
+    walletAddress: sanitizeText(state.miner.walletAddress, 128),
+    rigs: Number(state.miner.rigs || 0),
+    active: Boolean(state.miner.active),
+    baseHashRate: Number(state.miner.baseHashRate || 0),
+    boostMultiplier: Number(state.miner.boostMultiplier || 1),
+    boostEndsAt: Number(state.miner.boostEndsAt || 0),
+    balance: Number(state.miner.balance || 0),
+    lifetimeMined: Number(state.miner.lifetimeMined || 0),
+    connected: Boolean(state.miner.connected),
+    estimatedHashRate: Number(state.miner.estimatedHashRate || 0)
+  };
+
+  return safeState;
+}
+
+function resolveAuthenticatedUserId(req) {
+  try {
+    const token = getTokenFromRequest(req);
+    if (!token) {
+      return null;
+    }
+
+    const payload = verifyAccessToken(token);
+    const userId = Number(payload?.sub || 0);
+    return Number.isInteger(userId) && userId > 0 ? userId : null;
+  } catch {
+    return null;
+  }
+}
+
+function isDirectApiNavigationRequest(req) {
+  const secFetchDest = String(req.get("sec-fetch-dest") || "").toLowerCase();
+  const secFetchMode = String(req.get("sec-fetch-mode") || "").toLowerCase();
+  const acceptHeader = String(req.get("accept") || "").toLowerCase();
+
+  if (secFetchDest === "document" || secFetchMode === "navigate") {
+    return true;
+  }
+
+  if (acceptHeader.includes("text/html") && !acceptHeader.includes("application/json")) {
+    return true;
+  }
+
+  return false;
+}
 
 async function fetchWithTimeout(url, init, timeoutMs) {
   const controller = new AbortController();
@@ -377,6 +661,26 @@ const apiLimiter = createRateLimiter({
 
 app.use(globalLimiter);
 app.use("/api", apiLimiter);
+
+app.use("/api", (req, res, next) => {
+  if (!BLOCK_DIRECT_API_NAVIGATION || req.method === "OPTIONS") {
+    next();
+    return;
+  }
+
+  if (isDirectApiNavigationRequest(req)) {
+    logger.warn("Blocked direct backend navigation", {
+      method: req.method,
+      path: req.path,
+      ip: req.ip,
+      userAgent: req.get("user-agent") || ""
+    });
+    res.status(404).send("Not found");
+    return;
+  }
+
+  next();
+});
 
 const blockedPrefixes = ["/controllers", "/models", "/src", "/utils", "/data", "/cron", "/routes"];
 const blockedExtensions = new Set([".js", ".map", ".sql", ".sqlite", ".db", ".env", ".log"]);
@@ -767,6 +1071,114 @@ app.get("/api/admin/backups", requireAdminAuth, adminLimiter, validateQuery(back
   }
 });
 
+app.get("/api/admin/logs", requireAdminAuth, adminLimiter, async (req, res) => {
+  try {
+    const requestedCategories = parseCsvList(req.query?.categories).map((entry) => entry.toLowerCase());
+    const validCategories = Object.keys(LOG_CATEGORY_DIRS);
+    const categories = requestedCategories.length
+      ? requestedCategories.filter((entry) => validCategories.includes(entry))
+      : validCategories;
+
+    if (categories.length === 0) {
+      return res.status(400).json({ ok: false, message: "Invalid categories filter." });
+    }
+
+    const requestedLevels = parseCsvList(req.query?.levels).map((entry) => entry.toUpperCase());
+    const levels = requestedLevels.length
+      ? requestedLevels.filter((entry) => LOG_LEVEL_SET.has(entry))
+      : Array.from(LOG_LEVEL_SET);
+
+    if (levels.length === 0) {
+      return res.status(400).json({ ok: false, message: "Invalid levels filter." });
+    }
+
+    const search = String(req.query?.search || "").trim().toLowerCase();
+    const fromMs = parseDateQuery(req.query?.from);
+    const toMs = parseDateQuery(req.query?.to);
+    const page = clampInt(req.query?.page, 1, 10_000, 1);
+    const pageSize = clampInt(req.query?.pageSize, 10, 200, 50);
+    const bucketMinutes = clampInt(req.query?.bucketMinutes, 1, 240, 15);
+    const maxFilesPerCategory = clampInt(req.query?.maxFilesPerCategory, 1, 5, 2);
+    const maxLinesPerFile = clampInt(req.query?.maxLinesPerFile, 50, 2000, 500);
+
+    const events = [];
+    let filesScanned = 0;
+
+    for (const category of categories) {
+      const files = await listCategoryLogFiles(category);
+      const selectedFiles = files.slice(0, maxFilesPerCategory);
+
+      for (const file of selectedFiles) {
+        filesScanned += 1;
+        const lines = await readTailLines(file.filePath, maxLinesPerFile);
+
+        for (const line of lines) {
+          const parsed = parseLogLine(line, category, file.name);
+          if (!parsed) continue;
+          if (!levels.includes(parsed.level)) continue;
+          if (fromMs && parsed.timestamp && parsed.timestamp < fromMs) continue;
+          if (toMs && parsed.timestamp && parsed.timestamp > toMs) continue;
+
+          if (search) {
+            const detailsText = parsed.details
+              ? typeof parsed.details === "string"
+                ? parsed.details
+                : JSON.stringify(parsed.details)
+              : "";
+            const haystack = `${parsed.message} ${parsed.module} ${parsed.file} ${detailsText}`.toLowerCase();
+            if (!haystack.includes(search)) continue;
+          }
+
+          events.push(parsed);
+        }
+      }
+    }
+
+    events.sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
+
+    const summary = buildLogSummary(events, categories, bucketMinutes);
+    const total = events.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.min(page, totalPages);
+    const offset = (safePage - 1) * pageSize;
+    const paged = events.slice(offset, offset + pageSize);
+
+    res.json({
+      ok: true,
+      filters: {
+        categories,
+        levels,
+        search,
+        from: fromMs,
+        to: toMs,
+        bucketMinutes
+      },
+      summary: {
+        total: summary.total,
+        byLevel: summary.byLevel,
+        byCategory: summary.byCategory,
+        peakErrorBucket: summary.peakErrorBucket,
+        filesScanned
+      },
+      series: summary.series,
+      pagination: {
+        page: safePage,
+        pageSize,
+        total,
+        totalPages
+      },
+      events: paged
+    });
+  } catch (error) {
+    logger.error("Admin logs query failed", {
+      error: error?.message || "unknown_error",
+      adminId: req.admin?.id || null
+    });
+
+    res.status(500).json({ ok: false, message: "Unable to load logs." });
+  }
+});
+
 app.delete("/api/admin/backups", requireAdminAuth, adminLimiter, validateBody(backupDeleteSchema), async (req, res) => {
   try {
     const backupConfig = getBackupConfig();
@@ -903,9 +1315,20 @@ app.use("/api/admin/auto-mining-rewards", adminAutoMiningRewardsRouter);
 
 app.get("/api/state", async (req, res) => {
   try {
-    const { minerId } = req.query;
+    const rawMinerId = String(req.query?.minerId || "").trim();
+    const minerId = rawMinerId || undefined;
     const state = await publicStateService.buildPublicState(minerId);
-    res.json(state);
+
+    const authenticatedUserId = resolveAuthenticatedUserId(req);
+    let canViewPrivateMiner = false;
+
+    if (minerId && authenticatedUserId && state?.miner) {
+      const engineMiner = engine.miners.get(minerId);
+      canViewPrivateMiner = Boolean(engineMiner && Number(engineMiner.userId) === authenticatedUserId);
+    }
+
+    const safePayload = sanitizeStatePayload(state, { includePrivateMiner: canViewPrivateMiner });
+    res.json(safePayload);
   } catch {
     res.status(500).json({ ok: false, message: "Unable to load state." });
   }

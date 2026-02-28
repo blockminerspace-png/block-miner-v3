@@ -25,7 +25,7 @@ function bindEvents() {
     if (!currentStatus) return;
 
     const runsToday = Number(currentStatus.daily_runs || 0);
-    const maxDailyRuns = Number(currentStatus.maxDailyRuns || 10);
+    const maxDailyRuns = Number(currentStatus.maxDailyRuns || 1);
     if (runsToday >= maxDailyRuns && Number(currentStatus.current_step || 0) === 0) {
       alert("Daily limit reached. Try again after daily reset.");
       return;
@@ -99,7 +99,7 @@ function renderStatus() {
   contentDiv.style.display = "block";
 
   const runsToday = Number(currentStatus.daily_runs || 0);
-  const maxDailyRuns = Number(currentStatus.maxDailyRuns || 10);
+  const maxDailyRuns = Number(currentStatus.maxDailyRuns || 1);
 
   shortlinkName.textContent = currentStatus.shortlinkName || "Internal Shortlink";
   rewardName.textContent = currentStatus.rewardName || "5 GHS Mining Machine";

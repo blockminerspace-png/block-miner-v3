@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   const runsToday = Number(status.daily_runs || 0);
-  const maxDailyRuns = Number(status.maxDailyRuns || 10);
+  const maxDailyRuns = Number(status.maxDailyRuns || 1);
   const currentStep = Number(status.current_step || 0);
 
   if (runsToday >= maxDailyRuns && currentStep === 0) {

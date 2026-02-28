@@ -1,7 +1,7 @@
 const { get, all, run } = require("../src/db/sqlite");
 
 const DEFAULT_TOTAL_STEPS = 3;
-const DEFAULT_DAILY_LIMIT = 10;
+const DEFAULT_DAILY_LIMIT = 1;
 
 // Get shortlink completion status for user
 async function getUserShortlinkStatus(userId) {

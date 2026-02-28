@@ -149,7 +149,6 @@ function createPublicStateService({ engine, get, run, all }) {
 
     return rankingRows.map((row, index) => ({
       rank: index + 1,
-      userId: Number(row.user_id || 0),
       username: String(row.username || `Miner-${row.user_id || "unknown"}`),
       baseHashRate: Number(row.base_hash_rate || 0),
       gameHashRate: Number(row.game_hash_rate || 0),

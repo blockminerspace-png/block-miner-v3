@@ -5,6 +5,9 @@ const { getBrazilCheckinDateKey } = require("../utils/checkinDate");
 const DEFAULT_MINER_IMAGE_URL = "/assets/machines/reward1.png";
 
 const DEFAULT_FAUCET_COOLDOWN_MS = 60 * 60 * 1000;
+const FAUCET_PARTNER_WAIT_MS = 5_000;
+const FAUCET_PARTNER_READY_WINDOW_MS = 30_000;
+const FAUCET_PARTNER_URL = String(process.env.FAUCET_PARTNER_URL || "https://faucetpay.io/").trim();
 
 async function getActiveReward() {
   let reward = null;
@@ -79,6 +82,61 @@ async function normalizeFaucetRecord(userId, record) {
   };
 }
 
+async function getPartnerVisitForToday(userId, dayKey) {
+  return get(
+    "SELECT opened_at, eligible_at, day_key FROM faucet_partner_visits WHERE user_id = ? AND day_key = ?",
+    [userId, dayKey]
+  );
+}
+
+function buildPartnerGateStatus({ record, visit, now, todayKey, remainingMs }) {
+  const lastClaimAt = Number(record?.claimed_at || 0);
+  const visitOpenedAt = Number(visit?.opened_at || 0);
+  const visitEligibleAt = Number(visit?.eligible_at || 0);
+  const hasFreshVisit = visitOpenedAt > 0 && visitOpenedAt > lastClaimAt && String(visit?.day_key || "") === todayKey;
+  const waitRemainingMs = hasFreshVisit ? Math.max(0, visitEligibleAt - now) : 0;
+  const readyWindowRemainingMs = hasFreshVisit ? Math.max(0, visitEligibleAt + FAUCET_PARTNER_READY_WINDOW_MS - now) : 0;
+  const partnerReady = hasFreshVisit && waitRemainingMs === 0 && readyWindowRemainingMs > 0;
+  const cooldownActive = Number(remainingMs || 0) > 0;
+
+  return {
+    required: true,
+    url: FAUCET_PARTNER_URL,
+    waitMs: FAUCET_PARTNER_WAIT_MS,
+    readyWindowMs: FAUCET_PARTNER_READY_WINDOW_MS,
+    readyWindowRemainingMs: cooldownActive ? 0 : readyWindowRemainingMs,
+    cooldownActive,
+    ready: cooldownActive ? false : partnerReady,
+    waitRemainingMs: cooldownActive ? 0 : waitRemainingMs
+  };
+}
+
+async function startPartnerVisit(req, res) {
+  try {
+    const now = Date.now();
+    const todayKey = getBrazilCheckinDateKey();
+    const eligibleAt = now + FAUCET_PARTNER_WAIT_MS;
+
+    await run(
+      `INSERT INTO faucet_partner_visits (user_id, day_key, opened_at, eligible_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(user_id, day_key)
+       DO UPDATE SET opened_at = excluded.opened_at, eligible_at = excluded.eligible_at, updated_at = excluded.updated_at`,
+      [req.user.id, todayKey, now, eligibleAt, now, now]
+    );
+
+    res.json({
+      ok: true,
+      partnerUrl: FAUCET_PARTNER_URL,
+      waitMs: FAUCET_PARTNER_WAIT_MS,
+      eligibleAt
+    });
+  } catch (error) {
+    console.error("Error starting faucet partner visit:", error);
+    res.status(500).json({ ok: false, message: "Unable to start partner visit." });
+  }
+}
+
 async function getStatus(req, res) {
   try {
     const record = await get("SELECT claimed_at, total_claims, day_key FROM faucet_claims WHERE user_id = ?", [req.user.id]);
@@ -91,10 +149,22 @@ async function getStatus(req, res) {
     const normalized = await normalizeFaucetRecord(req.user.id, record);
     const statusRecord = normalized.record;
 
-    const payload = buildStatusPayload(statusRecord, Date.now(), reward.cooldownMs);
+    const now = Date.now();
+    const payload = buildStatusPayload(statusRecord, now, reward.cooldownMs);
+    const partnerVisit = await getPartnerVisitForToday(req.user.id, normalized.todayKey);
+    const partnerGate = buildPartnerGateStatus({
+      record: statusRecord,
+      visit: partnerVisit,
+      now,
+      todayKey: normalized.todayKey,
+      remainingMs: payload.remainingMs
+    });
+
     res.json({
       ok: true,
       ...payload,
+      canClaim: Boolean(payload.available && partnerGate.ready),
+      partnerGate,
       reward: {
         id: reward.rewardId,
         minerId: reward.miner.id,
@@ -122,9 +192,26 @@ async function claim(req, res) {
 
     const normalized = await normalizeFaucetRecord(req.user.id, record);
     const status = buildStatusPayload(normalized.record, now, reward.cooldownMs);
+    const partnerVisit = await getPartnerVisitForToday(req.user.id, normalized.todayKey);
+    const partnerGate = buildPartnerGateStatus({
+      record: normalized.record,
+      visit: partnerVisit,
+      now,
+      todayKey: normalized.todayKey,
+      remainingMs: status.remainingMs
+    });
 
     if (!status.available) {
       res.status(429).json({ ok: false, message: "Faucet cooldown active.", remainingMs: status.remainingMs });
+      return;
+    }
+
+    if (!partnerGate.ready) {
+      res.status(400).json({
+        ok: false,
+        message: "Open partner link and wait 5 seconds before claiming faucet.",
+        partnerGate
+      });
       return;
     }
 
@@ -173,5 +260,6 @@ async function claim(req, res) {
 
 module.exports = {
   getStatus,
-  claim
+  claim,
+  startPartnerVisit
 };

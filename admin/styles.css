@@ -17,6 +17,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   background: radial-gradient(circle at top, #1d2842, #0b0f1a 55%);
+  overflow-x: hidden;
 }
 
 .admin-app {
@@ -267,6 +268,69 @@ tbody td {
 
 .table-compact tbody td {
   font-size: 0.9rem;
+}
+
+.logs-page {
+  width: min(1380px, 100%);
+}
+
+.logs-filters-grid {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  align-items: end;
+}
+
+.logs-filters-grid label {
+  min-width: 0;
+}
+
+.logs-filters-grid input,
+.logs-filters-grid select {
+  width: 100%;
+}
+
+.logs-filters-grid select[multiple] {
+  min-height: 120px;
+}
+
+.logs-filters-actions {
+  min-width: 170px;
+}
+
+.logs-events-table {
+  min-width: 1050px;
+  table-layout: fixed;
+}
+
+.logs-events-table th,
+.logs-events-table td {
+  white-space: normal;
+  word-break: break-word;
+  vertical-align: top;
+}
+
+.logs-events-table th:nth-child(1),
+.logs-events-table td:nth-child(1) {
+  width: 155px;
+}
+
+.logs-events-table th:nth-child(2),
+.logs-events-table td:nth-child(2) {
+  width: 100px;
+}
+
+.logs-events-table th:nth-child(3),
+.logs-events-table td:nth-child(3) {
+  width: 90px;
+}
+
+.logs-events-table th:nth-child(4),
+.logs-events-table td:nth-child(4) {
+  width: 120px;
+}
+
+.logs-events-table th:nth-child(7),
+.logs-events-table td:nth-child(7) {
+  width: 90px;
 }
 
 .pill {

@@ -150,6 +150,106 @@ p {
   font-size: 0.9rem;
 }
 
+.faucet-partner-gate {
+  margin-top: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  border: 1px dashed rgba(120, 173, 255, 0.65);
+  background: rgba(22, 40, 72, 0.68);
+  color: #cfe2ff;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.faucet-partner-gate:hover,
+.faucet-partner-gate:focus-visible {
+  border-color: rgba(141, 201, 255, 0.95);
+  background: rgba(27, 49, 87, 0.9);
+}
+
+.faucet-partner-gate.is-ready {
+  border-style: solid;
+  border-color: rgba(98, 214, 138, 0.9);
+  background: rgba(24, 82, 56, 0.44);
+  color: #dbffe8;
+}
+
+.faucet-partner-gate.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.faucet-partner-status {
+  margin-top: 0.42rem;
+  color: #9fb0c9;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.faucet-partner-countdown {
+  margin-top: 0.45rem;
+  color: #ffd67c;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.faucet-ad-card {
+  margin-top: 0.8rem;
+  padding: 0.7rem;
+  border-radius: 12px;
+  border: 1px solid rgba(88, 119, 196, 0.28);
+  background: rgba(20, 31, 52, 0.75);
+  display: flex;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+}
+
+.faucet-ad-card:hover,
+.faucet-ad-card:focus-visible {
+  border-color: rgba(141, 201, 255, 0.95);
+  background: rgba(27, 49, 87, 0.9);
+}
+
+.faucet-ad-card.is-ready {
+  border-color: rgba(98, 214, 138, 0.9);
+  background: rgba(24, 82, 56, 0.44);
+}
+
+.faucet-ad-card.is-waiting {
+  border-color: rgba(255, 210, 102, 0.9);
+  background: rgba(82, 64, 24, 0.34);
+}
+
+.faucet-ad-card.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.faucet-ad-frame {
+  width: 300px;
+  max-width: 100%;
+  min-height: 250px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(109, 131, 179, 0.35);
+  background: rgba(8, 12, 24, 0.85);
+}
+
+.faucet-ad-frame iframe {
+  border: 0;
+  padding: 0;
+  width: 300px;
+  height: 250px;
+  display: block;
+  margin: auto;
+}
+
 .btn {
   border: 1px solid #5877c4;
   color: #f5f7ff;
