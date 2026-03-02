@@ -2,6 +2,7 @@ const inventoryModel = require("../models/inventoryModel");
 const minersModel = require("../models/minersModel");
 const { get } = require("../models/db");
 const { run } = require("../models/db");
+const { applyUserBalanceDelta } = require("../src/runtime/miningRuntime");
 const DEFAULT_MINER_IMAGE_URL = "/assets/machines/reward1.png";
 
 function createShopController(io) {
@@ -64,21 +65,27 @@ function createShopController(io) {
 
       const now = Date.now();
 
-      await run("BEGIN TRANSACTION");
+      await run("BEGIN IMMEDIATE");
       try {
-        const balanceUpdate = await run(
-          "UPDATE users_temp_power SET balance = balance - ?, updated_at = ? WHERE user_id = ? AND balance >= ?",
-          [price, now, req.user.id, price]
+        const userBalanceUpdate = await run(
+          "UPDATE users SET pol_balance = pol_balance - ? WHERE id = ? AND pol_balance >= ?",
+          [price, req.user.id, price]
         );
 
-        if (balanceUpdate.changes !== 1) {
+        if (userBalanceUpdate.changes !== 1) {
           await run("ROLLBACK");
           res.status(400).json({ ok: false, message: "Insufficient balance." });
           return;
         }
 
+        await run(
+          "UPDATE users_temp_power SET balance = (SELECT pol_balance FROM users WHERE id = ?), updated_at = ? WHERE user_id = ?",
+          [req.user.id, now, req.user.id]
+        );
+
         await inventoryModel.addInventoryItem(req.user.id, miner.name, 1, baseHashRate, slotSize, now, now, miner.id, miner.image_url || DEFAULT_MINER_IMAGE_URL);
         await run("COMMIT");
+        applyUserBalanceDelta(req.user.id, -price);
       } catch (error) {
         await run("ROLLBACK");
         throw error;
@@ -87,11 +94,11 @@ function createShopController(io) {
       const inventory = await inventoryModel.listInventory(req.user.id);
       io.to(`user:${req.user.id}`).emit("inventory:update", { inventory });
 
-      const updatedProfile = await get("SELECT balance FROM users_temp_power WHERE user_id = ?", [req.user.id]);
+      const updatedProfile = await get("SELECT pol_balance FROM users WHERE id = ?", [req.user.id]);
       res.json({
         ok: true,
         message: `${miner.name} added to inventory!`,
-        newBalance: Number(updatedProfile?.balance || 0)
+        newBalance: Number(updatedProfile?.pol_balance || 0)
       });
     } catch (error) {
       console.error("Error purchasing miner:", error);
