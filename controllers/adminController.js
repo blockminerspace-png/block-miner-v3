@@ -211,6 +211,32 @@ async function validateLocalMinerImagePath(imageUrl) {
   }
 }
 
+async function validateUploadedImageUniqueness(imageUrl, currentMinerId = null) {
+  if (!imageUrl) {
+    return { ok: true };
+  }
+
+  const normalizedUrl = String(imageUrl).replace(/\\/g, "/").trim();
+  const uploadPrefix = "/assets/machines/uploaded/";
+  if (!normalizedUrl.startsWith(uploadPrefix)) {
+    return { ok: true };
+  }
+
+  const existing = await get(
+    "SELECT id, name FROM miners WHERE image_url = ? AND (? IS NULL OR id != ?) LIMIT 1",
+    [normalizedUrl, currentMinerId, currentMinerId]
+  );
+
+  if (existing?.id) {
+    return {
+      ok: false,
+      message: `This uploaded image is already assigned to miner #${existing.id} (${existing.name}). Choose another image or remove it from the other miner first.`
+    };
+  }
+
+  return { ok: true };
+}
+
 function validateMinerPayload(body) {
   const name = toTrimmedString(body?.name);
   const slug = toTrimmedString(body?.slug);
@@ -512,6 +538,12 @@ function createAdminController() {
       return;
     }
 
+    const uniqueImageValidation = await validateUploadedImageUniqueness(validation.value.imageUrl, null);
+    if (!uniqueImageValidation.ok) {
+      res.status(400).json({ ok: false, message: uniqueImageValidation.message });
+      return;
+    }
+
     try {
       const miner = await minersModel.createMiner(validation.value);
       res.json({ ok: true, miner });
@@ -541,6 +573,12 @@ function createAdminController() {
     const imageValidation = await validateLocalMinerImagePath(validation.value.imageUrl);
     if (!imageValidation.ok) {
       res.status(400).json({ ok: false, message: imageValidation.message });
+      return;
+    }
+
+    const uniqueImageValidation = await validateUploadedImageUniqueness(validation.value.imageUrl, minerId);
+    if (!uniqueImageValidation.ok) {
+      res.status(400).json({ ok: false, message: uniqueImageValidation.message });
       return;
     }
 

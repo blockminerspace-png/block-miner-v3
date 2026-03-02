@@ -393,6 +393,43 @@ tbody td {
   color: #d2ffe5;
 }
 
+.miners-advanced-page {
+  width: min(1560px, 100%);
+}
+
+.miners-advanced-wrapper {
+  overflow-x: auto;
+}
+
+.miners-advanced-table {
+  width: 100%;
+  min-width: 1380px;
+  table-layout: fixed;
+}
+
+.miners-advanced-table thead th,
+.miners-advanced-table tbody td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.miners-advanced-table tbody td input[type="text"],
+.miners-advanced-table tbody td input[type="number"] {
+  width: 100%;
+  max-width: 170px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.miners-advanced-table tbody td input.image-url-field {
+  max-width: 360px;
+  text-align: left;
+}
+
+.miners-advanced-table .miner-image-preview-wrap {
+  margin: 0 auto;
+}
+
 input.duplicate-image-url {
   border-color: rgba(255, 123, 123, 0.75);
   box-shadow: 0 0 0 1px rgba(255, 123, 123, 0.35);

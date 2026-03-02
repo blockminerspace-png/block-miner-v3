@@ -223,7 +223,7 @@ function render(miners) {
         </div>
         <input type="hidden" name="slotSize" value="${Number(m.slot_size || 1)}" />
       </td>
-      <td><input type="text" name="imageUrl" value="${esc(m.image_url || "")}" placeholder="/assets/machines/..." /></td>
+      <td><input class="image-url-field" type="text" name="imageUrl" value="${esc(m.image_url || "")}" placeholder="/assets/machines/..." /></td>
       <td>
         <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-action="pick-image" style="display:none;" />
         <button class="btn small" type="button" data-action="replace-image">Trocar</button>
