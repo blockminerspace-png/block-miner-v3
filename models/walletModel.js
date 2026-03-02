@@ -1,4 +1,5 @@
 const { db, run, get } = require("../src/db/sqlite");
+const { applyUserBalanceDelta } = require("../src/runtime/miningRuntime");
 
 // Get user balance and wallet info
 async function getUserBalance(userId) {
@@ -97,12 +98,17 @@ async function createWithdrawal(userId, amount, address) {
     }
 
     const reserve = await run(
-      "UPDATE users_temp_power SET balance = balance - ? WHERE user_id = ? AND balance >= ?",
+      "UPDATE users SET pol_balance = pol_balance - ? WHERE id = ? AND pol_balance >= ?",
       [amount, userId, amount]
     );
     if (!reserve?.changes) {
       throw new Error("Insufficient balance");
     }
+
+    await run(
+      "UPDATE users_temp_power SET balance = (SELECT pol_balance FROM users WHERE id = ?) WHERE user_id = ?",
+      [userId, userId]
+    );
 
     const insertQuery = `
       INSERT INTO transactions (user_id, type, amount, address, status, funds_reserved, created_at, updated_at)
@@ -110,7 +116,7 @@ async function createWithdrawal(userId, amount, address) {
     `;
     const result = await run(insertQuery, [userId, "withdrawal", amount, address, "pending", 1, now, now]);
 
-    await run("UPDATE users SET pol_balance = pol_balance - ? WHERE id = ?", [amount, userId]);
+    applyUserBalanceDelta(userId, -amount);
 
     await run("COMMIT");
 
@@ -200,8 +206,12 @@ async function updateTransactionStatus(transactionId, status, txHash = null) {
       if (status === "completed" && prevStatus !== "completed") {
         if (!reserved) {
           // Legacy rows (created before funds reservation) still need balance deduction on completion.
-          await run("UPDATE users_temp_power SET balance = balance - ? WHERE user_id = ?", [amount, userId]);
           await run("UPDATE users SET pol_balance = pol_balance - ? WHERE id = ?", [amount, userId]);
+          await run(
+            "UPDATE users_temp_power SET balance = (SELECT pol_balance FROM users WHERE id = ?) WHERE user_id = ?",
+            [userId, userId]
+          );
+          applyUserBalanceDelta(userId, -amount);
         }
         await run("UPDATE users_temp_power SET total_withdrawn = total_withdrawn + ? WHERE user_id = ?", [amount, userId]);
         await run("UPDATE transactions SET funds_reserved = 0, updated_at = ? WHERE id = ?", [now, transactionId]);
@@ -210,8 +220,12 @@ async function updateTransactionStatus(transactionId, status, txHash = null) {
       if (status === "failed" && prevStatus !== "failed" && prevStatus !== "completed") {
         // Only refund if already reserved and not completed
         if (reserved) {
-          await run("UPDATE users_temp_power SET balance = balance + ? WHERE user_id = ?", [amount, userId]);
           await run("UPDATE users SET pol_balance = pol_balance + ? WHERE id = ?", [amount, userId]);
+          await run(
+            "UPDATE users_temp_power SET balance = (SELECT pol_balance FROM users WHERE id = ?) WHERE user_id = ?",
+            [userId, userId]
+          );
+          applyUserBalanceDelta(userId, amount);
           await run("UPDATE transactions SET funds_reserved = 0, updated_at = ? WHERE id = ?", [now, transactionId]);
         }
       }
@@ -423,7 +437,10 @@ async function creditBalance(userId, amount) {
       }
 
       run("UPDATE users SET pol_balance = pol_balance + ? WHERE id = ?", [amount, userId])
-        .then(() => resolve({ changes: this.changes }))
+        .then(() => {
+          applyUserBalanceDelta(userId, amount);
+          resolve({ changes: this.changes });
+        })
         .catch(reject);
     });
   });

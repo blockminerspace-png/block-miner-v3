@@ -2,6 +2,7 @@ const https = require("https");
 const { run, get } = require("../models/db");
 const { createAuditLog } = require("../models/auditLogModel");
 const { getAnonymizedRequestIp } = require("../utils/clientIp");
+const { applyUserBalanceDelta } = require("../src/runtime/miningRuntime");
 
 const PRICE_TTL_MS = 2 * 60 * 1000;
 const priceCache = new Map();
@@ -203,9 +204,23 @@ async function executeSwap(req, res) {
 
       await run("BEGIN");
       try {
-        await run("UPDATE users_temp_power SET balance = balance - ? WHERE user_id = ?", [amountNum, userId]);
+        const reserveUser = await run(
+          "UPDATE users SET pol_balance = pol_balance - ? WHERE id = ? AND pol_balance >= ?",
+          [amountNum, userId, amountNum]
+        );
+
+        if (!reserveUser?.changes) {
+          throw new Error("Insufficient POL balance");
+        }
+
+        await run(
+          "UPDATE users_temp_power SET balance = (SELECT pol_balance FROM users WHERE id = ?) WHERE user_id = ?",
+          [userId, userId]
+        );
+
         await run("UPDATE users SET usdc_balance = usdc_balance + ? WHERE id = ?", [output, userId]);
         await run("COMMIT");
+        applyUserBalanceDelta(userId, -amountNum);
       } catch (error) {
         await run("ROLLBACK");
         throw error;
@@ -219,9 +234,21 @@ async function executeSwap(req, res) {
 
       await run("BEGIN");
       try {
-        await run("UPDATE users SET usdc_balance = usdc_balance - ? WHERE id = ?", [amountNum, userId]);
-        await run("UPDATE users_temp_power SET balance = balance + ? WHERE user_id = ?", [output, userId]);
+        const reserveUsdc = await run(
+          "UPDATE users SET usdc_balance = usdc_balance - ? WHERE id = ? AND usdc_balance >= ?",
+          [amountNum, userId, amountNum]
+        );
+        if (!reserveUsdc?.changes) {
+          throw new Error("Insufficient USDC balance");
+        }
+
+        await run("UPDATE users SET pol_balance = pol_balance + ? WHERE id = ?", [output, userId]);
+        await run(
+          "UPDATE users_temp_power SET balance = (SELECT pol_balance FROM users WHERE id = ?) WHERE user_id = ?",
+          [userId, userId]
+        );
         await run("COMMIT");
+        applyUserBalanceDelta(userId, output);
       } catch (error) {
         await run("ROLLBACK");
         throw error;
@@ -243,6 +270,12 @@ async function executeSwap(req, res) {
     res.json({ ok: true, rate, output });
   } catch (error) {
     console.error("Error executing swap:", error);
+    if (error.message === "Insufficient POL balance") {
+      return res.status(400).json({ ok: false, message: "Insufficient POL balance" });
+    }
+    if (error.message === "Insufficient USDC balance") {
+      return res.status(400).json({ ok: false, message: "Insufficient USDC balance" });
+    }
     res.status(500).json({ ok: false, message: "Server error" });
   }
 }
