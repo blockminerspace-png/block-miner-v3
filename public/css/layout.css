@@ -39,7 +39,8 @@ body {
 }
 
 
-body.with-layout {
+body.with-layout,
+body:has(#layoutInclude) {
   margin: 0;
   padding-top: var(--layout-nav-h);
   min-height: 100vh;
@@ -49,7 +50,8 @@ body.with-layout {
   color: #eaf1ff;
 }
 
-body.with-layout main {
+body.with-layout main,
+body:has(#layoutInclude) main {
   margin-left: var(--layout-side-w);
   width: calc(100% - var(--layout-side-w));
   padding: 1.1rem 1.3rem 2rem;

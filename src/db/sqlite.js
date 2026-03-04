@@ -1102,6 +1102,42 @@ async function initializeDatabase() {
   `);
 
   await run(`
+    CREATE TABLE IF NOT EXISTS dashboard_updates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      version TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      starts_at INTEGER,
+      ends_at INTEGER,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )
+  `);
+
+  await run(`
+    CREATE INDEX IF NOT EXISTS idx_dashboard_updates_active_dates
+    ON dashboard_updates(is_active, starts_at, created_at)
+  `);
+
+  const hasDashboardUpdates = await get("SELECT id FROM dashboard_updates LIMIT 1");
+  if (!hasDashboardUpdates) {
+    const now = Date.now();
+    await run(
+      `INSERT INTO dashboard_updates (version, title, description, is_active, starts_at, ends_at, created_at, updated_at)
+       VALUES (?, ?, ?, 1, ?, NULL, ?, ?)` ,
+      [
+        "2026.03.04",
+        "Latest Updates",
+        "Welcome to the new BlockMiner dashboard updates popup.\n- Security and stability improvements\n- RPC and logging refactors\n- Financial safeguards and test coverage",
+        now,
+        now,
+        now
+      ]
+    );
+  }
+
+  await run(`
     CREATE TABLE IF NOT EXISTS shortlink_completions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,

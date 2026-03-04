@@ -4,6 +4,7 @@ const { createAuditLog } = require("../models/auditLogModel");
 const logger = require("../utils/logger").getLogger("WalletController");
 const { getAnonymizedRequestIp } = require("../utils/clientIp");
 const { allocateNonce, resetNonce } = require("../utils/nonceManager");
+const { DEFAULT_RPC_URLS, parseRpcUrls, buildRpcUrls, fetchWithTimeout, rpcCallWithFallback } = require("../utils/rpcClient");
 const config = require("../src/config");
 const { get, all } = require("../src/db/sqlite");
 const ccpaymentService = require("../services/ccpaymentService");
@@ -13,33 +14,15 @@ const POLYGON_RPC_URL = process.env.POLYGON_RPC_URL || "https://poly.api.pocket.
 const POLYGON_RPC_TIMEOUT_MS = Number(process.env.POLYGON_RPC_TIMEOUT_MS || 4500);
 const POLYGON_BROADCAST_RPC_URL = String(process.env.POLYGON_BROADCAST_RPC_URL || "").trim();
 const POLYGON_BROADCAST_RPC_URLS_RAW = String(process.env.POLYGON_BROADCAST_RPC_URLS || "").trim();
-const DEFAULT_RPC_URLS = [
-  "https://polygon-bor-rpc.publicnode.com",
-  "https://polygon.drpc.org",
-  "https://poly.api.pocket.network",
-  "https://1rpc.io/matic",
-  "https://polygon.blockpi.network/v1/rpc/public",
-  "https://polygon.meowrpc.com",
-  "https://polygon-mainnet.public.blastapi.io",
-  "https://rpc.ankr.com/polygon",
-  "https://rpc-mainnet.matic.network"
-];
-const RPC_URLS = Array.from(new Set([POLYGON_RPC_URL, ...DEFAULT_RPC_URLS]));
-const BROADCAST_RPC_URLS = (() => {
-  const urls = [];
-  if (POLYGON_BROADCAST_RPC_URLS_RAW) {
-    urls.push(
-      ...POLYGON_BROADCAST_RPC_URLS_RAW
-        .split(",")
-        .map((v) => v.trim())
-        .filter(Boolean)
-    );
-  }
-  if (POLYGON_BROADCAST_RPC_URL) {
-    urls.unshift(POLYGON_BROADCAST_RPC_URL);
-  }
-  return Array.from(new Set(urls.length > 0 ? urls : RPC_URLS));
-})();
+const RPC_URLS = buildRpcUrls({
+  primaryUrl: POLYGON_RPC_URL,
+  defaultUrls: DEFAULT_RPC_URLS
+});
+const BROADCAST_RPC_URLS = buildRpcUrls({
+  primaryUrl: POLYGON_BROADCAST_RPC_URL,
+  additionalUrls: parseRpcUrls(POLYGON_BROADCAST_RPC_URLS_RAW),
+  defaultUrls: RPC_URLS
+});
 const WITHDRAWAL_PRIVATE_KEY = process.env.WITHDRAWAL_PRIVATE_KEY;
 const WITHDRAWAL_MNEMONIC = process.env.WITHDRAWAL_MNEMONIC;
 const CHECKIN_RECEIVER = process.env.CHECKIN_RECEIVER || "0x95EA8E99063A3EF1B95302aA1C5bE199653EEb13";
@@ -330,7 +313,7 @@ async function isContractAddress(address) {
 
 function createProvider(rpcUrl) {
   const request = new ethers.FetchRequest(rpcUrl);
-  request.timeout = POLYGON_RPC_TIMEOUT_MS;
+  request.timeout = Number(process.env.POLYGON_RPC_TIMEOUT_MS || 4500);
   const provider = new ethers.JsonRpcProvider(request);
   // Avoid Polygon gas station rate limits by overriding fee data lookup.
   provider.getFeeData = async () => {
@@ -338,51 +321,6 @@ function createProvider(rpcUrl) {
     return new ethers.FeeData(gasPrice, null, null);
   };
   return provider;
-}
-
-async function fetchWithTimeout(url, init, timeoutMs) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function rpcCallWithFallback(rpcUrls, method, params) {
-  let lastError = null;
-  const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method, params });
-
-  for (const rpcUrl of rpcUrls) {
-    try {
-      const response = await fetchWithTimeout(
-        rpcUrl,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body
-        },
-        POLYGON_RPC_TIMEOUT_MS
-      );
-
-      if (!response.ok) {
-        throw new Error(`RPC request failed (HTTP ${response.status})`);
-      }
-
-      const payload = await response.json();
-      if (payload?.error) {
-        throw new Error(payload.error.message || "RPC error");
-      }
-
-      return payload.result;
-    } catch (error) {
-      lastError = new Error(`${rpcUrl}: ${error.message || String(error)}`);
-      continue;
-    }
-  }
-
-  throw lastError || new Error("RPC request failed");
 }
 
 async function fetchTransactionWithReceipt(txHash) {
@@ -624,7 +562,7 @@ async function getBalance(req, res) {
       walletAddress: balance.walletAddress
     });
   } catch (error) {
-    console.error("Error getting balance:", error);
+    logger.error("Error getting balance", { error: error?.message || String(error), stack: error?.stack });
     res.status(500).json({
       ok: false,
       message: "Failed to retrieve balance"
@@ -653,7 +591,7 @@ async function updateWalletAddress(req, res) {
       message: walletAddress ? "Wallet address saved successfully" : "Wallet address removed"
     });
   } catch (error) {
-    console.error("Error updating wallet address:", error);
+    logger.error("Error updating wallet address", { error: error?.message || String(error), stack: error?.stack });
     res.status(500).json({
       ok: false,
       message: "Failed to update wallet address"
@@ -701,7 +639,7 @@ async function withdraw(req, res) {
         details: { amount, address, status: "pending_approval" }
       });
     } catch (logError) {
-      console.error("Failed to write withdrawal audit log:", logError);
+      logger.error("Failed to write withdrawal audit log", { error: logError?.message || String(logError), stack: logError?.stack });
     }
 
     res.json({
@@ -714,13 +652,13 @@ async function withdraw(req, res) {
       }
     });
   } catch (error) {
-    console.error("Error processing withdrawal:", error);
+    logger.error("Error processing withdrawal", { error: error?.message || String(error), stack: error?.stack });
 
     if (transaction?.id) {
       try {
         await walletModel.updateTransactionStatus(transaction.id, "failed");
       } catch (statusError) {
-        console.error("Failed to mark withdrawal as failed:", statusError);
+        logger.error("Failed to mark withdrawal as failed", { error: statusError?.message || String(statusError), stack: statusError?.stack });
       }
     }
 
@@ -816,7 +754,7 @@ async function getTransactions(req, res) {
       transactions
     });
   } catch (error) {
-    console.error("Error getting transactions:", error);
+    logger.error("Error getting transactions", { error: error?.message || String(error), stack: error?.stack });
     res.status(500).json({
       ok: false,
       message: "Failed to retrieve transactions"
