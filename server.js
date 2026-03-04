@@ -114,6 +114,11 @@ const io = new Server(server, {
 const engine = new MiningEngine();
 setMiningEngine(engine);
 engine.setRewardLogger(logMiningReward); // Register reward logging callback
+// Register atomic DB persistence callback — on every block distribution, rewards are written
+// transactionally to the DB. If persistence fails, in-memory balances are rolled back.
+engine.setPersistBlockRewardsCallback(async (payload) => {
+  await serverDatabaseModel.persistBlockRewards(payload);
+});
 const publicStateService = createPublicStateService({ engine, get, run, all });
 
 const POLYGON_RPC_URLS = buildRpcUrls({

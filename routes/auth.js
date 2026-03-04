@@ -374,7 +374,7 @@ authRouter.post("/register", authLimiter, validateBody(registerSchema), async (r
         details: { email, referredBy: referredBy || null }
       });
     } catch (logError) {
-      console.error("Failed to write register audit log:", logError);
+      logger.warn("Failed to write register audit log", { error: logError?.message || String(logError) });
     }
 
     res.setHeader("Set-Cookie", [
@@ -385,7 +385,6 @@ authRouter.post("/register", authLimiter, validateBody(registerSchema), async (r
     res.status(201).json({
       ok: true,
       message: "Registration successful.",
-      token: accessToken,
       user: { id: newUserId, name: username, username, email }
     });
   } catch (error) {
@@ -477,7 +476,6 @@ authRouter.post("/login", authLimiter, validateBody(loginSchema), async (req, re
     res.json({
       ok: true,
       message: "Login successful.",
-      token: accessToken,
       user: {
         id: user.id,
         name: user.name,

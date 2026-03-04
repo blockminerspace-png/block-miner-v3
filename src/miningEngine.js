@@ -21,10 +21,20 @@ class MiningEngine {
     this.currentNetworkHashRate = 0;
     this.blockHistory = [];
     this.logRewardCallback = null; // Callback to log rewards to database
+    this.persistBlockRewardsCallback = null; // Async atomic persistence callback
   }
 
   setRewardLogger(callback) {
     this.logRewardCallback = callback;
+  }
+
+  /**
+   * Register an async callback to atomically persist block rewards to the database.
+   * The callback receives: { blockNumber, blockReward, totalWork, minerRewards, now }
+   * If the callback throws, in-memory miner balances are rolled back.
+   */
+  setPersistBlockRewardsCallback(callback) {
+    this.persistBlockRewardsCallback = callback;
   }
 
   findMinerByUserId(userId) {
@@ -155,10 +165,6 @@ class MiningEngine {
   distributeRewards() {
     // Pool Mining Model: Distribute fixed block reward proportionally to all miners
     // based on their cumulative work (GHS * time) during this block period
-    // Example: 1 user 10 GHS = gets all 0.1 POL
-    //          2 users 10 GHS each = each gets 0.05 POL (50% share each)
-    //          1 user 5 GHS + 1 user 15 GHS = gets 0.025 + 0.075 POL
-    
     const minedBlockNumber = this.blockNumber;
     const totalWork = [...this.roundWork.values()].reduce((sum, value) => sum + value, 0);
     if (totalWork <= 0) {
@@ -186,9 +192,12 @@ class MiningEngine {
       return;
     }
 
-    // Fixed reward per block (0.1 POL) - no randomness to ensure consistent payouts
+    // Fixed reward per block (0.1 POL)
     const blockReward = this.rewardBase;
     const minerRewards = [];
+
+    // Snapshot previous balances for rollback if DB persistence fails
+    const balanceSnapshot = new Map();
 
     for (const [minerId, work] of this.roundWork.entries()) {
       const miner = this.miners.get(minerId);
@@ -197,9 +206,9 @@ class MiningEngine {
         continue;
       }
 
-      // Miner's percentage share of total network work
+      balanceSnapshot.set(minerId, { balance: miner.balance, lifetimeMined: miner.lifetimeMined });
+
       const share = work / totalWork;
-      // Miner's reward = block reward * their share
       const reward = blockReward * share;
       miner.balance += reward;
       miner.lifetimeMined += reward;
@@ -208,35 +217,78 @@ class MiningEngine {
 
       minerRewards.push({
         minerId: miner.id,
+        userId: miner.userId,
         username: miner.username,
+        walletAddress: miner.walletAddress,
+        rigs: miner.rigs,
+        baseHashRate: miner.baseHashRate,
+        workAccumulated: work,
+        sharePercentage: share * 100,
+        rewardAmount: reward,
+        balanceAfter: miner.balance,
+        lifetimeMined: miner.lifetimeMined,
+        // Legacy reward logger fields
         work: work.toFixed(2),
         share: (share * 100).toFixed(2),
         reward: reward.toFixed(8),
         newBalance: miner.balance.toFixed(8)
       });
+    }
 
-      // Log reward to database for user visibility
-      if (this.logRewardCallback && miner.userId) {
-        this.logRewardCallback({
-          userId: miner.userId,
+    // Atomically persist rewards to DB. If it fails, roll back in-memory balances.
+    if (this.persistBlockRewardsCallback && minerRewards.length > 0) {
+      const now = Date.now();
+      Promise.resolve(
+        this.persistBlockRewardsCallback({
           blockNumber: minedBlockNumber,
-          workAccumulated: work,
-          totalNetworkWork: totalWork,
-          sharePercentage: (share * 100),
-          rewardAmount: reward,
-          balanceAfter: miner.balance
+          blockReward,
+          totalWork,
+          minerRewards,
+          now
+        })
+      ).catch((error) => {
+        logger.error("CRITICAL: Block reward persistence failed — rolling back in-memory balances", {
+          blockNumber: minedBlockNumber,
+          error: error.message
         });
+        // Roll back miner balances to prevent divergence between memory and DB
+        for (const [minerId, snapshot] of balanceSnapshot.entries()) {
+          const miner = this.miners.get(minerId);
+          if (miner) {
+            const rewardEntry = minerRewards.find((r) => r.minerId === minerId);
+            if (rewardEntry) {
+              miner.balance = snapshot.balance;
+              miner.lifetimeMined = snapshot.lifetimeMined;
+              this.totalMinted -= rewardEntry.rewardAmount;
+            }
+          }
+        }
+      });
+    }
+
+    // Fire legacy per-miner reward logger (non-blocking, best-effort)
+    if (this.logRewardCallback) {
+      for (const r of minerRewards) {
+        if (r.userId) {
+          this.logRewardCallback({
+            userId: r.userId,
+            blockNumber: minedBlockNumber,
+            workAccumulated: r.workAccumulated,
+            totalNetworkWork: totalWork,
+            sharePercentage: r.sharePercentage,
+            rewardAmount: r.rewardAmount,
+            balanceAfter: r.balanceAfter
+          });
+        }
       }
     }
 
-    // Log distribution details
     logger.info("Block rewards distributed", {
       blockNumber: minedBlockNumber,
       blockReward,
       totalWork: totalWork.toFixed(2),
       minerCount: minerRewards.length,
-      totalDistributed: minerRewards.reduce((sum, r) => sum + parseFloat(r.reward), 0).toFixed(8),
-      miners: minerRewards
+      totalDistributed: minerRewards.reduce((sum, r) => sum + r.rewardAmount, 0).toFixed(8)
     });
 
     this.lastReward = blockReward;
@@ -279,7 +331,7 @@ class MiningEngine {
         activeMiners += 1;
       }
       this.roundWork.set(minerId, (this.roundWork.get(minerId) || 0) + hashRate);
-      
+
       // Track miner details for debug logging
       minerDetails.push({
         userId: miner.userId,
@@ -354,19 +406,19 @@ class MiningEngine {
       leaderboard: this.getLeaderboard(),
       miner: miner
         ? {
-            id: miner.id,
-            username: miner.username,
-            walletAddress: miner.walletAddress,
-            rigs: miner.rigs,
-            active: miner.active,
-            baseHashRate: miner.baseHashRate,
-            boostMultiplier: miner.boostMultiplier,
-            boostEndsAt: miner.boostEndsAt,
-            balance: miner.balance,
-            lifetimeMined: miner.lifetimeMined,
-            connected: miner.connected,
-            estimatedHashRate: this.getMinerHashRate(miner)
-          }
+          id: miner.id,
+          username: miner.username,
+          walletAddress: miner.walletAddress,
+          rigs: miner.rigs,
+          active: miner.active,
+          baseHashRate: miner.baseHashRate,
+          boostMultiplier: miner.boostMultiplier,
+          boostEndsAt: miner.boostEndsAt,
+          balance: miner.balance,
+          lifetimeMined: miner.lifetimeMined,
+          connected: miner.connected,
+          estimatedHashRate: this.getMinerHashRate(miner)
+        }
         : null
     };
   }

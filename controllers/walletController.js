@@ -25,7 +25,10 @@ const BROADCAST_RPC_URLS = buildRpcUrls({
 });
 const WITHDRAWAL_PRIVATE_KEY = process.env.WITHDRAWAL_PRIVATE_KEY;
 const WITHDRAWAL_MNEMONIC = process.env.WITHDRAWAL_MNEMONIC;
-const CHECKIN_RECEIVER = process.env.CHECKIN_RECEIVER || "0x95EA8E99063A3EF1B95302aA1C5bE199653EEb13";
+const CHECKIN_RECEIVER = String(process.env.CHECKIN_RECEIVER || "").trim();
+if (!CHECKIN_RECEIVER) {
+  throw new Error("CHECKIN_RECEIVER environment variable is required but not set. Configure it in .env before starting the server.");
+}
 
 const MIN_WITHDRAWAL = Number(config.withdraw?.min || 10);
 const MAX_WITHDRAWAL = Number(config.withdraw?.max || 1_000_000);
@@ -43,8 +46,9 @@ const CCPAYMENT_WEBHOOK_ALLOWED_SOURCE_IPS = new Set(
     .map((value) => value.trim())
     .filter(Boolean)
 );
+// Default to true (enforce IP whitelist) — set CCPAYMENT_WEBHOOK_ENFORCE_SOURCE_IPS=false in .env to disable (e.g. local dev)
 const CCPAYMENT_WEBHOOK_ENFORCE_SOURCE_IPS =
-  String(process.env.CCPAYMENT_WEBHOOK_ENFORCE_SOURCE_IPS || "false").trim().toLowerCase() === "true";
+  String(process.env.CCPAYMENT_WEBHOOK_ENFORCE_SOURCE_IPS || "true").trim().toLowerCase() !== "false";
 
 const ALLOW_WITHDRAW_TO_CONTRACTS = Boolean(config.wallet?.allowWithdrawToContracts === true || String(process.env.ALLOW_WITHDRAW_TO_CONTRACTS || "").trim() === "1");
 

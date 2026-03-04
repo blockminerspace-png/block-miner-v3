@@ -453,6 +453,76 @@ async function listDistinctTempPowerUserIds() {
   return all("SELECT DISTINCT user_id FROM users_temp_power WHERE user_id IS NOT NULL");
 }
 
+/**
+ * Atomically persists all block reward records and updated miner balances in a single
+ * SQLite transaction. If any step fails, the entire transaction is rolled back so no
+ * partial state is written to the database.
+ *
+ * @param {Object} params
+ * @param {number} params.blockNumber - The block number being finalized
+ * @param {number} params.blockReward - Total reward distributed for this block
+ * @param {number} params.totalWork   - Total accumulated network work for this block
+ * @param {Array}  params.minerRewards - Array of { userId, minerId, workAccumulated, sharePercentage, rewardAmount, balanceAfter, lifetimeMined, username, walletAddress, rigs, baseHashRate }
+ * @param {number} params.now - Current timestamp (ms)
+ */
+async function persistBlockRewards({ blockNumber, blockReward, totalWork, minerRewards, now }) {
+  await run("BEGIN TRANSACTION");
+  try {
+    for (const r of minerRewards) {
+      // Insert reward log entry
+      await run(
+        `INSERT INTO mining_rewards_log
+           (user_id, block_number, work_accumulated, total_network_work, share_percentage, reward_amount, balance_after, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          r.userId,
+          blockNumber,
+          r.workAccumulated,
+          totalWork,
+          r.sharePercentage,
+          r.rewardAmount,
+          r.balanceAfter,
+          now
+        ]
+      );
+
+      // Upsert the miner profile with the new balance and lifetime_mined
+      await run(
+        `INSERT INTO users_temp_power
+           (user_id, username, wallet_address, rigs, base_hash_rate, balance, lifetime_mined, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(user_id) DO UPDATE SET
+           username         = excluded.username,
+           wallet_address   = excluded.wallet_address,
+           rigs             = excluded.rigs,
+           base_hash_rate   = excluded.base_hash_rate,
+           balance          = excluded.balance,
+           lifetime_mined   = excluded.lifetime_mined,
+           updated_at       = excluded.updated_at`,
+        [
+          r.userId,
+          r.username,
+          r.walletAddress ?? null,
+          r.rigs,
+          r.baseHashRate,
+          r.balanceAfter,
+          r.lifetimeMined,
+          now,
+          now
+        ]
+      );
+
+      // Keep users.pol_balance in sync
+      await run("UPDATE users SET pol_balance = ? WHERE id = ?", [r.balanceAfter, r.userId]);
+    }
+
+    await run("COMMIT");
+  } catch (error) {
+    await run("ROLLBACK").catch(() => { });
+    throw error;
+  }
+}
+
 module.exports = {
   markCheckinConfirmed,
   findDailyCheckinByUserAndDate,
@@ -481,5 +551,6 @@ module.exports = {
   upsertMinerProfile,
   updateUserPolBalance,
   listTempPowerProfiles,
-  listDistinctTempPowerUserIds
+  listDistinctTempPowerUserIds,
+  persistBlockRewards
 };
