@@ -749,7 +749,8 @@ async function withdraw(req, res) {
 async function getTransactions(req, res) {
   try {
     const userId = req.user.id;
-    const limit = parseInt(req.query.limit) || 50;
+    const MAX_LIMIT = 200;
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit, 10) || 50), MAX_LIMIT);
 
     const transactions = await walletModel.getTransactions(userId, limit);
 
@@ -793,7 +794,11 @@ async function getDepositAddress(req, res) {
 }
 
 async function handleCcpaymentDepositWebhook(req, res) {
-  // DEPOSIT FUNCTIONALITY DISABLED
+  // CCPayment webhook is currently disabled. Log a warning so this shows up in operational dashboards.
+  logger.warn("CCPayment deposit webhook called but deposit functionality is disabled", {
+    ip: req.ip,
+    userAgent: req.get("user-agent")
+  });
   return res.status(503).json({
     ok: false,
     message: "Deposit functionality is temporarily disabled"

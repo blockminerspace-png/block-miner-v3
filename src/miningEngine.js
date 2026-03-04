@@ -16,12 +16,13 @@ class MiningEngine {
     this.lastReward = 0;
     this.roundWork = new Map();
     this.miners = new Map();
+    this.minersByUserId = new Map(); // O(1) lookup index by userId
     this.lastBlockAt = Date.now();
     this.activeMiners = 0;
     this.currentNetworkHashRate = 0;
     this.blockHistory = [];
-    this.logRewardCallback = null; // Callback to log rewards to database
-    this.persistBlockRewardsCallback = null; // Async atomic persistence callback
+    this.logRewardCallback = null;
+    this.persistBlockRewardsCallback = null;
   }
 
   setRewardLogger(callback) {
@@ -38,55 +39,37 @@ class MiningEngine {
   }
 
   findMinerByUserId(userId) {
-    if (!userId) {
-      return null;
-    }
-
-    for (const miner of this.miners.values()) {
-      if (miner.userId === userId) {
-        return miner;
-      }
-    }
-
-    return null;
+    if (!userId) return null;
+    return this.minersByUserId.get(userId) ?? null;
   }
 
   createOrGetMiner({ userId, username, walletAddress, profile }) {
     const existing = this.findMinerByUserId(userId);
     if (existing) {
-      if (username) {
-        existing.username = username;
-      }
-      if (walletAddress) {
-        existing.walletAddress = walletAddress;
-      }
+      if (username) existing.username = username;
+      if (walletAddress) existing.walletAddress = walletAddress;
       return existing;
     }
 
     const id = uuidv4();
-    const initialRigs = Number(profile?.rigs || 1);
-    const initialBaseHashRate = Number(profile?.baseHashRate || 0);
-    const initialBalance = Number(profile?.balance || 0);
-    const initialLifetimeMined = Number(profile?.lifetimeMined || 0);
-
     const miner = {
       id,
       userId,
       walletAddress: walletAddress || null,
       username: username || `Miner-${id.slice(0, 5)}`,
-      rigs: initialRigs,
-      baseHashRate: initialBaseHashRate,
+      rigs: Number(profile?.rigs || 1),
+      baseHashRate: Number(profile?.baseHashRate || 0),
       active: true,
       boostMultiplier: 1,
       boostEndsAt: 0,
-      balance: initialBalance,
-      lifetimeMined: initialLifetimeMined,
+      balance: Number(profile?.balance || 0),
+      lifetimeMined: Number(profile?.lifetimeMined || 0),
       connected: true
     };
 
     this.miners.set(id, miner);
+    this.minersByUserId.set(userId, miner); // keep O(1) index in sync
     this.roundWork.set(id, 0);
-
     return miner;
   }
 
@@ -312,12 +295,10 @@ class MiningEngine {
 
   tick() {
     // Each second, accumulate work from each active miner based on their GHS
-    // Work = GHS per second (accumulated over block duration = 10 minutes)
     const now = Date.now();
 
     let totalHashRate = 0;
     let activeMiners = 0;
-    const minerDetails = [];
 
     for (const [minerId, miner] of this.miners.entries()) {
       if (miner.boostEndsAt > 0 && now >= miner.boostEndsAt) {
@@ -331,33 +312,21 @@ class MiningEngine {
         activeMiners += 1;
       }
       this.roundWork.set(minerId, (this.roundWork.get(minerId) || 0) + hashRate);
-
-      // Track miner details for debug logging
-      minerDetails.push({
-        userId: miner.userId,
-        username: miner.username,
-        baseHashRate: miner.baseHashRate,
-        active: miner.active,
-        connected: miner.connected,
-        hashRate,
-        accumulatedWork: this.roundWork.get(minerId) || 0
-      });
     }
 
     this.currentNetworkHashRate = totalHashRate;
     this.activeMiners = activeMiners;
 
-    const priceNoise = (Math.random() - 0.5) * 0.006;
+    // Smooth price movement driven only by real demand (no random noise to avoid timing exploits)
     const demandFactor = totalHashRate > 0 ? 0.00015 : -0.00015;
-    this.tokenPrice = Math.max(0.05, this.tokenPrice + priceNoise + demandFactor);
+    this.tokenPrice = Math.max(0.05, Math.min(999, this.tokenPrice + demandFactor));
 
     if (now >= this.nextBlockAt) {
       logger.info("Block time reached, distributing rewards", {
         blockNumber: this.blockNumber,
         activeMiners,
         totalHashRate: totalHashRate.toFixed(2),
-        minerCount: this.miners.size,
-        minerDetails
+        minerCount: this.miners.size
       });
       this.distributeRewards();
     }

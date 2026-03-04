@@ -614,7 +614,8 @@ authRouter.get("/referral", async (req, res) => {
 
 authRouter.get("/referral/invited", requireAuth, async (req, res) => {
   try {
-    const limit = Number(req.query?.limit || 50);
+    const MAX_LIMIT = 200;
+    const limit = Math.min(Math.max(1, Number(req.query?.limit || 50)), MAX_LIMIT);
     const rows = await listReferredUsers(req.user.id, limit);
     const invited = rows.map((row) => ({
       id: row.id,

@@ -71,7 +71,7 @@ function startMiningLoop({ engine, io, persistMinerProfile, buildPublicState }, 
   tick();
   const tickTimer = setInterval(() => {
     tick().catch((error) => {
-      console.error("Mining tick error:", error);
+      logger.error("Mining tick unexpected error", { error: error.message });
     });
   }, tickMs);
 
@@ -100,12 +100,12 @@ function startMiningLoop({ engine, io, persistMinerProfile, buildPublicState }, 
           const userIds = [...new Set(miners.map((m) => m.userId).filter(Boolean))];
           await Promise.all(userIds.map((userId) => syncUserBaseHashRate(userId)));
         }
-        
+
         // Sync engine miners from database
         if (syncEngineMiners) {
           await syncEngineMiners();
         }
-        
+
         // Persist all miner profiles
         const saves = miners.map((miner) => persistMinerProfile(miner));
         const settled = await Promise.allSettled(saves);
