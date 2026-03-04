@@ -1,8 +1,17 @@
+const fs = require("fs");
 const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
 const config = require('../config');
 
-const dbPath = process.env.DB_PATH || path.join(__dirname, "..", "..", "data", "blockminer.db");
+const rawDbPath = process.env.DB_PATH || path.join(__dirname, "..", "..", "data", "blockminer.db");
+const dbPath = path.resolve(rawDbPath);
+
+// Ensure the database directory exists
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
 const db = new sqlite3.Database(dbPath);
 
 function run(sql, params = []) {
@@ -1227,10 +1236,23 @@ async function initializeDatabase() {
   }
 }
 
+function close() {
+  return new Promise((resolve, reject) => {
+    db.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
 module.exports = {
   db,
   run,
   get,
   all,
+  close,
   initializeDatabase
 };
