@@ -48,6 +48,7 @@ import serverDatabaseModel from "./models/database/serverDatabaseModel.js";
 import { getUserById } from "./models/userModel.js";
 import { verifyAccessToken } from "./utils/authTokens.js";
 import { getOrCreateMinerProfile, persistMinerProfile, syncUserBaseHashRate } from "./models/minerProfileModel.js";
+import { ensureDefaultInternalReward } from "./models/shortlinkRewardModel.js";
 
 const logger = loggerLib.child("Server");
 const __filename = fileURLToPath(import.meta.url);
@@ -78,7 +79,22 @@ serverDatabaseModel.loadRecentBlocks(12).then(blocks => {
       timestamp: b.timestamp,
       userRewards: b.userRewards
     }));
-    logger.info(`Preloaded ${blocks.length} recent blocks into engine memory.`);
+    
+    // Set current block number to max historical block + 1
+    const maxBlock = Math.max(...blocks.map(b => b.blockNumber));
+    engine.blockNumber = maxBlock + 1;
+    
+    logger.info(`Preloaded ${blocks.length} recent blocks into engine memory. Next block: #${engine.blockNumber}`);
+  } else {
+    // If no block distributions yet, try to find the max from logs as fallback
+    prisma.miningRewardsLog.aggregate({
+      _max: { blockNumber: true }
+    }).then(result => {
+      if (result._max.blockNumber) {
+        engine.blockNumber = result._max.blockNumber + 1;
+        logger.info(`No block history found. Initialized from logs to next block: #${engine.blockNumber}`);
+      }
+    });
   }
 }).catch(err => logger.error("Failed to preload block history", { error: err.message }));
 engine.setProfileLoader(async (userId) => {
@@ -86,6 +102,39 @@ engine.setProfileLoader(async (userId) => {
   if (user) return getOrCreateMinerProfile(user);
   return null;
 });
+
+// 1.2 Function to sync all active users with the engine
+async function syncEngineMiners(engine) {
+  try {
+    const users = await prisma.user.findMany({
+      where: { isBanned: false }
+    });
+    
+    logger.info(`Syncing ${users.length} users into mining engine...`);
+    
+    for (const user of users) {
+      const profile = await getOrCreateMinerProfile(user);
+      if (profile.base_hash_rate > 0) {
+        engine.createOrGetMiner({
+          userId: user.id,
+          username: profile.username || user.name,
+          walletAddress: profile.wallet_address,
+          profile: {
+            rigs: profile.rigs,
+            base_hash_rate: profile.base_hash_rate,
+            balance: profile.balance,
+            lifetimeMined: profile.lifetime_mined,
+            refCode: profile.refCode,
+            referralCount: profile.referralCount
+          }
+        });
+      }
+    }
+    logger.info("Engine sync complete.");
+  } catch (error) {
+    logger.error("Failed to sync engine miners", { error: error.message });
+  }
+}
 
 // 2. Setup Database Persistence for the Engine
 engine.setPersistBlockRewardsCallback(async (payload) => {
@@ -179,8 +228,16 @@ app.get("/{*all}", (req, res) => {
 async function bootstrap() {
   try {
     const port = process.env.PORT || 5000;
-    server.listen(port, () => {
-      logger.info(`Server running on port ${port}`);
+    const host = process.env.HOST || '0.0.0.0';
+    
+    // Sync all users with the engine on startup to ensure correct Network Power
+    await syncEngineMiners(engine);
+
+    // Ensure shortlink reward is correctly set up
+    await ensureDefaultInternalReward().catch(err => logger.error("Failed to ensure shortlink reward", { error: err.message }));
+
+    server.listen(port, host, () => {
+      logger.info(`Server running on ${host}:${port}`);
       
       // Start background tasks
       startCronTasks({

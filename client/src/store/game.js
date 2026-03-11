@@ -15,6 +15,7 @@ export const useGameStore = create((set, get) => ({
     socket: null,
     isLoading: true,
     isChatOpen: false,
+    isSidebarOpen: false,
     
     // Notification State
     unreadPms: 0,
@@ -23,6 +24,10 @@ export const useGameStore = create((set, get) => ({
     toggleChat: () => set(state => ({ isChatOpen: !state.isChatOpen, hasMention: false })),
     openChat: () => set({ isChatOpen: true, hasMention: false }),
     closeChat: () => set({ isChatOpen: false }),
+
+    toggleSidebar: () => set(state => ({ isSidebarOpen: !state.isSidebarOpen })),
+    openSidebar: () => set({ isSidebarOpen: true }),
+    closeSidebar: () => set({ isSidebarOpen: false }),
     
     clearMention: () => set({ hasMention: false }),
     clearUnreadPms: () => set({ unreadPms: 0 }),
@@ -37,7 +42,16 @@ export const useGameStore = create((set, get) => ({
 
         socket.on('connect', () => {
             console.log('Socket connected');
-            socket.emit('miner:join', {}, (response) => {
+            
+            // Try to find the token in cookies for explicit pass
+            const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+                const [key, value] = cookie.trim().split('=');
+                acc[key] = value;
+                return acc;
+            }, {});
+            const token = cookies['blockminer_access'];
+
+            socket.emit('miner:join', { token }, (response) => {
                 if (response?.ok && response.state) {
                     set((state) => ({
                         stats: { ...response.state, miner: response.state.miner || state.stats?.miner }

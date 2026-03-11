@@ -30,7 +30,7 @@ export async function getShortlinkStatus(req, res) {
         currentStep: status.currentStep,
         dailyRuns: status.dailyRuns,
         shortlinkName: "Internal Shortlink",
-        rewardName: "5 GHS Mining Machine",
+        rewardName: "5 HS Mining Machine",
         totalSteps: TOTAL_STEPS,
         maxDailyRuns: MAX_DAILY_RUNS,
         inProgress: status.currentStep > 0

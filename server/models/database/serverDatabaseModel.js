@@ -102,7 +102,31 @@ export async function persistBlockRewards({ blockNumber, blockReward, totalWork,
         }
       });
 
-      // 3. Create Notification
+      // 3. Referral Commission (1%)
+      const user = await tx.user.findUnique({
+        where: { id: r.userId },
+        select: { referredBy: true }
+      });
+
+      if (user?.referredBy && r.rewardAmount > 0) {
+        const commission = r.rewardAmount * 0.01;
+        await tx.user.update({
+          where: { id: user.referredBy },
+          data: { polBalance: { increment: commission } }
+        });
+
+        await tx.referralEarning.create({
+          data: {
+            referrerId: user.referredBy,
+            referredId: r.userId,
+            amount: commission,
+            source: `mining_block_${blockNumber}`,
+            createdAt: timestamp
+          }
+        });
+      }
+
+      // 4. Create Notification
       if (r.rewardAmount > 0) {
         await createNotification({
           userId: r.userId,
@@ -151,7 +175,7 @@ export async function loadRecentBlocks(limit = 12) {
     }
   });
 
-  return blocks.map(b => {
+  const formattedBlocks = blocks.map(b => {
     const userRewards = {};
     b.minerRewards.forEach(r => {
       userRewards[r.userId] = r.rewardAmount;
@@ -164,6 +188,48 @@ export async function loadRecentBlocks(limit = 12) {
       userRewards
     };
   });
+
+  if (formattedBlocks.length >= limit) {
+    return formattedBlocks;
+  }
+
+  // Fallback: If we have fewer than `limit` blocks in `block_distributions`, 
+  // try to build history from `mining_rewards_log` for the older entries.
+  const alreadyLoadedNumbers = new Set(formattedBlocks.map(b => b.blockNumber));
+  const remainingCount = limit - formattedBlocks.length;
+
+  const recentLogs = await prisma.miningRewardsLog.findMany({
+    where: {
+      blockNumber: { notIn: Array.from(alreadyLoadedNumbers) }
+    },
+    orderBy: { id: 'desc' },
+    take: 5000 // Increased sample size to ensure we find enough unique blocks
+  });
+
+  const fallbackBlocksMap = new Map();
+
+  for (const log of recentLogs) {
+    if (fallbackBlocksMap.size >= remainingCount && !fallbackBlocksMap.has(log.blockNumber)) {
+      continue;
+    }
+
+    if (!fallbackBlocksMap.has(log.blockNumber)) {
+      fallbackBlocksMap.set(log.blockNumber, {
+        blockNumber: log.blockNumber,
+        reward: 0.1, // Default reward base for migrated
+        minerCount: 0,
+        timestamp: log.createdAt.getTime(),
+        userRewards: {}
+      });
+    }
+
+    const b = fallbackBlocksMap.get(log.blockNumber);
+    b.userRewards[log.userId] = log.rewardAmount;
+    b.minerCount += 1;
+  }
+
+  const merged = [...formattedBlocks, ...Array.from(fallbackBlocksMap.values())];
+  return merged.sort((a, b) => b.blockNumber - a.blockNumber).slice(0, limit);
 }
 
 export async function listChatMessages(limit) {

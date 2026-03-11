@@ -5,7 +5,7 @@ import { createRateLimiter } from "../middleware/rateLimit.js";
 
 export const youtubeRouter = express.Router();
 
-const claimLimiter = createRateLimiter({ windowMs: 60 * 60 * 1000, max: 5 }); // 5 claims per hour
+const claimLimiter = createRateLimiter({ windowMs: 60 * 60 * 1000, max: 60 }); // 60 claims per hour (1 per minute)
 
 youtubeRouter.get("/status", requireAuth, youtubeController.getStatus);
 youtubeRouter.get("/stats", requireAuth, youtubeController.getStats);

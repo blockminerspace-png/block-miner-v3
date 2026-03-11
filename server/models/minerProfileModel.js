@@ -45,22 +45,29 @@ export async function getOrCreateMinerProfile(user) {
     where: { userId: user.id }
   });
 
-  // Count active temporary powers (Games & YouTube)
+  // Count active temporary powers (Games, YouTube & Auto Mining)
   const now = new Date();
-  const [gamePowers, ytPowers] = await Promise.all([
+  const [gamePowers, ytPowers, gpuPowers] = await Promise.all([
     prisma.userPowerGame.findMany({
       where: { userId: user.id, expiresAt: { gt: now } }
     }),
     prisma.youtubeWatchPower.findMany({
       where: { userId: user.id, expiresAt: { gt: now } }
+    }),
+    prisma.autoMiningGpu.findMany({
+      where: { userId: user.id, isClaimed: true, expiresAt: { gt: now } }
     })
   ]);
 
-  const machineHashRate = activeMiners.reduce((sum, m) => sum + (m.hashRate || 0), 0);
+  const machineHashRate = activeMiners.reduce((sum, m) => {
+    // We only count permanent machines. Pulse GPUs are counted separately below.
+    return sum + (m.hashRate || 0);
+  }, 0);
   const gameHashRate = gamePowers.reduce((sum, g) => sum + (g.hashRate || 0), 0);
   const ytHashRate = ytPowers.reduce((sum, y) => sum + (y.hashRate || 0), 0);
+  const gpuHashRate = gpuPowers.reduce((sum, p) => sum + (p.gpuHashRate || 0), 0);
   
-  const totalHashRate = machineHashRate + gameHashRate + ytHashRate;
+  const totalHashRate = machineHashRate + gameHashRate + ytHashRate + gpuHashRate;
 
   return {
     ...profile,
@@ -70,6 +77,7 @@ export async function getOrCreateMinerProfile(user) {
     machine_hash_rate: machineHashRate,
     game_hash_rate: gameHashRate,
     youtube_hash_rate: ytHashRate,
+    auto_mining_hash_rate: gpuHashRate,
     balance: Number(profile.polBalance || 0),
     lifetime_mined: 0, // Can be calculated from logs if needed
     refCode: profile.refCode,
@@ -90,15 +98,21 @@ export async function persistMinerProfile(miner) {
 
 export async function syncUserBaseHashRate(userId) {
   const now = new Date();
-  const [activeMiners, gamePowers, ytPowers] = await Promise.all([
+  const [activeMiners, gamePowers, ytPowers, gpuPowers] = await Promise.all([
     prisma.userMiner.findMany({ where: { userId, isActive: true } }),
     prisma.userPowerGame.findMany({ where: { userId, expiresAt: { gt: now } } }),
-    prisma.youtubeWatchPower.findMany({ where: { userId, expiresAt: { gt: now } } })
+    prisma.youtubeWatchPower.findMany({ where: { userId, expiresAt: { gt: now } } }),
+    prisma.autoMiningGpu.findMany({ where: { userId, isClaimed: true, expiresAt: { gt: now } } })
   ]);
 
-  const machineHashRate = activeMiners.reduce((sum, m) => sum + (m.hashRate || 0), 0);
+  const machineHashRate = activeMiners.reduce((sum, m) => {
+    // If we ever allow Pulse GPU to be installed in rack, we must not count its hashRate here
+    // because it's already counted in gpuHashRate via autoMiningGpu table
+    return sum + (m.hashRate || 0);
+  }, 0);
   const gameHashRate = gamePowers.reduce((sum, g) => sum + (g.hashRate || 0), 0);
   const ytHashRate = ytPowers.reduce((sum, y) => sum + (y.hashRate || 0), 0);
+  const gpuHashRate = gpuPowers.reduce((sum, p) => sum + (p.gpuHashRate || 0), 0);
   
-  return machineHashRate + gameHashRate + ytHashRate;
+  return machineHashRate + gameHashRate + ytHashRate + gpuHashRate;
 }

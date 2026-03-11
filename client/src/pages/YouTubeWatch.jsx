@@ -19,17 +19,41 @@ export default function YouTubeWatch() {
 
     const extractVideoId = (input) => {
         const raw = String(input || "").trim();
+        
+        // 1. Check if it's already an 11-char ID
         const idPattern = /^[a-zA-Z0-9_-]{11}$/;
         if (idPattern.test(raw)) return raw;
+
+        // 2. Try to parse as URL
         try {
             const urlObj = new URL(raw);
-            const host = urlObj.hostname.replace(/^www\./, "").toLowerCase();
-            if (host === "youtu.be") return urlObj.pathname.split("/")[1];
-            if (host === "youtube.com" || host === "m.youtube.com") {
-                if (urlObj.pathname === "/watch") return urlObj.searchParams.get("v");
-                if (urlObj.pathname.startsWith("/embed/")) return urlObj.pathname.split("/")[2];
+            const hostname = urlObj.hostname.replace(/^www\./, "").toLowerCase();
+            
+            // youtu.be/ID
+            if (hostname === "youtu.be") {
+                return urlObj.pathname.slice(1).split(/[?#&]/)[0];
             }
-        } catch { return null; }
+            
+            if (hostname === "youtube.com" || hostname === "m.youtube.com") {
+                // /watch?v=ID
+                if (urlObj.pathname === "/watch") {
+                    return urlObj.searchParams.get("v");
+                }
+                // /embed/ID, /v/ID, /shorts/ID, /live/ID
+                const parts = urlObj.pathname.split("/");
+                if (["embed", "v", "shorts", "live"].includes(parts[1])) {
+                    return parts[2];
+                }
+            }
+        } catch (e) {
+            // Ignore URL parsing errors and try regex
+        }
+
+        // 3. Robust Regex Fallback (handles most common formats including timestamps and feature params)
+        const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts|live)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+        const match = raw.match(regex);
+        if (match && match[1]) return match[1];
+
         return null;
     };
 
@@ -61,7 +85,7 @@ export default function YouTubeWatch() {
             setVideoId(id);
             toast.success('Vídeo carregado com sucesso!');
         } else {
-            toast.error('URL do YouTube inválida.');
+            toast.error('URL do YouTube inválida ou formato não suportado.');
         }
     };
 
@@ -165,7 +189,7 @@ export default function YouTubeWatch() {
                             {videoId ? (
                                 <iframe
                                     className="w-full h-full"
-                                    src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
+                                    src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`}
                                     title="YouTube video player"
                                     frameBorder="0"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -197,6 +221,9 @@ export default function YouTubeWatch() {
                                         <span className="text-sm font-bold text-white uppercase italic tracking-tighter">Próximo Ganho em {countdown}s</span>
                                     </div>
                                 )}
+                            </div>
+                            <div className="text-[10px] text-gray-600 italic font-medium max-w-[200px] text-right">
+                                Dica: Se o vídeo não carregar (Erro 150/153), tente outro vídeo. Alguns autores proíbem a exibição fora do YouTube.
                             </div>
                         </div>
                     </div>

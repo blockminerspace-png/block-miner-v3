@@ -17,7 +17,8 @@ model User {
   passwordHash  String   @map("password_hash")
   createdAt     DateTime @default(now()) @map("created_at")
   lastLoginAt   DateTime? @map("last_login_at")
-  ip            String?
+  ip            String?  @map("last_ip")
+  registrationIp String?  @map("registration_ip")
   userAgent     String?  @map("user_agent")
   isBanned      Boolean  @default(false) @map("is_banned")
   refCode       String?  @unique @map("ref_code")
@@ -66,12 +67,13 @@ model User {
   miningLogs    MiningRewardsLog[]
   shortlinkComp ShortlinkCompletion?
   hasAdblock    Boolean  @default(false) @map("has_adblock")
+  
   // Migration Meta & Historical Data
   oldId             Int?     @unique @map("old_id")
   oldLifetimeMined  Decimal? @default(0) @map("old_lifetime_mined") @db.Decimal(20, 8)
   totalWithdrawn    Decimal? @default(0) @map("total_withdrawn") @db.Decimal(20, 8)
   rigsCount         Int?     @default(0) @map("rigs_count")
-  baseHashRate      Float?   @default(0) @map("old_base_hash_rate")
+  oldBaseHashRate   Float?   @default(0) @map("old_base_hash_rate")
   
   blockMinerRewards BlockMinerReward[]
   notifications     Notification[]
@@ -173,6 +175,7 @@ model UserInventory {
   slotSize   Int      @default(1) @map("slot_size")
   imageUrl   String?  @map("image_url")
   acquiredAt DateTime @default(now()) @map("acquired_at")
+  expiresAt  DateTime? @map("expires_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   user  User   @relation(fields: [userId], references: [id])

@@ -7,7 +7,7 @@ export class MiningEngine {
   constructor() {
     this.tokenSymbol = "POL";
     this.blockNumber = 1;
-    this.rewardBase = 0.1;
+    this.rewardBase = 0.15;
     this.blockTarget = 100;
     this.blockProgress = 0;
     this.blockDurationMs = 10 * 60 * 1000;
@@ -51,6 +51,8 @@ export class MiningEngine {
         if (miner) {
           miner.rigs = Number(profile.rigs || 1);
           miner.baseHashRate = Number(profile.base_hash_rate || 0);
+          miner.refCode = profile.refCode;
+          miner.referralCount = profile.referralCount;
         }
       }
     }

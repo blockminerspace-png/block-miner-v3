@@ -101,6 +101,8 @@
     "subtitle": "Manage your equipment and maximize your HashRate.",
     "active_machines": "ACTIVE MACHINES",
     "in_inventory": "IN INVENTORY",
+    "expires": "Expires",
+    "expires_in": "Expires in",
     "clear_rack": "Clear Rack",
     "empty_inventory": "Your inventory is empty.",
     "buy_miners_msg": "Buy miners in the shop to get started.",

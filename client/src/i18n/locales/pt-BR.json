@@ -101,6 +101,8 @@
     "subtitle": "Gerencie seus equipamentos e maximize seu HashRate.",
     "active_machines": "MÁQUINAS ATIVAS",
     "in_inventory": "NO INVENTÁRIO",
+    "expires": "Expira",
+    "expires_in": "Expira em",
     "clear_rack": "Limpar Rack",
     "empty_inventory": "Seu inventário está vazio.",
     "buy_miners_msg": "Compre mineradoras na loja para começar.",
@@ -143,6 +145,8 @@
     "not_connected": "Não Conectada",
     "link_to_withdraw": "Vincule para saques fáceis.",
     "connect_wallet": "Conectar Carteira",
+    "connect_required": "Por favor, conecte sua carteira primeiro.",
+    "switch_network": "Por favor, alterne para a rede Polygon.",
     "recent_activity": "Atividade Recente",
     "no_transactions": "Nenhuma transação encontrada.",
     "withdrawal": "Saque Realizado",
@@ -196,7 +200,9 @@
     "claimed": "Já Resgatado",
     "streak": "Sequência Atual",
     "days": "dias",
-    "reward_msg": "Você recebeu {{amount}} POL pelo seu check-in!"
+    "reward_msg": "Você recebeu {{amount}} POL pelo seu check-in!",
+    "sending_tx": "Enviando transação...",
+    "confirming_tx": "Confirmando transação na blockchain..."
   },
   "ptc": {
     "title": "Pago por Clique",

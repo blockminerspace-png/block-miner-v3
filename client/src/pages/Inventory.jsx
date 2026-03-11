@@ -251,6 +251,12 @@ export default function Inventory() {
                                                     <span>•</span>
                                                     <span className="text-primary font-black">{formatHashrate(group.hashRate || group.hash_rate)}</span>
                                                 </div>
+                                                {group.expiresAt && (
+                                                    <div className="mt-1 flex items-center gap-1 text-[9px] font-bold text-amber-500/80 uppercase">
+                                                        <Clock className="w-2.5 h-2.5" />
+                                                        {t('inventory.expires')}: {new Date(group.expiresAt).toLocaleDateString()}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     );
@@ -284,6 +290,12 @@ export default function Inventory() {
                                                 <div className="flex flex-col"><span className="text-[10px] font-bold text-gray-600 uppercase">{t('inventory.modal.level')}</span><span className="text-sm font-bold text-gray-300">{selectedSlot.machine.level}</span></div>
                                                 <div className="flex flex-col"><span className="text-[10px] font-bold text-gray-600 uppercase">{t('inventory.modal.hashrate')}</span><span className="text-sm font-bold text-primary uppercase">{formatHashrate(selectedSlot.machine.hashRate || selectedSlot.machine.hash_rate)}</span></div>
                                             </div>
+                                            {selectedSlot.machine.expiresAt && (
+                                                <div className="mt-3 p-2 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2">
+                                                    <Clock className="w-3.5 h-3.5 text-amber-500" />
+                                                    <span className="text-[10px] font-bold text-amber-500 uppercase">{t('inventory.expires_in')}: {new Date(selectedSlot.machine.expiresAt).toLocaleString()}</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     <button onClick={() => onRemove(selectedSlot.machine.id)} className="w-full py-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-2xl font-bold text-sm transition-all border border-red-500/20 flex items-center justify-center gap-2"><Trash2 className="w-4 h-4" /> {t('inventory.modal.remove_to_inventory')}</button>

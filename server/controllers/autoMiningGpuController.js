@@ -100,6 +100,11 @@ export async function claimGPUHandler(req, res) {
     const durationMs = 24 * 60 * 60 * 1000; // 24 Hours
     const expiresAt = new Date(now.getTime() + durationMs);
 
+    const gpuWithReward = await prisma.autoMiningGpu.findUnique({
+      where: { id: gpu.id },
+      include: { reward: true }
+    });
+
     const updated = await prisma.$transaction(async (tx) => {
       const u = await tx.autoMiningGpu.update({
         where: { id: gpu.id },
@@ -114,6 +119,21 @@ export async function claimGPUHandler(req, res) {
       await tx.user.update({
         where: { id: userId },
         data: { autoMiningSecondsBalance: { decrement: 300 } }
+      });
+
+      // ADD TO INVENTORY AS A TEMPORARY MACHINE
+      const reward = gpuWithReward.reward;
+      await tx.userInventory.create({
+        data: {
+          userId,
+          minerName: reward?.name || "Pulse GPU v1",
+          level: 1,
+          hashRate: gpu.gpuHashRate,
+          slotSize: 1,
+          imageUrl: reward?.imageUrl || "/assets/machines/reward2.png",
+          acquiredAt: now,
+          expiresAt: expiresAt
+        }
       });
 
       await tx.autoMiningGpuLog.create({
