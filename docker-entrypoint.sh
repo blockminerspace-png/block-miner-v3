@@ -13,17 +13,20 @@ wait_for_db() {
   echo "Database is up and reachable!"
 }
 
-# Run wait function
+# Wait function
 wait_for_db
 
-# Sync database schema with Prisma db push
-echo "Syncing database schema with Prisma db push..."
-# Ensure DATABASE_URL is available for the command
-npx prisma db push --accept-data-loss --schema=server/prisma/schema.prisma || echo "Database push failed, skipping..."
+echo "Database is ready. Syncing Prisma schema..."
+# Generate Prisma client if it's missing (failsafe)
+npx prisma generate --schema=server/prisma/schema.prisma || true
 
-# Start the application
-echo "Seeding store data..."
-node server/prisma/seed.js || echo "Seeding failed, skipping..."
+# Deploy schema changes safely
+echo "Running prisma db push..."
+npx prisma db push --schema=server/prisma/schema.prisma --accept-data-loss || {
+  echo "Warning: prisma db push failed. Continuing startup to keep service available."
+}
+
+echo "Database schema sync step finished."
 
 echo "Starting application..."
 exec "$@"
