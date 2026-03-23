@@ -275,7 +275,7 @@ async function bootstrap() {
       logger.info("Running one-time shortlink reset for all users...");
       const { count } = await prisma.shortlinkCompletion.updateMany({
         where: { dailyRuns: { gt: 0 } },
-        data: { dailyRuns: 0, nextResetAt: null, resetAt: new Date() }
+        data: { dailyRuns: 0, resetAt: new Date() }
       });
       logger.info(`One-time reset completed for ${count} users.`);
     } catch (e) {
