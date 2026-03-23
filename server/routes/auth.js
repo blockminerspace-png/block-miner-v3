@@ -95,9 +95,19 @@ const loginSchema = z.object({
 
 const authLimiter = createRateLimiter({ windowMs: 60_000, max: 12 });
 
+function normalizeIdentifier(value) {
+  return String(value || "").trim();
+}
+
+function normalizeEmail(value) {
+  return normalizeIdentifier(value).toLowerCase();
+}
+
 authRouter.post("/register", authLimiter, validateBody(registerSchema), async (req, res) => {
   try {
     const { username, email, password, refCode: refCodeInput } = req.body;
+    const normalizedUsername = normalizeIdentifier(username);
+    const normalizedEmail = normalizeEmail(email);
     const clientIp = req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip;
 
     // 1. IP-based Anti-Abuse: Limit accounts per IP (max 2 for families/roommates)
@@ -111,7 +121,13 @@ authRouter.post("/register", authLimiter, validateBody(registerSchema), async (r
     }
 
     const existing = await prisma.user.findFirst({
-      where: { OR: [{ email }, { username }] }
+      where: {
+        OR: [
+          { email: { equals: normalizedEmail, mode: "insensitive" } },
+          { username: { equals: normalizedUsername, mode: "insensitive" } },
+          { name: { equals: normalizedUsername, mode: "insensitive" } }
+        ]
+      }
     });
     if (existing) return res.status(409).json({ ok: false, code: "USER_ALREADY_EXISTS", message: "User already exists." });
 
@@ -124,7 +140,7 @@ authRouter.post("/register", authLimiter, validateBody(registerSchema), async (r
       if (referrer) {
         // 2. Anti-Self-Referral: Prevent referring if IP matches or last known IP matches
         if (referrer.ip === clientIp) {
-          logger.warn(`Self-referral attempt blocked: User ${username} tried to use refCode from same IP ${clientIp}`);
+          logger.warn(`Self-referral attempt blocked: User ${normalizedUsername} tried to use refCode from same IP ${clientIp}`);
         } else {
           referrerId = referrer.id;
         }
@@ -135,8 +151,8 @@ authRouter.post("/register", authLimiter, validateBody(registerSchema), async (r
       const user = await tx.user.create({
         data: {
           name: username,
-          username,
-          email,
+          username: normalizedUsername,
+          email: normalizedEmail,
           passwordHash,
           refCode: refCode,
           ip: clientIp, // Store IP immediately on registration
@@ -194,7 +210,7 @@ authRouter.post("/register", authLimiter, validateBody(registerSchema), async (r
     }
 
     res.setHeader("Set-Cookie", [buildAccessCookie(accessToken), buildRefreshCookie(refreshToken.token, refreshToken.expiresAt)]);
-    res.status(201).json({ ok: true, user: { id: result.id, username, email } });
+    res.status(201).json({ ok: true, user: { id: result.id, username: normalizedUsername, email: normalizedEmail } });
   } catch (error) {
     logger.error("Register error", { error: error.message });
     res.status(500).json({ ok: false, code: "REGISTRATION_FAILED", message: "Registration failed." });
@@ -207,14 +223,17 @@ authRouter.post("/login", async (req, res, next) => {
 }, authLimiter, validateBody(loginSchema), async (req, res) => {
   try {
     const { identifier, password, twoFactorToken } = req.body;
+    const normalizedIdentifier = normalizeIdentifier(identifier);
+    const normalizedEmail = normalizeEmail(identifier);
     const clientIp = req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip;
     
-    // Buscar por email OU username
+    // Busca robusta para contas legadas e diferenças de maiusculas/minusculas
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: identifier },
-          { username: identifier }
+          { email: { equals: normalizedEmail, mode: "insensitive" } },
+          { username: { equals: normalizedIdentifier, mode: "insensitive" } },
+          { name: { equals: normalizedIdentifier, mode: "insensitive" } }
         ]
       }
     });
@@ -326,11 +345,15 @@ authRouter.post("/legacy-password-reset", async (req, res) => {
       return res.status(400).json({ ok: false, message: "Dados inválidos." });
     }
 
+    const normalizedIdentifier = normalizeIdentifier(identifier);
+    const normalizedEmail = normalizeEmail(identifier);
+
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: identifier },
-          { username: identifier }
+          { email: { equals: normalizedEmail, mode: "insensitive" } },
+          { username: { equals: normalizedIdentifier, mode: "insensitive" } },
+          { name: { equals: normalizedIdentifier, mode: "insensitive" } }
         ]
       }
     });
