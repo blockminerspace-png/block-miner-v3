@@ -9,6 +9,9 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [resetToken, setResetToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
@@ -17,11 +20,54 @@ export default function ForgotPassword() {
 
     try {
       setIsSubmitting(true);
-      await api.post('/auth/forgot-password', { email });
-      setDone(true);
-      toast.success('Solicitacao de redefinicao enviada com sucesso.');
+      const res = await api.post('/auth/forgot-password', { email });
+      const token = res.data?.resetToken;
+
+      if (token) {
+        setResetToken(token);
+        setDone(false);
+        toast.success('Conta localizada. Defina sua nova senha agora.');
+      } else {
+        setDone(true);
+        toast.success('Solicitacao registrada.');
+      }
     } catch (err) {
       const message = err.response?.data?.message || 'Nao foi possivel processar agora.';
+      setError(message);
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (newPassword.length < 8) {
+      const message = 'A nova senha precisa ter pelo menos 8 caracteres.';
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      const message = 'As senhas nao coincidem.';
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const res = await api.post('/auth/legacy-password-reset', {
+        resetToken,
+        newPassword
+      });
+      toast.success(res.data?.message || 'Senha redefinida com sucesso.');
+      navigate('/login');
+    } catch (err) {
+      const message = err.response?.data?.message || 'Falha ao redefinir senha.';
       setError(message);
       toast.error(message);
     } finally {
@@ -54,7 +100,7 @@ export default function ForgotPassword() {
             </div>
           )}
 
-          {!done ? (
+          {!done && !resetToken ? (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1" htmlFor="email">
@@ -91,14 +137,67 @@ export default function ForgotPassword() {
                 )}
               </button>
             </form>
-          ) : (
+          ) : null}
+
+          {resetToken ? (
+            <form onSubmit={handleResetPassword} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1" htmlFor="new-password">
+                  Nova senha
+                </label>
+                <input
+                  id="new-password"
+                  type="password"
+                  required
+                  minLength={8}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="block w-full px-4 py-4 border border-gray-800 rounded-2xl bg-background/50 text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/50 transition-all font-medium text-sm"
+                  placeholder="Minimo de 8 caracteres"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1" htmlFor="confirm-password">
+                  Confirmar nova senha
+                </label>
+                <input
+                  id="confirm-password"
+                  type="password"
+                  required
+                  minLength={8}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="block w-full px-4 py-4 border border-gray-800 rounded-2xl bg-background/50 text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/50 transition-all font-medium text-sm"
+                  placeholder="Repita a nova senha"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full flex justify-center items-center gap-2 py-4 px-6 bg-primary hover:bg-primary-hover text-white rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-primary/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    Salvar nova senha
+                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </button>
+            </form>
+          ) : null}
+
+          {done ? (
             <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5 flex items-start gap-3">
               <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
               <p className="text-emerald-300 text-xs font-bold leading-relaxed">
-                Solicitacao registrada. Se o e-mail existir na base, a conta sera marcada para redefinicao.
+                Solicitacao registrada. Se o e-mail existir na base, continue o reset usando o login.
               </p>
             </div>
-          )}
+          ) : null}
 
           <div className="mt-8 text-center">
             <button

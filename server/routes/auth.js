@@ -1,6 +1,7 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import { z } from "zod";
 import prisma from "../src/db/prisma.js";
 import { getTokenFromRequest, getRefreshTokenFromRequest, ACCESS_COOKIE_NAME, REFRESH_COOKIE_NAME } from "../utils/token.js";
@@ -26,6 +27,9 @@ const WELCOME_MINER_NAME = "Welcome Miner";
 const WELCOME_MINER_HASH_RATE = 10;
 const WELCOME_MINER_SLOT_SIZE = 1;
 const WELCOME_MINER_IMAGE_URL = "/machines/reward1.png";
+const PASSWORD_RESET_TOKEN_TTL = process.env.PASSWORD_RESET_TOKEN_TTL || "20m";
+const JWT_ISSUER = process.env.JWT_ISSUER || "blockminer";
+const JWT_AUDIENCE = process.env.JWT_AUDIENCE || "blockminer.app";
 
 // Helper functions using Prisma
 async function generateUniqueRefCode() {
@@ -101,6 +105,64 @@ function normalizeIdentifier(value) {
 
 function normalizeEmail(value) {
   return normalizeIdentifier(value).toLowerCase();
+}
+
+function signPasswordResetToken(userId) {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET is required.");
+  }
+
+  return jwt.sign({ sub: String(userId), typ: "pwd_reset" }, process.env.JWT_SECRET, {
+    expiresIn: PASSWORD_RESET_TOKEN_TTL,
+    issuer: JWT_ISSUER,
+    audience: JWT_AUDIENCE
+  });
+}
+
+function verifyPasswordResetToken(token) {
+  try {
+    if (!process.env.JWT_SECRET) return null;
+    const payload = jwt.verify(token, process.env.JWT_SECRET, {
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE
+    });
+    if (payload?.typ !== "pwd_reset") return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+async function findUserByIdentifier(identifier) {
+  const normalizedIdentifier = normalizeIdentifier(identifier);
+  const normalizedEmail = normalizeEmail(identifier);
+
+  let user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { email: { equals: normalizedEmail, mode: "insensitive" } },
+        { username: { equals: normalizedIdentifier, mode: "insensitive" } },
+        { name: { equals: normalizedIdentifier, mode: "insensitive" } }
+      ]
+    }
+  });
+
+  if (user) return user;
+
+  // Legacy fallback for historically concatenated/corrupted emails.
+  if (normalizedIdentifier.includes("@")) {
+    user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: { endsWith: normalizedEmail, mode: "insensitive" } },
+          { email: { contains: normalizedEmail, mode: "insensitive" } }
+        ]
+      },
+      orderBy: { id: "desc" }
+    });
+  }
+
+  return user;
 }
 
 authRouter.post("/register", authLimiter, validateBody(registerSchema), async (req, res) => {
@@ -220,20 +282,9 @@ authRouter.post("/register", authLimiter, validateBody(registerSchema), async (r
 authRouter.post("/login", authLimiter, validateBody(loginSchema), async (req, res) => {
   try {
     const { identifier, password, twoFactorToken } = req.body;
-    const normalizedIdentifier = normalizeIdentifier(identifier);
-    const normalizedEmail = normalizeEmail(identifier);
     const clientIp = req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip;
-    
-    // Busca robusta para contas legadas e diferenças de maiusculas/minusculas
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: { equals: normalizedEmail, mode: "insensitive" } },
-          { username: { equals: normalizedIdentifier, mode: "insensitive" } },
-          { name: { equals: normalizedIdentifier, mode: "insensitive" } }
-        ]
-      }
-    });
+
+    const user = await findUserByIdentifier(identifier);
 
     if (!user) {
       return res.status(401).json({ ok: false, code: "IDENTIFIER_NOT_FOUND", message: "Email ou username não existe." });
@@ -241,17 +292,6 @@ authRouter.post("/login", authLimiter, validateBody(loginSchema), async (req, re
 
     const isPasswordMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordMatch) {
-      
-      // Lógica de Migração de Senha (Uma vez por conta)
-      if (user.needsPasswordReset) {
-        return res.status(200).json({ 
-          ok: false, 
-          code: "LEGACY_RESET_REQUIRED",
-          needsLegacyReset: true, 
-          message: "Sua conta foi migrada com sucesso, mas sua senha antiga precisa ser atualizada por segurança." 
-        });
-      }
-
       return res.status(401).json({ ok: false, code: "INVALID_CREDENTIALS", message: "Invalid credentials." });
     }
 
@@ -335,38 +375,28 @@ authRouter.post("/mark-adblock", requireAuth, async (req, res) => {
 
 authRouter.post("/legacy-password-reset", async (req, res) => {
   try {
-    const { identifier, newPassword } = req.body;
-    if (!identifier || !newPassword || newPassword.length < 8) {
+    const { resetToken, newPassword } = req.body;
+    if (!resetToken || !newPassword || newPassword.length < 8) {
       return res.status(400).json({ ok: false, message: "Dados inválidos." });
     }
 
-    const normalizedIdentifier = normalizeIdentifier(identifier);
-    const normalizedEmail = normalizeEmail(identifier);
+    const payload = verifyPasswordResetToken(resetToken);
+    if (!payload?.sub) {
+      return res.status(401).json({ ok: false, message: "Token de reset inválido ou expirado." });
+    }
 
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: { equals: normalizedEmail, mode: "insensitive" } },
-          { username: { equals: normalizedIdentifier, mode: "insensitive" } },
-          { name: { equals: normalizedIdentifier, mode: "insensitive" } }
-        ]
-      }
-    });
-    if (!user || !user.needsPasswordReset) {
-      return res.status(403).json({ ok: false, message: "Esta conta não requer reset de migração." });
+    const user = await prisma.user.findUnique({ where: { id: Number(payload.sub) } });
+    if (!user) {
+      return res.status(404).json({ ok: false, message: "Usuário não encontrado." });
     }
 
     const newPasswordHash = await bcrypt.hash(newPassword, 10);
     await prisma.user.update({
       where: { id: user.id },
-      data: { 
-        passwordHash: newPasswordHash,
-        needsPasswordReset: false 
-      }
+      data: { passwordHash: newPasswordHash }
     });
 
     logger.info(`[SECURITY_AUDIT] Legacy password reset completed`, { 
-      identifier, 
       userId: user.id, 
       ip: req.headers['x-real-ip'] || req.ip,
       timestamp: new Date().toISOString()
@@ -411,23 +441,17 @@ authRouter.post("/forgot-password", authLimiter, async (req, res) => {
     }
 
     const normalizedEmail = normalizeEmail(email);
-    const user = await prisma.user.findFirst({
-      where: { email: { equals: normalizedEmail, mode: "insensitive" } }
-    });
+    const user = await findUserByIdentifier(normalizedEmail);
 
     if (!user) {
       // Não revela se email existe ou não (segurança)
       return res.json({ ok: true, message: "Se o email existe, você receberá instruções de redefinição." });
     }
 
-    // Marca conta para redefinição obrigatória de senha
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { needsPasswordReset: true }
-    });
+    const resetToken = signPasswordResetToken(user.id);
 
     logger.info(`[SECURITY] Password reset requested for email: ${normalizedEmail}`);
-    res.json({ ok: true, message: "Email encontrado. Você pode fazer login com uma nova senha." });
+    res.json({ ok: true, message: "Solicitação registrada. Continue para definir sua nova senha.", resetToken });
   } catch (error) {
     logger.error("Forgot password error", { error: error.message });
     res.status(500).json({ ok: false, message: "Erro ao processar redefinição de senha." });
@@ -437,30 +461,32 @@ authRouter.post("/forgot-password", authLimiter, async (req, res) => {
 // 🔐 Redefinição Forçada com Admin (requer chave de admin)
 authRouter.post("/admin/force-password-reset", async (req, res) => {
   try {
-    const { email, adminKey } = req.body;
+    const { email, newPassword, adminKey } = req.body;
     
     // Validação de chave de admin
     if (!adminKey || adminKey !== process.env.ADMIN_SECURITY_CODE) {
       return res.status(403).json({ ok: false, message: "Chave de admin inválida." });
     }
 
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ ok: false, message: "Nova senha inválida." });
+    }
+
     const normalizedEmail = normalizeEmail(email);
-    const user = await prisma.user.findFirst({
-      where: { email: { equals: normalizedEmail, mode: "insensitive" } }
-    });
+    const user = await findUserByIdentifier(normalizedEmail);
 
     if (!user) {
       return res.status(404).json({ ok: false, message: "Usuário não encontrado." });
     }
 
-    // Marca para reset obrigatório
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
     await prisma.user.update({
       where: { id: user.id },
-      data: { needsPasswordReset: true }
+      data: { passwordHash: newPasswordHash }
     });
 
-    logger.info(`[ADMIN] Force password reset for email: ${normalizedEmail}`);
-    res.json({ ok: true, message: "Redefinição de senha forçada com sucesso." });
+    logger.info(`[ADMIN] Force password reset completed for email: ${normalizedEmail}`);
+    res.json({ ok: true, message: "Senha redefinida com sucesso." });
   } catch (error) {
     logger.error("Admin force reset error", { error: error.message });
     res.status(500).json({ ok: false, message: "Erro ao forçar redefinição de senha." });
