@@ -7,6 +7,7 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import Shop from './pages/Shop';
 import Inventory from './pages/Inventory';
@@ -152,6 +153,7 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         <Route element={<ProtectedLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
