@@ -70,6 +70,7 @@
     "dashboard": "Panel de Control",
     "machines": "Mis Máquinas",
     "shop": "Tienda",
+    "offers": "Ofertas",
     "wallet": "Billetera",
     "faucet": "Grifo",
     "shortlinks": "Shortlinks",
@@ -261,9 +262,25 @@
     "min_time": "Tiempo necesario",
     "no_videos": "No hay videos disponibles en este momento."
     },
+  "offers": {
+    "badge": "Tiempo limitado",
+    "title": "Ofertas populares",
+    "subtitle": "Mineros exclusivos de evento. Paga con tu saldo — el equipo va al inventario.",
+    "empty": "No hay ofertas activas. Vuelve pronto.",
+    "buy": "Comprar",
+    "sold_out": "Agotado",
+    "confirm_title": "Confirmar compra",
+    "miner": "Minero",
+    "price": "Precio",
+    "hash": "Ganancia de hashrate",
+    "confirm_note": "Se descontará de tu saldo. El minero aparece en Inventario.",
+    "purchase_ok": "¡Compra exitosa!",
+    "ended": "Finalizado"
+  },
     "pages": {
     "dashboard": "Panel de Control",
     "shop": "Tienda de Equipos",
+    "offers": "Ofertas populares",
     "inventory": "Mis Máquinas",
     "wallet": "Billetera Digital",
     "checkin": "Check-in Diario",

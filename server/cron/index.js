@@ -6,6 +6,7 @@ import { startCallbackQueueProcessing } from "./callbackQueueCron.js";
 import { startShortlinkResetCron } from "./shortlinkResetCron.js";
 import { startDepositMonitoring } from "./depositsCron.js";
 import { startCheckinPendingCron } from "./checkinPendingCron.js";
+import { startOfferEventsExpireCron } from "./offerEventsExpireCron.js";
 
 export function startCronTasks({
   engine,
@@ -28,6 +29,7 @@ export function startCronTasks({
   const shortlinkResetTimers = startShortlinkResetCron();
   const depositTimers = startDepositMonitoring();
   const checkinPendingTimers = startCheckinPendingCron();
+  const offerEventsExpireTimers = startOfferEventsExpireCron();
 
   // Run full site backup on startup (includes DB + all files)
   // runFullSiteBackupOnStartup();
@@ -40,6 +42,7 @@ export function startCronTasks({
     ...callbackQueueTimers,
     ...shortlinkResetTimers,
     ...depositTimers,
-    ...checkinPendingTimers
+    ...checkinPendingTimers,
+    ...offerEventsExpireTimers
   };
 }

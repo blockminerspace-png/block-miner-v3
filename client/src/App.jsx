@@ -15,6 +15,7 @@ import Wallet from './pages/Wallet';
 import Faucet from './pages/Faucet';
 import Shortlinks from './pages/Shortlinks';
 import Checkin from './pages/Checkin';
+import PopularOffers from './pages/PopularOffers';
 import YouTubeWatch from './pages/YouTubeWatch';
 import Ranking from './pages/Ranking';
 import PublicRoom from './pages/PublicRoom';
@@ -35,6 +36,8 @@ import AdminFinance from './pages/AdminFinance';
 import AdminBackups from './pages/AdminBackups';
 import AdminLogs from './pages/AdminLogs';
 import AdminMetrics from './pages/AdminMetrics';
+import AdminOfferEvents from './pages/AdminOfferEvents';
+import AdminOfferEventManage from './pages/AdminOfferEventManage';
 
 // Main App Component
 const Landing = () => {
@@ -158,6 +161,7 @@ function App() {
         <Route element={<ProtectedLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/shop" element={<Shop />} />
+          <Route path="/offers" element={<PopularOffers />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/faucet" element={<Faucet />} />
@@ -182,6 +186,8 @@ function App() {
           <Route path="/admin/backups" element={<AdminBackups />} />
           <Route path="/admin/logs" element={<AdminLogs />} />
           <Route path="/admin/metrics" element={<AdminMetrics />} />
+          <Route path="/admin/offer-events" element={<AdminOfferEvents />} />
+          <Route path="/admin/offer-events/:id" element={<AdminOfferEventManage />} />
         </Route>
       </Routes>
     </BrowserRouter>

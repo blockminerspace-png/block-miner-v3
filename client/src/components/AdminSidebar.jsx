@@ -8,13 +8,15 @@ import {
     FileText, 
     Activity, 
     LogOut,
-    ShieldAlert
+    ShieldAlert,
+    Tag
 } from 'lucide-react';
 
 const adminMenuItems = [
   { icon: LayoutDashboard, label: 'Resumo', path: '/admin/dashboard' },
   { icon: Users, label: 'Usuários', path: '/admin/users' },
   { icon: Cpu, label: 'Mineradoras', path: '/admin/miners' },
+  { icon: Tag, label: 'Ofertas', path: '/admin/offer-events' },
   { icon: Wallet, label: 'Financeiro', path: '/admin/finance' },
   { icon: Database, label: 'Backups', path: '/admin/backups' },
   { icon: FileText, label: 'Logs', path: '/admin/logs' },
@@ -42,7 +44,9 @@ export default function AdminSidebar() {
       <nav className="space-y-1 flex-1">
         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-2 mb-4">Gestão do Sistema</p>
         {adminMenuItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive =
+            location.pathname === item.path ||
+            (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path + '/'));
           return (
             <button
               key={item.path}

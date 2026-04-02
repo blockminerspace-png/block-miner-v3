@@ -70,6 +70,7 @@
     "dashboard": "Dashboard",
     "machines": "My Machines",
     "shop": "Shop",
+    "offers": "Popular Offers",
     "wallet": "Wallet",
     "faucet": "Faucet",
     "shortlinks": "Shortlinks",
@@ -263,9 +264,25 @@
     "min_time": "Required time",
     "no_videos": "No videos available at the moment."
     },
+  "offers": {
+    "badge": "Limited time",
+    "title": "Popular Offers",
+    "subtitle": "Exclusive event miners. Pay with your in-game balance — items go to your inventory.",
+    "empty": "No active offers right now. Check back soon.",
+    "buy": "Buy",
+    "sold_out": "Sold out",
+    "confirm_title": "Confirm purchase",
+    "miner": "Miner",
+    "price": "Price",
+    "hash": "Hashrate gain",
+    "confirm_note": "The amount will be debited from your balance. The miner appears in Inventory for installation.",
+    "purchase_ok": "Purchase successful!",
+    "ended": "Ended"
+  },
     "pages": {
     "dashboard": "Main Dashboard",
     "shop": "Equipment Shop",
+    "offers": "Popular Offers",
     "inventory": "My Machines",
     "wallet": "Digital Wallet",
     "checkin": "Daily Check-in",

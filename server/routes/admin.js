@@ -1,5 +1,6 @@
 import express from "express";
 import * as adminController from "../controllers/adminController.js";
+import { adminOfferEventsRouter } from "./admin-offer-events.js";
 import { requireAdminAuth } from "../middleware/adminAuth.js";
 import { createRateLimiter } from "../middleware/rateLimit.js";
 import * as walletModel from "../models/walletModel.js";
@@ -17,6 +18,8 @@ const adminLimiter = createRateLimiter({
 
 // Protect all admin routes
 adminRouter.use(requireAdminAuth, adminLimiter);
+
+adminRouter.use(adminOfferEventsRouter);
 
 // Dashboard Stats
 adminRouter.get("/stats", adminController.getStats);

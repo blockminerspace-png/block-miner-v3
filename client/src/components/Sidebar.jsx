@@ -13,7 +13,8 @@ import {
   Trophy,
   Gamepad2,
   ChevronRight,
-  Zap
+  Zap,
+  Tag
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 
@@ -30,6 +31,7 @@ export default function Sidebar() {
         { icon: LayoutDashboard, label: t('sidebar.dashboard'), path: '/dashboard' },
         { icon: Cpu, label: t('sidebar.machines'), path: '/inventory' },
         { icon: ShoppingCart, label: t('sidebar.shop'), path: '/shop' },
+        { icon: Tag, label: t('sidebar.offers', 'Ofertas'), path: '/offers' },
         { icon: Wallet, label: t('sidebar.wallet'), path: '/wallet' },
       ]
     },
