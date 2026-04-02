@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { Sparkles, Clock, ShoppingBag, X, Loader2, Zap } from 'lucide-react';
+import { Sparkles, Clock, X, Loader2, Zap } from 'lucide-react';
 import { api } from '../store/auth';
 import { useGameStore } from '../store/game';
 import { formatHashrate } from '../utils/machine';
@@ -129,16 +129,12 @@ export default function PopularOffers() {
                             key={ev.id}
                             className="rounded-[2rem] border border-gray-800/60 bg-surface overflow-hidden shadow-xl"
                         >
-                            <div className="grid md:grid-cols-[280px_1fr] gap-0">
-                                <div className="relative h-48 md:h-auto bg-slate-900">
-                                    {ev.imageUrl ? (
-                                        <img src={ev.imageUrl} alt="" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-slate-600">
-                                            <ShoppingBag className="w-16 h-16 opacity-30" />
-                                        </div>
-                                    )}
-                                </div>
+                                {ev.imageUrl ? (
+                                    <div className="relative h-56 bg-slate-900 overflow-hidden">
+                                        <img src={ev.imageUrl} alt="" className="w-full h-full object-cover object-center" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
+                                    </div>
+                                ) : null}
                                 <div className="p-8 space-y-6">
                                     <div className="flex flex-wrap items-start justify-between gap-4">
                                         <div>
@@ -192,7 +188,6 @@ export default function PopularOffers() {
                                         ))}
                                     </div>
                                 </div>
-                            </div>
                         </div>
                     ))}
                 </div>
