@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { Sparkles, Clock, X, Loader2, Zap } from 'lucide-react';
+import { Sparkles, Clock, X, Loader2, Zap, TrendingUp, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { api } from '../store/auth';
 import { useGameStore } from '../store/game';
 import { formatHashrate } from '../utils/machine';
@@ -40,9 +41,9 @@ function EventCountdown({ endsAt, isLive, endedLabel }) {
         );
     }
     return (
-        <div className="flex items-center gap-2 text-amber-400">
-            <Clock className="w-4 h-4" />
-            <span className="font-mono text-sm font-bold">{formatCountdown(left)}</span>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+            <Clock className="w-3.5 h-3.5 text-amber-400" />
+            <span className="font-mono text-xs font-black text-amber-400">{formatCountdown(left)}</span>
         </div>
     );
 }
@@ -74,10 +75,6 @@ export default function PopularOffers() {
         load();
     }, [load]);
 
-    const openBuy = (event, miner) => {
-        setModal({ event, miner });
-    };
-
     const confirmBuy = async () => {
         if (!modal?.miner || buying) return;
         try {
@@ -98,150 +95,177 @@ export default function PopularOffers() {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[40vh] gap-4 text-gray-500">
-                <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                <p className="text-xs font-bold uppercase tracking-widest">{t('common.loading')}</p>
+            <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
+                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">{t('common.loading')}</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-10 pb-20 animate-in fade-in duration-500">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest mb-3">
-                        <Sparkles className="w-3 h-3" />
-                        {t('offers.badge')}
+        <div className="space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {events.map((ev) => (
+                <div key={ev.id} className="space-y-8">
+                    {/* Event Header */}
+                    <div className="rounded-[2rem] border border-gray-800/60 bg-surface overflow-hidden shadow-xl">
+                        {ev.imageUrl && (
+                            <div className="relative h-52 overflow-hidden">
+                                <img src={ev.imageUrl} alt="" className="w-full h-full object-cover object-center" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+                                <div className="absolute bottom-5 left-7">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] font-black uppercase tracking-widest backdrop-blur-sm">
+                                        <Sparkles className="w-3 h-3" />
+                                        {t('offers.badge')}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        <div className="px-7 py-6 flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                                {!ev.imageUrl && (
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest mb-3">
+                                        <Sparkles className="w-3 h-3" />
+                                        {t('offers.badge')}
+                                    </div>
+                                )}
+                                <h1 className="text-3xl font-black text-white tracking-tight">{ev.title}</h1>
+                                <p className="text-gray-500 font-medium mt-1 max-w-2xl line-clamp-2">{ev.description}</p>
+                            </div>
+                            <EventCountdown endsAt={ev.endsAt} isLive={ev.isLive} endedLabel={t('offers.ended')} />
+                        </div>
                     </div>
-                    <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">{t('offers.title')}</h1>
-                    <p className="text-gray-500 font-medium mt-2 max-w-xl">{t('offers.subtitle')}</p>
-                </div>
-            </div>
 
-            {events.length === 0 ? (
+                    {/* Miners Grid — igual à Loja */}
+                    {(ev.miners || []).length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                            {(ev.miners || []).map((m) => (
+                                <div key={m.id} className="bg-surface border border-gray-800/50 rounded-[2.5rem] p-8 shadow-xl hover:border-primary/30 transition-all duration-500 group relative overflow-hidden">
+                                    <div className="relative z-10 space-y-6">
+                                        <div className="flex justify-between items-start">
+                                            <div className="px-3 py-1 bg-gray-900 rounded-full border border-gray-800 text-[9px] font-black text-gray-500 uppercase tracking-widest group-hover:text-primary transition-colors">
+                                                Edição Limitada
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-amber-400">
+                                                <TrendingUp className="w-3.5 h-3.5" />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest">Evento</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="aspect-square bg-gray-900/50 rounded-3xl p-6 border border-gray-800 group-hover:scale-105 transition-transform duration-500 flex items-center justify-center">
+                                            {m.imageUrl
+                                                ? <img src={m.imageUrl} alt={m.name} className="w-full h-full object-contain" />
+                                                : <Zap className="w-16 h-16 text-amber-500/30" />
+                                            }
+                                        </div>
+
+                                        <div className="space-y-1">
+                                            <h3 className="text-xl font-black text-white truncate">{m.name}</h3>
+                                            <div className="flex items-center gap-2 text-primary font-bold">
+                                                <Zap className="w-4 h-4" />
+                                                <span className="text-sm">{formatHashrate(Number(m.hashRate) || 0)}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-gray-800/50 flex items-center justify-between">
+                                            <div className="flex flex-col">
+                                                <span className="text-[9px] font-bold text-gray-600 uppercase tracking-widest">{t('shop.price')}</span>
+                                                <span className="text-lg font-black text-white italic">
+                                                    {Number(m.price).toFixed(6)}{' '}
+                                                    <span className="text-xs font-bold text-gray-500 not-italic uppercase">{m.currency}</span>
+                                                </span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                disabled={!ev.isLive || !m.inStock}
+                                                onClick={() => setModal({ event: ev, miner: m })}
+                                                className="px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-primary/20 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                {m.inStock ? t('offers.buy') : t('offers.sold_out')}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-[100px] -z-0 translate-x-10 -translate-y-10 group-hover:translate-x-0 group-hover:translate-y-0 transition-transform duration-700" />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            ))}
+
+            {events.length === 0 && (
                 <div className="rounded-3xl border border-dashed border-gray-800 p-16 text-center text-gray-500">
                     {t('offers.empty')}
                 </div>
-            ) : (
-                <div className="space-y-12">
-                    {events.map((ev) => (
-                        <div
-                            key={ev.id}
-                            className="rounded-[2rem] border border-gray-800/60 bg-surface overflow-hidden shadow-xl"
-                        >
-                                {ev.imageUrl ? (
-                                    <div className="relative h-56 bg-slate-900 overflow-hidden">
-                                        <img src={ev.imageUrl} alt="" className="w-full h-full object-cover object-center" />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
-                                    </div>
-                                ) : null}
-                                <div className="p-8 space-y-6">
-                                    <div className="flex flex-wrap items-start justify-between gap-4">
-                                        <div>
-                                            <h2 className="text-2xl font-black text-white">{ev.title}</h2>
-                                            <p className="text-sm text-gray-500 mt-2 line-clamp-3">{ev.description}</p>
-                                        </div>
-                                        <EventCountdown
-                                            endsAt={ev.endsAt}
-                                            isLive={ev.isLive}
-                                            endedLabel={t('offers.ended')}
-                                        />
-                                    </div>
-
-                                    <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                                        {(ev.miners || []).map((m) => (
-                                            <div
-                                                key={m.id}
-                                                className="rounded-2xl border border-gray-800 bg-slate-900/40 p-5 flex flex-col gap-3"
-                                            >
-                                                <div className="flex gap-3">
-                                                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0">
-                                                        {m.imageUrl ? (
-                                                            <img src={m.imageUrl} alt="" className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center">
-                                                                <Zap className="w-6 h-6 text-amber-500/40" />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className="font-bold text-white truncate">{m.name}</p>
-                                                        <p className="text-[10px] text-primary font-mono uppercase">
-                                                            {formatHashrate(Number(m.hashRate) || 0)}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center justify-between gap-2 mt-auto pt-2 border-t border-gray-800/80">
-                                                    <span className="text-lg font-black text-amber-400">
-                                                        {Number(m.price).toFixed(6)} {m.currency}
-                                                    </span>
-                                                    <button
-                                                        type="button"
-                                                        disabled={!ev.isLive || !m.inStock}
-                                                        onClick={() => openBuy(ev, m)}
-                                                        className="px-4 py-2 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
-                                                    >
-                                                        {m.inStock ? t('offers.buy') : t('offers.sold_out')}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                        </div>
-                    ))}
-                </div>
             )}
 
-            {modal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-                    <div className="w-full max-w-md rounded-3xl border border-gray-800 bg-slate-950 p-8 shadow-2xl relative">
-                        <button
-                            type="button"
-                            className="absolute top-4 right-4 text-gray-500 hover:text-white"
-                            onClick={() => setModal(null)}
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                        <h3 className="text-xl font-black text-white pr-8">{t('offers.confirm_title')}</h3>
-                        <div className="mt-6 space-y-3 text-sm text-gray-400">
-                            <p>
-                                <span className="text-gray-600">{t('offers.miner')}</span>{' '}
-                                <span className="text-white font-bold">{modal.miner.name}</span>
-                            </p>
-                            <p>
-                                <span className="text-gray-600">{t('offers.price')}</span>{' '}
-                                <span className="text-amber-400 font-mono font-bold">
-                                    {Number(modal.miner.price).toFixed(6)} {modal.miner.currency}
-                                </span>
-                            </p>
-                            <p>
-                                <span className="text-gray-600">{t('offers.hash')}</span>{' '}
-                                <span className="text-primary font-mono">
-                                    +{formatHashrate(Number(modal.miner.hashRate) || 0)}
-                                </span>
-                            </p>
-                            <p className="text-xs text-slate-500 pt-2">{t('offers.confirm_note')}</p>
+            {/* Confirm Modal — igual à Loja */}
+            {modal && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-surface border border-gray-800 rounded-[3rem] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 relative">
+                        <div className="absolute top-0 right-0 p-6">
+                            <button onClick={() => setModal(null)} className="p-2 text-gray-500 hover:text-white transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
                         </div>
-                        <div className="flex gap-3 mt-8">
-                            <button
-                                type="button"
-                                className="flex-1 py-3 rounded-xl border border-gray-700 text-gray-300 text-xs font-bold uppercase"
-                                onClick={() => setModal(null)}
-                            >
-                                {t('common.cancel')}
-                            </button>
-                            <button
-                                type="button"
-                                disabled={buying}
-                                className="flex-1 py-3 rounded-xl bg-primary text-white text-xs font-black uppercase flex items-center justify-center gap-2"
-                                onClick={confirmBuy}
-                            >
-                                {buying ? <Loader2 className="w-4 h-4 animate-spin" /> : t('common.confirm')}
-                            </button>
+                        <div className="p-10 text-center space-y-8">
+                            <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto border border-primary/20">
+                                <Sparkles className="w-10 h-10 text-primary" />
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter">Confirmar Compra</h3>
+                                <p className="text-gray-500 font-medium">Você está prestes a adquirir um equipamento de evento limitado.</p>
+                            </div>
+                            <div className="bg-gray-900/50 border border-gray-800 rounded-3xl p-6 space-y-4">
+                                <div className="flex items-center gap-4 text-left">
+                                    <div className="w-16 h-16 bg-gray-800 rounded-2xl p-2 border border-gray-700 flex items-center justify-center">
+                                        {modal.miner.imageUrl
+                                            ? <img src={modal.miner.imageUrl} className="w-full h-full object-contain" alt="" />
+                                            : <Zap className="w-8 h-8 text-amber-500/40" />
+                                        }
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-white leading-none">{modal.miner.name}</h4>
+                                        <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-2 block">
+                                            {formatHashrate(Number(modal.miner.hashRate) || 0)}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="h-[1px] bg-gray-800 w-full" />
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Total a Pagar</span>
+                                    <span className="text-xl font-black text-white italic">
+                                        {Number(modal.miner.price).toFixed(6)}{' '}
+                                        <span className="text-xs font-bold text-gray-500 not-italic uppercase">{modal.miner.currency}</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={confirmBuy}
+                                    disabled={buying}
+                                    className="w-full py-5 bg-primary hover:bg-primary-hover text-white rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50"
+                                >
+                                    {buying
+                                        ? <Loader2 className="w-5 h-5 animate-spin" />
+                                        : <><CheckCircle2 className="w-5 h-5" /> Confirmar Pagamento</>
+                                    }
+                                </button>
+                                <button
+                                    onClick={() => setModal(null)}
+                                    disabled={buying}
+                                    className="w-full py-4 text-gray-500 hover:text-white font-bold text-xs uppercase tracking-widest transition-colors disabled:opacity-50"
+                                >
+                                    {t('common.cancel')}
+                                </button>
+                            </div>
+                            <div className="flex items-center justify-center gap-2 text-amber-500/50">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                <span className="text-[9px] font-black uppercase tracking-widest">Esta ação é irreversível</span>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

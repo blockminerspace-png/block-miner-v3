@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/auth';
 import { Brain, LayoutGrid, Trophy, Clock, Zap, RotateCcw, Play, Fingerprint, MousePointer2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const SOCKET_URL = '/';
 const CRYPTO_ICONS = {
   'bitcoin': 'https://cryptologos.cc/logos/bitcoin-btc-logo.svg',
   'ethereum': 'https://cryptologos.cc/logos/ethereum-eth-logo.svg',
@@ -44,6 +44,8 @@ export default function Games() {
     newSocket.on('game:error', (msg) => {
       toast.error(msg);
       setIsProcessing(false);
+      setActiveGame(null);
+      setGameState(null);
     });
 
     newSocket.on('game:started', (data) => {
