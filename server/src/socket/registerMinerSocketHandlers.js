@@ -48,7 +48,9 @@ export function registerMinerSocketHandlers({
             rigs: profile.rigs,
             base_hash_rate: profile.base_hash_rate,
             balance: profile.balance,
-            lifetimeMined: profile.lifetime_mined
+            lifetimeMined: profile.lifetime_mined,
+            refCode: profile.refCode,
+            referralCount: profile.referralCount
           }
         });
 
