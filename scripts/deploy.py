@@ -62,6 +62,7 @@ def build_remote_script(
     lines = [
         "set -euo pipefail",
         remote_cd_command(project_path),
+        "if [ ! -f .env.production ] && [ -f .env ]; then cp .env .env.production; fi",
     ]
     if git_pull:
         lines.append("git pull --ff-only || git pull")

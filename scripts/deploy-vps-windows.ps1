@@ -124,6 +124,7 @@ try {
 set -e
 cd $RemotePath
 tar -xzf $remoteTar
+if [ ! -f .env.production ] && [ -f .env ]; then cp .env .env.production; fi
 docker compose up -d --build --no-deps app
 curl -sS -o /dev/null -w 'health_http:%{http_code}\n' http://127.0.0.1:3000/health || true
 "@ -replace "`r`n", "`n" -replace "`r", "`n").TrimEnd() + "`n"
