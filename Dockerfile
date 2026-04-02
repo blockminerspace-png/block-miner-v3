@@ -33,7 +33,7 @@ COPY . .
 COPY --from=frontend-builder /app/dist ./client/dist
 
 # Create necessary directories
-RUN mkdir -p data backups logs
+RUN mkdir -p data backups logs uploads
 
 ENV NODE_ENV=production
 

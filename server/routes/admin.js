@@ -8,6 +8,8 @@ import prisma from "../src/db/prisma.js";
 import path from "path";
 import fs from "fs/promises";
 import { fileURLToPath } from "url";
+import multer from "multer";
+import crypto from "crypto";
 
 export const adminRouter = express.Router();
 
@@ -16,10 +18,42 @@ const adminLimiter = createRateLimiter({
     max: 100
 });
 
+// Multer — salva em /app/uploads (docker) ou ./uploads (dev)
+const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), "../../uploads"));
+const upload = multer({
+    storage: multer.diskStorage({
+        destination: async (_req, _file, cb) => {
+            const { mkdir } = await import("fs/promises");
+            await mkdir(UPLOADS_DIR, { recursive: true });
+            cb(null, UPLOADS_DIR);
+        },
+        filename: (_req, file, cb) => {
+            const ext = path.extname(file.originalname).toLowerCase().replace(/[^.a-z0-9]/g, '') || '.bin';
+            cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`);
+        }
+    }),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+    fileFilter: (_req, file, cb) => {
+        if (/^image\/(jpeg|png|gif|webp|svg\+xml)$/.test(file.mimetype)) cb(null, true);
+        else cb(new Error('Somente imagens são permitidas.'));
+    }
+});
+
 // Protect all admin routes
 adminRouter.use(requireAdminAuth, adminLimiter);
 
 adminRouter.use(adminOfferEventsRouter);
+
+// Upload de imagem (event/miner covers)
+adminRouter.post("/upload-image", upload.single("image"), (req, res) => {
+    if (!req.file) return res.status(400).json({ ok: false, message: "Nenhum arquivo enviado." });
+    const url = `/uploads/${req.file.filename}`;
+    res.json({ ok: true, url });
+});
+adminRouter.use((err, _req, res, _next) => {
+    if (err?.message) return res.status(400).json({ ok: false, message: err.message });
+    res.status(500).json({ ok: false, message: "Erro no upload." });
+});
 
 // Dashboard Stats
 adminRouter.get("/stats", adminController.getStats);

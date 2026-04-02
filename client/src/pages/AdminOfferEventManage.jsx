@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Plus, Trash2, Save, Receipt, Pencil } from 'lucide-react';
 import { api } from '../store/auth';
+import ImageUploader from '../components/ImageUploader';
 
 const CURRENCIES = ['POL', 'BTC', 'ETH', 'USDT', 'USDC', 'ZER'];
 
@@ -272,17 +273,12 @@ export default function AdminOfferEventManage() {
                                 required
                             />
                         </div>
-                        <div>
-                            <label className="text-[10px] uppercase text-slate-500 font-bold">URL da imagem</label>
-                            <input
-                                className="w-full mt-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white"
-                                value={eventForm.imageUrl}
-                                onChange={(e) => setEventForm((f) => ({ ...f, imageUrl: e.target.value }))}
-                            />
-                            {eventForm.imageUrl && (
-                                <img src={eventForm.imageUrl} alt="" className="mt-3 max-h-40 rounded-xl border border-slate-800" />
-                            )}
-                        </div>
+                        <ImageUploader
+                            label="Imagem do Evento"
+                            value={eventForm.imageUrl}
+                            onChange={(url) => setEventForm((f) => ({ ...f, imageUrl: url }))}
+                            previewClass="max-h-40"
+                        />
                         <div className="grid md:grid-cols-2 gap-4">
                             <div>
                                 <label className="text-[10px] uppercase text-slate-500 font-bold">Início</label>
@@ -448,15 +444,12 @@ export default function AdminOfferEventManage() {
                             onChange={(e) => setMinerForm((f) => ({ ...f, description: e.target.value }))}
                             required
                         />
-                        <input
-                            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-white"
-                            placeholder="URL imagem"
+                        <ImageUploader
+                            label="Imagem do Miner"
                             value={minerForm.imageUrl}
-                            onChange={(e) => setMinerForm((f) => ({ ...f, imageUrl: e.target.value }))}
+                            onChange={(url) => setMinerForm((f) => ({ ...f, imageUrl: url }))}
+                            previewClass="max-h-32"
                         />
-                        {minerForm.imageUrl && (
-                            <img src={minerForm.imageUrl} alt="" className="max-h-32 rounded-lg border border-slate-800" />
-                        )}
                         <div className="grid grid-cols-2 gap-3">
                             <input
                                 type="number"
