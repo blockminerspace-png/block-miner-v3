@@ -3,9 +3,9 @@ import loggerLib from "../utils/logger.js";
 
 const logger = loggerLib.child("YouTubeController");
 
-const REWARD_PER_CLAIM = 3.0; // 3 GH/s
+const REWARD_PER_CLAIM = 3.0; // H/s per claim (same unit as User.baseHashRate / miners)
 const DURATION_HOURS = 24;
-const DAILY_LIMIT_GH = 1440.0; // Max 1440 GH/s per day
+const DAILY_LIMIT_HASH = 1440.0; // Max H/s granted via YT claims per rolling 24h (sum of hashRate)
 
 export async function getStatus(req, res) {
   try {
@@ -21,7 +21,7 @@ export async function getStatus(req, res) {
       ok: true, 
       activeHashRate, 
       count: activePowers.length,
-      rewardGh: REWARD_PER_CLAIM,
+      rewardGh: REWARD_PER_CLAIM, // legacy field name; value is H/s
       durationMin: DURATION_HOURS * 60
     });
   } catch (error) {
@@ -60,7 +60,7 @@ export async function getStats(req, res) {
       claimsTotal: claimsAll._count,
       hashGrantedTotal: Number(claimsAll._sum.hashRate || 0),
       recent: historyRecent,
-      dailyLimit: DAILY_LIMIT_GH
+      dailyLimit: DAILY_LIMIT_HASH
     });
   } catch (error) {
     logger.error("YT stats error", error);
@@ -93,7 +93,7 @@ export async function claimReward(req, res) {
     });
     const currentDailyHash = claims24h.reduce((sum, c) => sum + (c.hashRate || 0), 0);
 
-    if (currentDailyHash + REWARD_PER_CLAIM > DAILY_LIMIT_GH) {
+    if (currentDailyHash + REWARD_PER_CLAIM > DAILY_LIMIT_HASH) {
       return res.status(400).json({ ok: false, message: "Daily reward limit reached. Try again later!" });
     }
 
@@ -119,7 +119,7 @@ export async function claimReward(req, res) {
       });
     });
 
-    res.json({ ok: true, message: `+${REWARD_PER_CLAIM} GH/s activated for 24h!`, rewardGh: REWARD_PER_CLAIM });
+    res.json({ ok: true, message: `+${REWARD_PER_CLAIM} H/s ativado por 24h!`, rewardGh: REWARD_PER_CLAIM });
   } catch (error) {
     logger.error("YT claim error", { error: error.message });
     res.status(500).json({ ok: false, message: "Error claiming reward." });

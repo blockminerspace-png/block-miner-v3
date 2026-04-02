@@ -114,7 +114,12 @@
     "confirm_purchase": "¿Realmente quieres comprar este minero?",
     "success_purchase": "¡Compra realizada con éxito!",
     "how_it_works_title": "¿Cómo funcionan los mineros?",
-    "how_it_works_msg": "Al comprar un minero, se envía automáticamente a tu inventario. Debes instalarlo en un rack libre en tu centro de datos para comenzar a generar POL. Cada minero consume espacio y energía, asegúrate de tener infraestructura disponible."
+    "how_it_works_msg": "Al comprar un minero, se envía automáticamente a tu inventario. Debes instalarlo en un rack libre en tu centro de datos para comenzar a generar POL. Cada minero consume espacio y energía, asegúrate de tener infraestructura disponible.",
+    "slots": "slots",
+    "price": "Precio",
+    "buy": "Comprar",
+    "avail_models": "modelos disponibles",
+    "purchase_success": "¡Compra realizada con éxito!"
   },
   "inventory": {
     "title": "Sala de Minería",

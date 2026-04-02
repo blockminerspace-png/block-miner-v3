@@ -115,7 +115,12 @@
     "confirm_purchase": "Deseja realmente comprar esta mineradora?",
     "success_purchase": "Compra realizada com sucesso!",
     "how_it_works_title": "Como funcionam as mineradoras?",
-    "how_it_works_msg": "Ao adquirir uma mineradora, ela é enviada automaticamente para seu inventário. Você deve instalá-la em um rack livre em seu data center para começar a gerar POL. Cada mineradora consome espaço e energia, certifique-se de ter infraestrutura disponível."
+    "how_it_works_msg": "Ao adquirir uma mineradora, ela é enviada automaticamente para seu inventário. Você deve instalá-la em um rack livre em seu data center para começar a gerar POL. Cada mineradora consome espaço e energia, certifique-se de ter infraestrutura disponível.",
+    "slots": "slots",
+    "price": "Preço",
+    "buy": "Comprar",
+    "avail_models": "modelos disponíveis",
+    "purchase_success": "Compra realizada com sucesso!"
   },
   "inventory": {
     "title": "Sala de Mineração",

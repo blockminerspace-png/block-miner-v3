@@ -15,6 +15,7 @@ import {
     AlertCircle
 } from 'lucide-react';
 import { api } from '../store/auth';
+import { formatHashrate } from '../utils/machine';
 
 export default function AdminMiners() {
     const [miners, setMiners] = useState([]);
@@ -80,23 +81,39 @@ export default function AdminMiners() {
     };
 
     const handleUpdateMiner = async (miner) => {
+        const baseHashRate = Number(miner.baseHashRate);
+        const price = Number(miner.price);
+        const slotSize = Number(miner.slotSize);
+        if (!Number.isFinite(baseHashRate) || baseHashRate < 0) {
+            toast.error('Poder (hashrate) inválido — use um número ≥ 0 (H/s).');
+            return;
+        }
+        if (!Number.isFinite(price) || price < 0) {
+            toast.error('Preço inválido.');
+            return;
+        }
+        if (![1, 2].includes(slotSize)) {
+            toast.error('Slots deve ser 1 ou 2.');
+            return;
+        }
         try {
             const res = await api.put(`/admin/miners/${miner.id}`, {
                 name: miner.name,
                 slug: miner.slug,
-                baseHashRate: Number(miner.base_hash_rate),
-                price: Number(miner.price),
-                slotSize: Number(miner.slot_size),
-                imageUrl: miner.image_url,
-                isActive: Boolean(miner.is_active),
-                showInShop: Boolean(miner.show_in_shop)
+                baseHashRate,
+                price,
+                slotSize,
+                imageUrl: miner.imageUrl ?? '',
+                isActive: Boolean(miner.isActive),
+                showInShop: Boolean(miner.showInShop)
             });
             if (res.data.ok) {
                 toast.success('Mineradora atualizada!');
                 fetchMiners();
             }
         } catch (err) {
-            toast.error('Erro ao atualizar mineradora.');
+            const msg = err.response?.data?.message || err.message;
+            toast.error(msg ? `Erro ao atualizar: ${msg}` : 'Erro ao atualizar mineradora.');
         }
     };
 
@@ -150,7 +167,7 @@ export default function AdminMiners() {
                                 <input required value={newMiner.slug} onChange={e => setNewMiner(p => ({ ...p, slug: e.target.value }))} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-sm text-white" placeholder="elite-miner-v1" />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Poder (GH/s)</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Poder (H/s)</label>
                                 <input required type="number" value={newMiner.baseHashRate} onChange={e => setNewMiner(p => ({ ...p, baseHashRate: e.target.value }))} className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-sm text-white" />
                             </div>
                             <div className="space-y-2">
@@ -206,7 +223,7 @@ export default function AdminMiners() {
                             <tr>
                                 <th className="px-8 py-4 w-16">Preview</th>
                                 <th className="px-8 py-4">Nome / Slug</th>
-                                <th className="px-8 py-4">Poder</th>
+                                <th className="px-8 py-4">Poder (H/s)</th>
                                 <th className="px-8 py-4">Preço</th>
                                 <th className="px-8 py-4">Slots</th>
                                 <th className="px-8 py-4">Status</th>
@@ -218,7 +235,14 @@ export default function AdminMiners() {
                                 <tr key={m.id} className="hover:bg-slate-800/30 transition-colors group">
                                     <td className="px-8 py-5">
                                         <div className="w-12 h-12 bg-slate-950 rounded-lg p-2 border border-slate-800">
-                                            <img src={m.image_url} alt="" className="w-full h-full object-contain" />
+                                            <img
+                                                src={m.imageUrl || '/icon.png'}
+                                                alt=""
+                                                className="w-full h-full object-contain"
+                                                onError={(e) => {
+                                                    e.target.src = '/icon.png';
+                                                }}
+                                            />
                                         </div>
                                     </td>
                                     <td className="px-8 py-5">
@@ -232,16 +256,23 @@ export default function AdminMiners() {
                                         </div>
                                     </td>
                                     <td className="px-8 py-5">
-                                        <input
-                                            type="number"
-                                            value={m.base_hash_rate}
-                                            onChange={e => setMiners(prev => prev.map(item => item.id === m.id ? { ...item, base_hash_rate: e.target.value } : item))}
-                                            className="bg-transparent border-none text-slate-300 font-bold text-xs p-0 focus:ring-0 w-16"
-                                        />
+                                        <div className="flex flex-col gap-1">
+                                            <input
+                                                type="number"
+                                                step="any"
+                                                min="0"
+                                                value={m.baseHashRate}
+                                                onChange={e => setMiners(prev => prev.map(item => item.id === m.id ? { ...item, baseHashRate: e.target.value } : item))}
+                                                className="bg-slate-950/80 border border-slate-800 rounded-lg text-amber-400 font-bold text-xs py-1 px-2 w-24"
+                                            />
+                                            <span className="text-[9px] text-slate-600">{formatHashrate(Number(m.baseHashRate) || 0)}</span>
+                                        </div>
                                     </td>
                                     <td className="px-8 py-5">
                                         <input
                                             type="number"
+                                            step="any"
+                                            min="0"
                                             value={m.price}
                                             onChange={e => setMiners(prev => prev.map(item => item.id === m.id ? { ...item, price: e.target.value } : item))}
                                             className="bg-transparent border-none text-amber-500 font-black text-xs p-0 focus:ring-0 w-20"
@@ -249,8 +280,8 @@ export default function AdminMiners() {
                                     </td>
                                     <td className="px-8 py-5">
                                         <select
-                                            value={m.slot_size}
-                                            onChange={e => setMiners(prev => prev.map(item => item.id === m.id ? { ...item, slot_size: e.target.value } : item))}
+                                            value={String(m.slotSize ?? 1)}
+                                            onChange={e => setMiners(prev => prev.map(item => item.id === m.id ? { ...item, slotSize: Number(e.target.value) } : item))}
                                             className="bg-transparent border-none text-slate-500 text-xs p-0 focus:ring-0"
                                         >
                                             <option value="1">1</option>
@@ -260,16 +291,18 @@ export default function AdminMiners() {
                                     <td className="px-8 py-5">
                                         <div className="flex gap-2">
                                             <button
-                                                onClick={() => setMiners(prev => prev.map(item => item.id === m.id ? { ...item, is_active: !item.is_active } : item))}
-                                                className={`px-2 py-1 rounded text-[9px] font-black uppercase ${m.is_active ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-800 text-slate-500'}`}
+                                                type="button"
+                                                onClick={() => setMiners(prev => prev.map(item => item.id === m.id ? { ...item, isActive: !item.isActive } : item))}
+                                                className={`px-2 py-1 rounded text-[9px] font-black uppercase ${m.isActive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-800 text-slate-500'}`}
                                             >
-                                                {m.is_active ? 'Ativa' : 'Off'}
+                                                {m.isActive ? 'Ativa' : 'Off'}
                                             </button>
                                             <button
-                                                onClick={() => setMiners(prev => prev.map(item => item.id === m.id ? { ...item, show_in_shop: !item.show_in_shop } : item))}
-                                                className={`px-2 py-1 rounded text-[9px] font-black uppercase ${m.show_in_shop ? 'bg-blue-500/10 text-blue-500' : 'bg-slate-800 text-slate-500'}`}
+                                                type="button"
+                                                onClick={() => setMiners(prev => prev.map(item => item.id === m.id ? { ...item, showInShop: !item.showInShop } : item))}
+                                                className={`px-2 py-1 rounded text-[9px] font-black uppercase ${m.showInShop ? 'bg-blue-500/10 text-blue-500' : 'bg-slate-800 text-slate-500'}`}
                                             >
-                                                {m.show_in_shop ? 'Shop' : 'Hidden'}
+                                                {m.showInShop ? 'Shop' : 'Hidden'}
                                             </button>
                                         </div>
                                     </td>

@@ -114,7 +114,12 @@
     "confirm_purchase": "Do you really want to buy this miner?",
     "success_purchase": "Purchase successful!",
     "how_it_works_title": "How do miners work?",
-    "how_it_works_msg": "When purchasing a miner, it is sent automatically to your inventory. You must install it in a free rack in your data center to start generating POL. Each miner consumes space and energy, make sure you have infrastructure available."
+    "how_it_works_msg": "When purchasing a miner, it is sent automatically to your inventory. You must install it in a free rack in your data center to start generating POL. Each miner consumes space and energy, make sure you have infrastructure available.",
+    "slots": "slots",
+    "price": "Price",
+    "buy": "Buy",
+    "avail_models": "models available",
+    "purchase_success": "Purchase successful!"
   },
   "inventory": {
     "title": "Mining Room",

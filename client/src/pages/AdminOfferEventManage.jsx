@@ -471,7 +471,7 @@ export default function AdminOfferEventManage() {
                                 type="number"
                                 step="any"
                                 className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-white"
-                                placeholder="Hashrate GH/s"
+                                placeholder="Hashrate (H/s)"
                                 value={minerForm.hashRate}
                                 onChange={(e) => setMinerForm((f) => ({ ...f, hashRate: e.target.value }))}
                                 required

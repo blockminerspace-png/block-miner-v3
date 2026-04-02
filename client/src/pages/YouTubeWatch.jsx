@@ -93,7 +93,7 @@ export default function YouTubeWatch() {
         try {
             const res = await api.post('/youtube/claim', { videoId });
             if (res.data.ok) {
-                toast.success(`+${res.data.rewardGh.toFixed(2)} GH/s aplicado!`);
+                toast.success(`+${formatHashrate(Number(res.data.rewardGh) || 0)} aplicado!`);
                 setCountdown(60);
                 fetchStatus();
                 fetchUserStats();
@@ -240,10 +240,10 @@ export default function YouTubeWatch() {
                         
                         <div className="space-y-6 relative z-10">
                             <TrackerItem label="Next claim in" value={isRunning ? `${countdown}s` : '--'} icon={Clock} color="primary" />
-                            <TrackerItem label="Claim per minute" value={`${Number(status?.rewardGh || 3).toFixed(2)} GH/s`} icon={Zap} color="amber" />
+                            <TrackerItem label="Claim per minute" value={formatHashrate(Number(status?.rewardGh || 3))} icon={Zap} color="amber" />
                             <TrackerItem label="Duration per claim" value={`${Number(status?.durationMin || 1440)} min`} icon={History} color="blue" />
                             <div className="h-[1px] bg-gray-800 w-full my-2" />
-                            <TrackerItem label="Active YouTube bonus" value={formatHashrate((status?.activeHashRate || 0) * 1000000000)} icon={TrendingUp} color="emerald" />
+                            <TrackerItem label="Active YouTube bonus" value={formatHashrate(status?.activeHashRate || 0)} icon={TrendingUp} color="emerald" />
                         </div>
                     </div>
 
@@ -255,7 +255,7 @@ export default function YouTubeWatch() {
                             </div>
                             <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
                                 <span className="text-slate-500">Hash granted (24h)</span>
-                                <span className="text-emerald-400">{Number(stats?.hashGranted24h || 0).toFixed(2)} GH/s</span>
+                                <span className="text-emerald-400">{formatHashrate(Number(stats?.hashGranted24h || 0))}</span>
                             </div>
                             
                             <div className="space-y-2">
@@ -281,7 +281,7 @@ export default function YouTubeWatch() {
                             </div>
                             <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
                                 <span className="text-slate-500">Hash granted (all time)</span>
-                                <span className="text-primary">{Number(stats?.hashGrantedTotal || 0).toFixed(2)} GH/s</span>
+                                <span className="text-primary">{formatHashrate(Number(stats?.hashGrantedTotal || 0))}</span>
                             </div>
                         </div>
                     </div>

@@ -109,7 +109,7 @@ export default function Landing() {
             <p className="text-lg sm:text-xl text-gray-400 leading-relaxed">
               O motor do jogo fecha um <strong className="text-gray-200 font-semibold">bloco simulado a cada 10 minutos</strong> e
               distribui recompensas em <strong className="text-gray-200 font-semibold">POL</strong> proporcionalmente ao seu{' '}
-              <strong className="text-gray-200 font-semibold">hashrate (GH/s)</strong> e à participação na rodada. Compre rigs na
+              <strong className="text-gray-200 font-semibold">hashrate (H/s)</strong> e à participação na rodada. Compre rigs na
               loja, monte o inventário e acompanhe a rede ao vivo — sem promessas de lucro garantido: é uma{' '}
               <strong className="text-gray-200 font-semibold">simulação competitiva</strong> estilo Web3.
             </p>

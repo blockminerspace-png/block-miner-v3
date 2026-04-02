@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Sparkles, Clock, ShoppingBag, X, Loader2, Zap } from 'lucide-react';
 import { api } from '../store/auth';
 import { useGameStore } from '../store/game';
+import { formatHashrate } from '../utils/machine';
 
 function pad(n) {
     return String(n).padStart(2, '0');
@@ -170,7 +171,7 @@ export default function PopularOffers() {
                                                     <div className="min-w-0">
                                                         <p className="font-bold text-white truncate">{m.name}</p>
                                                         <p className="text-[10px] text-primary font-mono uppercase">
-                                                            {Number(m.hashRate).toLocaleString()} GH/s
+                                                            {formatHashrate(Number(m.hashRate) || 0)}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -222,7 +223,7 @@ export default function PopularOffers() {
                             <p>
                                 <span className="text-gray-600">{t('offers.hash')}</span>{' '}
                                 <span className="text-primary font-mono">
-                                    +{Number(modal.miner.hashRate).toLocaleString()} GH/s
+                                    +{formatHashrate(Number(modal.miner.hashRate) || 0)}
                                 </span>
                             </p>
                             <p className="text-xs text-slate-500 pt-2">{t('offers.confirm_note')}</p>
