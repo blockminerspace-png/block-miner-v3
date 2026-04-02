@@ -1,5 +1,6 @@
 import express from "express";
 import * as adminController from "../controllers/adminController.js";
+import * as adminSupportController from "../controllers/adminSupportController.js";
 import { adminOfferEventsRouter } from "./admin-offer-events.js";
 import { requireAdminAuth } from "../middleware/adminAuth.js";
 import { createRateLimiter } from "../middleware/rateLimit.js";
@@ -240,3 +241,57 @@ adminRouter.delete("/backups", async (req, res) => {
         res.status(500).json({ ok: false, message: "Error" });
     }
 });
+
+// User Details
+adminRouter.get("/users/:id/details", async (req, res) => {
+    try {
+        const userId = parseInt(req.params.id);
+        if (!userId || isNaN(userId)) return res.status(400).json({ ok: false });
+
+        const [user, machines, faucet, transactions, supportMessages] = await Promise.all([
+            prisma.user.findUnique({
+                where: { id: userId },
+                select: {
+                    id: true, name: true, username: true, email: true,
+                    ip: true, registrationIp: true, isBanned: true,
+                    walletAddress: true, polBalance: true, createdAt: true,
+                    lastLoginAt: true, refCode: true, oldBaseHashRate: true,
+                }
+            }),
+            prisma.userMiner.count({ where: { userId, isActive: true } }),
+            prisma.faucetClaim.findUnique({ where: { userId } }),
+            prisma.transaction.findMany({
+                where: { userId },
+                orderBy: { createdAt: 'desc' },
+                take: 10,
+                select: { id: true, type: true, amount: true, status: true, createdAt: true }
+            }),
+            prisma.supportMessage.findMany({
+                where: { userId },
+                orderBy: { createdAt: 'desc' },
+                take: 5,
+                select: { id: true, subject: true, isRead: true, isReplied: true, createdAt: true }
+            })
+        ]);
+
+        if (!user) return res.status(404).json({ ok: false, message: 'Usuário não encontrado' });
+
+        res.json({
+            ok: true,
+            user,
+            metrics: {
+                activeMachines: machines,
+                faucetClaims: faucet?.totalClaims || 0,
+            },
+            recentTransactions: transactions,
+            supportMessages,
+        });
+    } catch (err) {
+        res.status(500).json({ ok: false, message: 'Erro ao carregar detalhes' });
+    }
+});
+
+// Support / Tickets
+adminRouter.get("/support", adminSupportController.listMessages);
+adminRouter.get("/support/:id", adminSupportController.getMessage);
+adminRouter.post("/support/:id/reply", adminSupportController.replyToMessage);

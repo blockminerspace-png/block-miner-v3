@@ -14,8 +14,14 @@ import {
     Wallet,
     Activity,
     Cpu,
-    X
+    X,
+    Calendar,
+    Globe,
+    MessageSquare,
+    CheckCircle2,
+    AlertCircle
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../store/auth';
 import { formatHashrate } from '../utils/machine';
 
@@ -23,10 +29,12 @@ export default function AdminUsers() {
     const [users, setUsers] = useState([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState('');    
     const [isLoading, setIsLoading] = useState(true);
     const [selectedUser, setSelectedUser] = useState(null);
     const [isDetailsLoading, setIsDetailsLoading] = useState(false);
+    const [detailsTab, setDetailsTab] = useState('perfil');
+    const navigate = useNavigate();
 
     const fetchUsers = useCallback(async () => {
         try {
@@ -62,6 +70,7 @@ export default function AdminUsers() {
     const loadUserDetails = async (userId) => {
         try {
             setIsDetailsLoading(true);
+            setDetailsTab('perfil');
             const res = await api.get(`/admin/users/${userId}/details`);
             if (res.data.ok) {
                 setSelectedUser(res.data);
@@ -222,69 +231,131 @@ export default function AdminUsers() {
                             </button>
                         </div>
 
+                        {/* Tabs */}
+                        <div className="flex px-8 pt-4 gap-2 border-b border-slate-800">
+                            {['perfil', 'transações', 'tickets'].map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setDetailsTab(tab)}
+                                    className={`px-4 py-2 rounded-t-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                        detailsTab === tab
+                                            ? 'bg-amber-500/10 text-amber-500 border-b-2 border-amber-500'
+                                            : 'text-slate-500 hover:text-white'
+                                    }`}
+                                >
+                                    {tab}
+                                </button>
+                            ))}
+                        </div>
+
                         <div className="p-8 space-y-10 pb-20">
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                <DetailCard label="Username" value={selectedUser.user.username || selectedUser.user.name} icon={Users} />
-                                <DetailCard label="E-mail" value={selectedUser.user.email} icon={Search} small />
-                                <DetailCard label="Carteira" value={selectedUser.user.walletAddress || 'Não vinculada'} icon={Wallet} small />
-                                <DetailCard label="Saldo Pool" value={`${Number(selectedUser.user.polBalance).toFixed(6)} POL`} icon={Wallet} color="amber" />
-                                <DetailCard label="Hash Base" value={formatHashrate(Number(selectedUser.user.baseHashRate || 0))} icon={Cpu} color="blue" />
-                                <DetailCard label="Máquinas" value={selectedUser.metrics?.activeMachines} icon={Activity} color="emerald" />
-                            </div>
+                            {/* Tab: Perfil */}
+                            {detailsTab === 'perfil' && (
+                                <>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        <DetailCard label="Username" value={selectedUser.user.username || selectedUser.user.name} icon={Users} />
+                                        <DetailCard label="E-mail" value={selectedUser.user.email} icon={Search} small />
+                                        <DetailCard label="Carteira" value={selectedUser.user.walletAddress || 'Não vinculada'} icon={Wallet} small />
+                                        <DetailCard label="Saldo POL" value={`${Number(selectedUser.user.polBalance).toFixed(6)} POL`} icon={Wallet} color="amber" />
+                                        <DetailCard label="Hash Base" value={formatHashrate(Number(selectedUser.user.oldBaseHashRate || 0))} icon={Cpu} color="blue" />
+                                        <DetailCard label="Máquinas Ativas" value={selectedUser.metrics?.activeMachines} icon={Activity} color="emerald" />
+                                        <DetailCard label="Cadastro" value={selectedUser.user.createdAt ? new Date(selectedUser.user.createdAt).toLocaleDateString('pt-BR') : '--'} icon={Calendar} />
+                                        <DetailCard label="Último Login" value={selectedUser.user.lastLoginAt ? new Date(selectedUser.user.lastLoginAt).toLocaleString('pt-BR') : '--'} icon={Clock} small />
+                                        <DetailCard label="IP de Registro" value={selectedUser.user.registrationIp || '--'} icon={Globe} small />
+                                        <DetailCard label="Último IP" value={selectedUser.user.ip || '--'} icon={Globe} small />
+                                        <DetailCard label="Cód. Indicação" value={selectedUser.user.refCode || '--'} icon={Users} small />
+                                        <DetailCard label="Faucet Claims" value={selectedUser.metrics?.faucetClaims || 0} icon={Activity} />
+                                    </div>
 
-                            <div className="space-y-4">
-                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] border-b border-slate-800 pb-2">Engajamento</h4>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <StatMini label="Faucet" value={selectedUser.metrics?.faucetClaims} />
-                                    <StatMini label="Shortlinks" value={selectedUser.metrics?.shortlinkDailyRuns} />
-                                    <StatMini label="Auto GPU" value={selectedUser.metrics?.autoGpuClaims} />
-                                    <StatMini label="YT Claims" value={selectedUser.metrics?.youtubeWatchClaims} />
-                                </div>
-                            </div>
+                                    <button
+                                        onClick={() => handleBanToggle(selectedUser.user)}
+                                        className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${
+                                            selectedUser.user.isBanned
+                                                ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500'
+                                                : 'bg-red-500/10 hover:bg-red-500/20 text-red-500'
+                                        }`}
+                                    >
+                                        {selectedUser.user.isBanned ? 'Revogar Banimento' : 'Banir permanentemente'}
+                                    </button>
+                                </>
+                            )}
 
-                            <div className="space-y-6">
+                            {/* Tab: Transações */}
+                            {detailsTab === 'transações' && (
                                 <div className="bg-slate-950/50 rounded-[2rem] border border-slate-800 p-6 overflow-hidden">
                                     <h4 className="text-xs font-black text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                                         <Clock className="w-4 h-4 text-amber-500" /> Transações Recentes
                                     </h4>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left text-[10px]">
-                                            <thead className="text-slate-600 font-black uppercase tracking-tighter">
-                                                <tr>
-                                                    <th className="pb-3 px-2">Tipo</th>
-                                                    <th className="pb-3 px-2">Valor</th>
-                                                    <th className="pb-3 px-2 Status">Status</th>
-                                                    <th className="pb-3 px-2 text-right">Data</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-800">
-                                                {selectedUser.recentTransactions?.map(tx => (
-                                                    <tr key={tx.id}>
-                                                        <td className="py-3 px-2 font-bold uppercase">{tx.type}</td>
-                                                        <td className="py-3 px-2 text-amber-500 font-bold">{tx.amount.toFixed(4)}</td>
-                                                        <td className="py-3 px-2">
-                                                            <span className={`px-1.5 py-0.5 rounded ${tx.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
-                                                                {tx.status}
-                                                            </span>
-                                                        </td>
-                                                        <td className="py-3 px-2 text-right text-slate-500">{new Date(tx.createdAt).toLocaleDateString()}</td>
+                                    {(selectedUser.recentTransactions || []).length === 0 ? (
+                                        <p className="text-slate-500 text-xs text-center py-8">Nenhuma transação encontrada</p>
+                                    ) : (
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left text-[10px]">
+                                                <thead className="text-slate-600 font-black uppercase tracking-tighter">
+                                                    <tr>
+                                                        <th className="pb-3 px-2">Tipo</th>
+                                                        <th className="pb-3 px-2">Valor</th>
+                                                        <th className="pb-3 px-2">Status</th>
+                                                        <th className="pb-3 px-2 text-right">Data</th>
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-800">
+                                                    {selectedUser.recentTransactions.map(tx => (
+                                                        <tr key={tx.id}>
+                                                            <td className="py-3 px-2 font-bold uppercase">{tx.type}</td>
+                                                            <td className="py-3 px-2 text-amber-500 font-bold">{Number(tx.amount).toFixed(6)}</td>
+                                                            <td className="py-3 px-2">
+                                                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+                                                                    tx.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
+                                                                }`}>{tx.status}</span>
+                                                            </td>
+                                                            <td className="py-3 px-2 text-right text-slate-500">{new Date(tx.createdAt).toLocaleDateString('pt-BR')}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
+                            )}
 
-                            <button
-                                onClick={() => handleBanToggle(selectedUser.user)}
-                                className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${selectedUser.user.isBanned
-                                        ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500'
-                                        : 'bg-red-500/10 hover:bg-red-500/20 text-red-500'
-                                    }`}
-                            >
-                                {selectedUser.user.isBanned ? 'Revogar Banimento' : 'Banir permanentemente'}
-                            </button>
+                            {/* Tab: Tickets */}
+                            {detailsTab === 'tickets' && (
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+                                        <MessageSquare className="w-4 h-4 text-amber-500" /> Chamados de Suporte
+                                    </h4>
+                                    {(selectedUser.supportMessages || []).length === 0 ? (
+                                        <p className="text-slate-500 text-xs text-center py-8">Nenhum chamado aberto</p>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {selectedUser.supportMessages.map(ticket => (
+                                                <button
+                                                    key={ticket.id}
+                                                    onClick={() => { setSelectedUser(null); navigate('/admin/support'); }}
+                                                    className="w-full text-left p-4 bg-slate-900/50 border border-slate-800 hover:border-amber-500/30 rounded-2xl transition-all"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-white font-bold text-sm truncate">{ticket.subject}</span>
+                                                        <span className={`ml-2 text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${
+                                                            ticket.isReplied ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
+                                                        }`}>
+                                                            {ticket.isReplied ? 'Respondido' : 'Pendente'}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-slate-500 text-[10px] mt-1">{new Date(ticket.createdAt).toLocaleString('pt-BR')}</p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <button
+                                        onClick={() => { setSelectedUser(null); navigate('/admin/support'); }}
+                                        className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all"
+                                    >
+                                        Ver todos os tickets
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>,
@@ -313,11 +384,4 @@ function DetailCard({ label, value, icon: Icon, color = 'slate', small = false }
     );
 }
 
-function StatMini({ label, value }) {
-    return (
-        <div className="bg-slate-950/30 p-3 rounded-xl border border-slate-800/50 text-center">
-            <p className="text-[8px] font-black text-slate-600 uppercase tracking-tighter mb-1">{label}</p>
-            <p className="text-xs font-black text-white">{value || 0}</p>
-        </div>
-    );
-}
+
