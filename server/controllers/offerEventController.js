@@ -40,7 +40,6 @@ export async function listActiveOfferEvents(req, res) {
       where: {
         deletedAt: null,
         isActive: true,
-        startsAt: { lte: now },
         endsAt: { gte: now }
       },
       include: {

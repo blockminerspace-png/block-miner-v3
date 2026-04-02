@@ -2,10 +2,17 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Zap, TrendingUp, CheckCircle2, AlertTriangle, X, Sparkles } from 'lucide-react';
+import { Loader2, Zap, TrendingUp, CheckCircle2, AlertTriangle, X, Sparkles, Calendar, Clock } from 'lucide-react';
 import { api } from '../store/auth';
 import { useGameStore } from '../store/game';
 import { formatHashrate } from '../utils/machine';
+
+function fmtDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
 
 export default function PopularOffers() {
     const { t } = useTranslation();
@@ -62,10 +69,40 @@ export default function PopularOffers() {
     }
 
     return (
-        <div className="space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="space-y-14 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {events.map((ev) => (
-                <div key={ev.id} className="space-y-8">
-                    {/* Miners Grid — igual à Loja */}
+                <div key={ev.id} className="space-y-6">
+                    {/* Cabeçalho do Evento */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-800">
+                        <div className="flex items-center gap-3">
+                            {ev.isLive ? (
+                                <span className="flex items-center gap-1.5 px-3 py-1 bg-green-500/10 border border-green-500/30 rounded-full text-[9px] font-black text-green-400 uppercase tracking-widest">
+                                    <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                                    Ao Vivo
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-[9px] font-black text-amber-400 uppercase tracking-widest">
+                                    <Clock className="w-3 h-3" />
+                                    Em Breve
+                                </span>
+                            )}
+                            <h2 className="text-xl font-black text-white uppercase italic tracking-tight">{ev.title}</h2>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-3 text-xs text-gray-500">
+                            <div className="flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-gray-600" />
+                                <span className="font-semibold">Início:</span>
+                                <span>{fmtDate(ev.startsAt)}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 text-gray-600" />
+                                <span className="font-semibold">Fim:</span>
+                                <span>{fmtDate(ev.endsAt)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Miners Grid */}
                     {(ev.miners || []).length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                             {(ev.miners || []).map((m) => (
@@ -96,6 +133,20 @@ export default function PopularOffers() {
                                             </div>
                                         </div>
 
+                                        {/* Datas do evento no card */}
+                                        <div className="bg-gray-900/40 rounded-2xl px-4 py-3 border border-gray-800/60 space-y-1.5">
+                                            <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                                                <Clock className="w-3 h-3 shrink-0" />
+                                                <span className="font-bold text-gray-600">Início:</span>
+                                                <span>{fmtDate(ev.startsAt)}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                                                <Clock className="w-3 h-3 shrink-0" />
+                                                <span className="font-bold text-gray-600">Fim:</span>
+                                                <span>{fmtDate(ev.endsAt)}</span>
+                                            </div>
+                                        </div>
+
                                         <div className="pt-4 border-t border-gray-800/50 flex items-center justify-between">
                                             <div className="flex flex-col">
                                                 <span className="text-[9px] font-bold text-gray-600 uppercase tracking-widest">{t('shop.price')}</span>
@@ -107,10 +158,10 @@ export default function PopularOffers() {
                                             <button
                                                 type="button"
                                                 disabled={!ev.isLive || !m.inStock}
-                                                onClick={() => setModal({ event: ev, miner: m })}
+                                                onClick={() => ev.isLive && m.inStock && setModal({ event: ev, miner: m })}
                                                 className="px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-primary/20 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                                             >
-                                                {m.inStock ? t('offers.buy') : t('offers.sold_out')}
+                                                {!ev.isLive ? 'Em Breve' : m.inStock ? t('offers.buy') : t('offers.sold_out')}
                                             </button>
                                         </div>
                                     </div>
