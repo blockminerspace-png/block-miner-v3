@@ -187,6 +187,7 @@ export default function YouTubeWatch() {
 
                         <div className="aspect-video bg-gray-900 rounded-[2rem] overflow-hidden border border-gray-800 relative group shadow-inner">
                             {videoId ? (
+                                <>
                                 <iframe
                                     className="w-full h-full"
                                     src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0`}
@@ -195,6 +196,15 @@ export default function YouTubeWatch() {
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
                                 ></iframe>
+                                <a
+                                    href={`https://www.youtube.com/watch?v=${videoId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 bg-black/70 hover:bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl border border-white/10 transition-all backdrop-blur-sm"
+                                >
+                                    <Youtube className="w-3 h-3" /> Abrir no YouTube
+                                </a>
+                                </>
                             ) : (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600">
                                     <Youtube className="w-20 h-20 mb-4 opacity-20" />
@@ -222,9 +232,10 @@ export default function YouTubeWatch() {
                                     </div>
                                 )}
                             </div>
-                            <div className="text-[10px] text-gray-600 italic font-medium max-w-[200px] text-right">
-                                Dica: Se o vídeo não carregar (Erro 150/153), tente outro vídeo. Alguns autores proíbem a exibição fora do YouTube.
-                            </div>
+                            <div className="text-[10px] text-gray-500 italic font-medium max-w-[220px] text-right flex items-start gap-1">
+                                    <AlertCircle className="w-3 h-3 mt-0.5 shrink-0 text-amber-500/60" />
+                                    <span>Se aparecer Erro 153, o autor bloqueou o embed. Clique em <strong className="text-white">Abrir no YouTube</strong> para assistir lá e ganhar normalmente.</span>
+                                </div>
                         </div>
                     </div>
                 </div>

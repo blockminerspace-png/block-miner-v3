@@ -8,6 +8,7 @@ const logger = loggerLib.child("GamesSocket");
 const GAME_SESSIONS = new Map();
 const LAST_GAME_FINISH = new Map(); // key: `${userId}-${gameSlug}`
 const GAME_COOLDOWN_MS = Number(process.env.GAME_COOLDOWN_MS) || 180000;
+const GAME_POWER_DAYS = Number(process.env.GAME_POWER_DAYS) || 7;
 
 const SYMBOLS = ['bitcoin', 'ethereum', 'solana', 'binance-coin', 'cardano', 'polkadot', 'dogecoin', 'polygon'];
 const MATCH3_SYMBOLS = ['bitcoin', 'ethereum', 'solana', 'binance-coin', 'cardano'];
@@ -204,7 +205,7 @@ async function finishGame(socket, state, success, engine) {
       return socket.emit("game:finished", { success: false, message: "AÇÃO SUSPEITA DETECTADA! Tempo de jogo irreal." });
     }
 
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + GAME_POWER_DAYS * 24 * 60 * 60 * 1000);
     try {
       // ANTI-CHEAT: Limita o máximo de poderes ativos acumulados pelo minigame a um valor seguro (ex: max 10 instâncias = 500 H/s)
       await prisma.userPowerGame.create({ 
@@ -220,7 +221,7 @@ async function finishGame(socket, state, success, engine) {
       const miner = engine.miners.get(state.userId.toString());
       if (miner) miner.baseHashRate = total;
 
-      socket.emit("game:finished", { success: true, reward: "BÔNUS DE 50 H/S ATIVADO POR 24H!", cooldownSeconds: Math.ceil(GAME_COOLDOWN_MS / 1000) });
+      socket.emit("game:finished", { success: true, reward: `BÔNUS DE 50 H/S ATIVADO POR ${GAME_POWER_DAYS} DIAS!`, cooldownSeconds: Math.ceil(GAME_COOLDOWN_MS / 1000) });
       socket.emit("machines:update");
     } catch (e) { 
       socket.emit("game:finished", { success: true, reward: "BÔNUS PROCESSADO COM SUCESSO!", cooldownSeconds: Math.ceil(GAME_COOLDOWN_MS / 1000) });

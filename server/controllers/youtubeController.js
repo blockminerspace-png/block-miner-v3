@@ -4,7 +4,7 @@ import loggerLib from "../utils/logger.js";
 const logger = loggerLib.child("YouTubeController");
 
 const REWARD_PER_CLAIM = 3.0; // H/s per claim (same unit as User.baseHashRate / miners)
-const DURATION_HOURS = 24;
+const DURATION_HOURS = Number(process.env.YT_POWER_DAYS || 7) * 24;
 const DAILY_LIMIT_HASH = 1440.0; // Max H/s granted via YT claims per rolling 24h (sum of hashRate)
 
 export async function getStatus(req, res) {
@@ -119,7 +119,7 @@ export async function claimReward(req, res) {
       });
     });
 
-    res.json({ ok: true, message: `+${REWARD_PER_CLAIM} H/s ativado por 24h!`, rewardGh: REWARD_PER_CLAIM });
+    res.json({ ok: true, message: `+${REWARD_PER_CLAIM} H/s ativado por ${Number(process.env.YT_POWER_DAYS || 7)} dias!`, rewardGh: REWARD_PER_CLAIM });
   } catch (error) {
     logger.error("YT claim error", { error: error.message });
     res.status(500).json({ ok: false, message: "Error claiming reward." });
