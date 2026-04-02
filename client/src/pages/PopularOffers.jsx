@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Zap, TrendingUp, CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { Loader2, Zap, TrendingUp, CheckCircle2, AlertTriangle, X, Sparkles } from 'lucide-react';
 import { api } from '../store/auth';
 import { useGameStore } from '../store/game';
 import { formatHashrate } from '../utils/machine';
