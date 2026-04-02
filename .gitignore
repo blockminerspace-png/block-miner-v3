@@ -3,6 +3,9 @@ node_modules/
 
 # Env / secrets
 scripts/vm_config_secret.py
+scripts/deploy_credentials.local.py
+.deploy-pw.txt
+deploy-credentials.local.md
 .env
 .env.local
 .env.*.local
