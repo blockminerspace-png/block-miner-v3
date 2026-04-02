@@ -7,6 +7,7 @@ import { getTokenFromRequest } from '../../utils/token.js';
 const logger = loggerLib.child("GamesSocket");
 const GAME_SESSIONS = new Map();
 const LAST_GAME_FINISH = new Map(); // key: `${userId}-${gameSlug}`
+const GAME_COOLDOWN_MS = Number(process.env.GAME_COOLDOWN_MS) || 180000;
 
 const SYMBOLS = ['bitcoin', 'ethereum', 'solana', 'binance-coin', 'cardano', 'polkadot', 'dogecoin', 'polygon'];
 const MATCH3_SYMBOLS = ['bitcoin', 'ethereum', 'solana', 'binance-coin', 'cardano'];
@@ -23,13 +24,13 @@ export function registerGamesSocketHandlers({ io, engine }) {
 
         if (!userId) return socket.emit("game:error", "Sessão inválida.");
 
-        // Cooldown check individual por jogo (3 minutos)
+        // Cooldown check individual por jogo
         const cooldownKey = `${userId}-${gameSlug}`;
         const lastFinish = LAST_GAME_FINISH.get(cooldownKey);
         if (lastFinish) {
           const elapsed = Date.now() - lastFinish;
-          if (elapsed < 180000) {
-            const remaining = Math.ceil((180000 - elapsed) / 1000);
+          if (elapsed < GAME_COOLDOWN_MS) {
+            const remaining = Math.ceil((GAME_COOLDOWN_MS - elapsed) / 1000);
             return socket.emit("game:error", `Aguarde ${remaining} segundos para iniciar este jogo novamente.`);
           }
         }
@@ -219,12 +220,12 @@ async function finishGame(socket, state, success, engine) {
       const miner = engine.miners.get(state.userId.toString());
       if (miner) miner.baseHashRate = total;
 
-      socket.emit("game:finished", { success: true, reward: "BÔNUS DE 50 H/S ATIVADO POR 24H!" });
+      socket.emit("game:finished", { success: true, reward: "BÔNUS DE 50 H/S ATIVADO POR 24H!", cooldownSeconds: Math.ceil(GAME_COOLDOWN_MS / 1000) });
       socket.emit("machines:update");
     } catch (e) { 
-      socket.emit("game:finished", { success: true, reward: "BÔNUS PROCESSADO COM SUCESSO!" });
+      socket.emit("game:finished", { success: true, reward: "BÔNUS PROCESSADO COM SUCESSO!", cooldownSeconds: Math.ceil(GAME_COOLDOWN_MS / 1000) });
     }
   } else {
-    socket.emit("game:finished", { success: false, message: "SESSÃO ENCERRADA!" });
+    socket.emit("game:finished", { success: false, message: "SESSÃO ENCERRADA!", cooldownSeconds: Math.ceil(GAME_COOLDOWN_MS / 1000) });
   }
 }

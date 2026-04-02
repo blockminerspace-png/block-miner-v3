@@ -92,8 +92,9 @@ export default function Games() {
     newSocket.on('game:score_update', (data) => { setGameState(prev => prev ? ({ ...prev, score: data.score }) : prev); });
     newSocket.on('game:finished', (data) => {
       setIsGameOver(true);
-      if (activeGameRef.current === 'memory') setMemoryCooldown(180);
-      else if (activeGameRef.current === 'match-3') setMatch3Cooldown(180);
+      const cd = data.cooldownSeconds || 180;
+      if (activeGameRef.current === 'memory') setMemoryCooldown(cd);
+      else if (activeGameRef.current === 'match-3') setMatch3Cooldown(cd);
       if (data.success) {
         setRewardMessage(data.reward);
         toast.success(data.reward);
