@@ -304,19 +304,6 @@ export default function Checkin() {
                                 </div>
                             ) : (
                                 <>
-                                    <div className="rounded-2xl bg-slate-900/60 border border-slate-800 p-4 text-sm space-y-2">
-                                        <p className="text-amber-500 font-bold uppercase tracking-wider text-xs">{t('checkin.payment_info')}</p>
-                                        <p className="text-white">
-                                            <span className="text-gray-500">{t('checkin.amount')} </span>
-                                            <span className="font-mono font-bold">{amountLabel} POL</span>
-                                        </p>
-                                        <p className="text-gray-400 break-all">
-                                            <span className="text-gray-500 block mb-1">{t('checkin.send_to')}</span>
-                                            {shortenAddr(status.checkinReceiver)}
-                                        </p>
-                                        <p className="text-gray-500 text-xs">{t('checkin.polygon_only')}</p>
-                                    </div>
-
                                     {status.failed && (
                                         <p className="text-red-400 text-sm text-center">{t('checkin.failed_retry')}</p>
                                     )}
