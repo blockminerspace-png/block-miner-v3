@@ -2,18 +2,20 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
     Pickaxe, Zap, Activity, Coins, Clock, TrendingUp, ShieldCheck, 
-    Share2, Users, Copy, Check 
+    Share2, Users, Copy, Check, Link2
 } from 'lucide-react';
-import { useAuthStore } from '../store/auth';
+import { useAuthStore, api } from '../store/auth';
 import { useGameStore } from '../store/game';
 import { formatHashrate } from '../utils/machine';
 import { toast } from 'sonner';
 
 export default function Dashboard() {
     const { t } = useTranslation();
-    const { user } = useAuthStore();
+    const { user, checkSession } = useAuthStore();
     const { stats, initSocket } = useGameStore();
     const [copied, setCopied] = useState(false);
+    const [refInput, setRefInput] = useState('');
+    const [linkingRef, setLinkingRef] = useState(false);
 
     useEffect(() => {
         initSocket();
@@ -39,6 +41,23 @@ export default function Dashboard() {
         setCopied(true);
         toast.success("Link de indicação copiado!");
         setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleLinkReferral = async () => {
+        if (!refInput.trim() || linkingRef) return;
+        setLinkingRef(true);
+        try {
+            const res = await api.post('/user/link-referral', { refCode: refInput.trim() });
+            if (res.data.ok) {
+                toast.success(res.data.message || 'Indicador vinculado com sucesso!');
+                setRefInput('');
+                await checkSession();
+            }
+        } catch (err) {
+            toast.error(err?.response?.data?.message || 'Erro ao vincular indicador.');
+        } finally {
+            setLinkingRef(false);
+        }
     };
 
     return (
@@ -173,24 +192,51 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-                            <div className="flex-1 max-w-sm space-y-3">
-                                <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest ml-2">Seu Link de Indicação</span>
-                                <div className="relative flex items-center bg-gray-950 border border-gray-800 rounded-2xl p-1.5 focus-within:border-primary/50 transition-all shadow-inner">
-                                    <input 
-                                        type="text" 
-                                        readOnly 
-                                        value={referralLink || '—'}
-                                        className="bg-transparent border-none text-xs font-bold text-gray-400 px-4 w-full focus:outline-none"
-                                    />
-                                    <button 
-                                        type="button"
-                                        onClick={handleCopyRef}
-                                        disabled={!referralLink}
-                                        className="bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-xl transition-all active:scale-95 group/btn disabled:opacity-40 disabled:pointer-events-none"
-                                    >
-                                        {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                                    </button>
+                            <div className="flex-1 max-w-sm space-y-4">
+                                <div className="space-y-2">
+                                    <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest ml-2">Seu Link de Indicação</span>
+                                    <div className="relative flex items-center bg-gray-950 border border-gray-800 rounded-2xl p-1.5 focus-within:border-primary/50 transition-all shadow-inner">
+                                        <input 
+                                            type="text" 
+                                            readOnly 
+                                            value={referralLink || '—'}
+                                            className="bg-transparent border-none text-xs font-bold text-gray-400 px-4 w-full focus:outline-none"
+                                        />
+                                        <button 
+                                            type="button"
+                                            onClick={handleCopyRef}
+                                            disabled={!referralLink}
+                                            className="bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-xl transition-all active:scale-95 group/btn disabled:opacity-40 disabled:pointer-events-none"
+                                        >
+                                            {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                                        </button>
+                                    </div>
                                 </div>
+
+                                {!user?.hasReferral && (
+                                    <div className="space-y-2 pt-1 border-t border-gray-800/60">
+                                        <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest ml-2">Tem um código de um amigo?</span>
+                                        <div className="relative flex items-center bg-gray-950 border border-gray-800 rounded-2xl p-1.5 focus-within:border-amber-500/50 transition-all shadow-inner">
+                                            <Link2 className="w-4 h-4 text-gray-600 ml-3 shrink-0" />
+                                            <input
+                                                type="text"
+                                                placeholder="Cole o código aqui"
+                                                value={refInput}
+                                                onChange={(e) => setRefInput(e.target.value)}
+                                                onKeyDown={(e) => e.key === 'Enter' && handleLinkReferral()}
+                                                className="bg-transparent border-none text-xs font-bold text-gray-400 placeholder:text-gray-700 px-3 w-full focus:outline-none"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleLinkReferral}
+                                                disabled={!refInput.trim() || linkingRef}
+                                                className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-[10px] font-black uppercase px-3 py-2 rounded-xl transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none shrink-0"
+                                            >
+                                                {linkingRef ? '...' : 'Vincular'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

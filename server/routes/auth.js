@@ -366,7 +366,9 @@ authRouter.get("/session", async (req, res) => {
     const user = await prisma.user.findUnique({ where: { id: Number(payload.sub) } });
     if (!user || user.isBanned) return res.status(401).json({ ok: false });
 
-    res.json({ ok: true, user: { id: user.id, name: user.name, username: user.username, email: user.email } });
+    const hasReferral = !!(await prisma.referral.findUnique({ where: { referredId: user.id } }));
+
+    res.json({ ok: true, user: { id: user.id, name: user.name, username: user.username, email: user.email, hasReferral } });
   } catch {
     res.status(500).json({ ok: false });
   }

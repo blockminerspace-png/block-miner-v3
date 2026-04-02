@@ -170,3 +170,53 @@ export const getReferrals = async (req, res) => {
     res.status(500).json({ ok: false, message: "Erro ao obter referidos." });
   }
 };
+
+export const linkReferral = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { refCode } = req.body;
+
+    if (!refCode || typeof refCode !== "string" || !refCode.trim()) {
+      return res.status(400).json({ ok: false, message: "Código de indicação inválido." });
+    }
+
+    // Verifica se já tem um referral
+    const existing = await prisma.referral.findUnique({ where: { referredId: userId } });
+    if (existing) {
+      return res.status(409).json({ ok: false, message: "Você já possui um indicador vinculado." });
+    }
+
+    // Resolve o referrer: aceita userId numérico ou refCode alfanumérico
+    const raw = refCode.trim();
+    let referrer = null;
+    if (/^\d+$/.test(raw)) {
+      referrer = await prisma.user.findUnique({ where: { id: Number(raw) } });
+    }
+    if (!referrer) {
+      referrer = await prisma.user.findUnique({ where: { refCode: raw } });
+    }
+
+    if (!referrer) {
+      return res.status(404).json({ ok: false, message: "Código de indicação não encontrado." });
+    }
+
+    if (referrer.id === userId) {
+      return res.status(400).json({ ok: false, message: "Você não pode se auto-indicar." });
+    }
+
+    // Anti-self-referral por IP
+    const clientIp = req.headers["x-real-ip"] || req.headers["x-forwarded-for"] || req.ip;
+    if (referrer.ip && referrer.ip === clientIp) {
+      return res.status(400).json({ ok: false, message: "Não é permitido vincular um indicador da mesma rede." });
+    }
+
+    await prisma.$transaction([
+      prisma.referral.create({ data: { referrerId: referrer.id, referredId: userId } }),
+      prisma.user.update({ where: { id: userId }, data: { referredBy: referrer.id } }),
+    ]);
+
+    res.json({ ok: true, message: "Indicador vinculado com sucesso!" });
+  } catch (error) {
+    res.status(500).json({ ok: false, message: "Erro ao vincular indicador." });
+  }
+};

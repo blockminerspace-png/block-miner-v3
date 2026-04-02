@@ -19,5 +19,6 @@ userRouter.post("/2fa/enable", userController.enable2FA);
 userRouter.post("/2fa/disable", userController.disable2FA);
 userRouter.post("/report-adblock", userController.reportAdblock);
 userRouter.get("/referrals", userController.getReferrals);
+userRouter.post("/link-referral", userController.linkReferral);
 
 export default userRouter;
