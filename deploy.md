@@ -1,81 +1,149 @@
 # Deploy — Block Miner
 
-Guia para publicar a aplicação (Node + React build + Postgres + Nginx) com **Docker Compose**.
+**Este ficheiro é o guia oficial de deploy.** Usa sempre estes passos (VM, Windows ou script). O `Dockerfile` faz build do React dentro da imagem; em produção normalmente só precisas de reconstruir o serviço **`app`**.
 
-## O que precisas
+## Requisitos
 
-- **Docker** e **Docker Compose v2** (`docker compose`, não só `docker-compose` legado).
-- Na VM: **Git** (se fores puxar código com `git pull`).
-- Ficheiro **`.env.production`** na pasta do projeto no servidor — o `docker-compose.yml` do serviço `app` usa `env_file: .env.production`.  
-  - Copia de `.env.example` / `.env.production.example` se existir, preenche segredos **no servidor** e **não commits** credenciais.
-- `DATABASE_URL` no compose já é sobrescrita para `...@db:5432/...` — não é preciso duplicar no `.env.production` para o contentor `app`, mas podes deixar uma linha coerente para scripts locais.
+- **Docker** + **Docker Compose v2** (`docker compose`).
+- Na VM: **Git** + clone do repo no path real (ex.: `/root/block-miner`).
+- **`.env.production`** na raiz do projeto **no servidor** (não commits). Copia de `.env.example` / `.env.production.example` e preenche segredos aí.
+- `DATABASE_URL` no `docker-compose.yml` já aponta para `db:5432` dentro da rede Docker.
 
-## Na própria VM (SSH na máquina onde corre o stack)
+---
+
+## Escolhe o cenário
+
+| Situação | O que fazer |
+|----------|-------------|
+| Estás **com SSH na VPS** (Linux) | Secção [Na própria VM](#1-na-própria-vm-com-ssh) |
+| Estás no **Windows** com password SSH / PuTTY | Secção [Windows + PuTTY](#2-windows--putty-scriptsdeploy-vps-windowsp1) |
+| Tens **OpenSSH + chave** e queres um comando da tua máquina | Secção [Python remoto](#3-script-python-deploy-remoto-com-chave-ssh) |
+| Tens **só Docker nesta máquina** (teste local) | Secção [Deploy local](#4-deploy-local-docker-nesta-máquina) |
+
+### Atalhos npm (na raiz do repo)
+
+| Comando | Equivalente |
+|---------|-------------|
+| `npm run deploy` | `python scripts/deploy.py` — build + `up -d` do compose **nesta máquina** |
+| `npm run deploy:app` | `python scripts/deploy.py --service app` — só o serviço **app** (recomendado após mudanças no código) |
+| `npm run deploy:app:nocache` | Igual com `build --no-cache` |
+
+Deploy **remoto** por Python não usa password; precisas de chave SSH. Para password no Windows usa o script PowerShell abaixo.
+
+---
+
+## 1. Na própria VM (com SSH)
+
+Conecta à VPS, vai à pasta do projeto e puxa o código + Docker:
 
 ```bash
-cd ~/block-miner   # ou o caminho real do repo
+cd /root/block-miner   # ou ~/block-miner — o path real do teu clone
 git pull origin main
+docker compose up -d --build --no-deps app
+```
+
+Stack completo (inclui `db` + `nginx`) se mudaste compose ou primeira vez:
+
+```bash
 docker compose build
 docker compose up -d
 ```
 
-Rebuild completo (frontend + backend dentro da imagem, útil após mudanças no React):
+Rebuild agressivo (cache):
 
 ```bash
 docker compose build --no-cache
 docker compose up -d
 ```
 
-Só reconstruir o serviço da app (mantém `db` e `nginx` como estão):
-
-```bash
-docker compose up -d --build --no-deps app
-```
-
-**Health check** (o `app` escuta na porta 3000 dentro da rede Docker; no host está em `127.0.0.1:3000`):
+**Health check** (app em `127.0.0.1:3000` no host):
 
 ```bash
 curl -sS http://127.0.0.1:3000/health
 ```
 
-## A partir do Windows (tarball + PuTTY)
+---
 
-Já existe o script **`scripts/deploy-vps-windows.ps1`**: cria um `.tar.gz`, envia com `pscp`, extrai na VPS e corre `docker compose up -d --build --no-deps app`.  
-Lê a documentação no topo desse ficheiro (credenciais via `$env:BLOCKMINER_VPS_PW`, `.deploy-pw.txt`, etc.).
+## 2. Windows + PuTTY (`scripts/deploy-vps-windows.ps1`)
 
-## Script Python (local ou SSH com chave)
+Para enviar o projeto **a partir do Windows** com **password** (sem chave SSH no `deploy.py`):
 
-Argumentos desconhecidos são repassados ao `ssh` (ex.: chave ou porta):
+1. Instala **PuTTY** (`pscp.exe` e `plink.exe`, normalmente em `C:\Program Files\PuTTY\`).
+2. Na raiz do repo, define password **sem commitar**:
+   - `$env:BLOCKMINER_VPS_PW = '...'` **ou**
+   - ficheiro **`.deploy-pw.txt`** (uma linha, só a password) — está no `.gitignore`.
+3. No PowerShell, na raiz do repo:
 
-```bash
-# Na máquina onde tens o repo e Docker (build aqui)
-python scripts/deploy.py
-# ou: npm run deploy
-
-# Na mesma situação, forçar rebuild sem cache
-python scripts/deploy.py --no-cache
-
-# Na VM remota (autenticação por chave SSH; sem senha no script)
-python scripts/deploy.py --remote root@SEU_IP --path ~/block-miner
-
-# Com chave ou porta explícitas (parse_known_args → ssh)
-python scripts/deploy.py -i ~/.ssh/id_ed25519 -p 2222 --remote root@SEU_IP --path /root/block-miner
+```powershell
+Set-Location "c:\caminho\para\block-miner"
+.\scripts\deploy-vps-windows.ps1 -PwFile .\.deploy-pw.txt
 ```
 
-Variável opcional: `BLOCKMINER_REMOTE_PATH` (default `~/block-miner`).
+Parâmetros úteis (ver cabeçalho do `.ps1`): `-SshHost`, `-SshUser`, `-RemotePath` (default `/root/block-miner`).
 
-**Senha SSH no Windows:** o script Python não envia password; usa o fluxo do **`scripts/deploy-vps-windows.ps1`** (PuTTY) ou configura chaves com `ssh-copy-id`.
+O script cria um `.tar.gz`, envia com `pscp`, extrai na VPS e corre `docker compose up -d --build --no-deps app`.
+
+---
+
+## 3. Script Python deploy remoto (com chave SSH)
+
+Na máquina onde tens **OpenSSH** e a chave já autorizada no servidor:
+
+```bash
+python scripts/deploy.py --remote root@SEU_IP --path /root/block-miner --service app
+```
+
+Sem cache:
+
+```bash
+python scripts/deploy.py --no-cache --remote root@SEU_IP --path /root/block-miner --service app
+```
+
+Opções extra passam para o `ssh` (ex.: `-i ~/.ssh/id_ed25519`, `-p 2222`).
+
+Variável opcional: **`BLOCKMINER_REMOTE_PATH`** (default `~/block-miner` no parser; usa `--path` para bater certo com o clone na VPS).
+
+---
+
+## 4. Deploy local (Docker nesta máquina)
+
+Útil para validar imagem antes de subir à VPS:
+
+```bash
+npm run deploy:app
+# ou
+python scripts/deploy.py --service app
+```
+
+Opcional: `git pull` antes (só local):
+
+```bash
+python scripts/deploy.py --git-pull --service app
+```
+
+---
 
 ## Prisma / base de dados
 
-O **`docker-entrypoint.sh`** do contentor `app` espera Postgres em `db:5432`, corre `prisma generate` e **`prisma db push`**.  
-Para ambientes que preferem apenas migrações versionadas, avalia trocar para `prisma migrate deploy` no entrypoint ou num passo manual documentado para a tua equipa.
+O **`docker-entrypoint.sh`** do contentor `app` espera Postgres em `db:5432`, corre `prisma generate` e **`prisma db push`**.
+
+---
 
 ## Nginx e TLS
 
-O serviço **nginx** monta `./nginx/nginx.conf` e `./nginx/certs`. Garante certificados e `server_name` alinhados com o domínio (ex.: `blockminer.space`).
+O serviço **nginx** monta `./nginx/nginx.conf` e `./nginx/certs`. Alinha `server_name` e certificados com o domínio (ex.: `blockminer.space`).
+
+---
 
 ## Depois do deploy
 
-- Hard refresh no browser (Ctrl+Shift+R) para carregar o novo bundle do Vite (nome do ficheiro muda com o hash).
-- Se o **login admin** falhar com mensagens antigas, confirma que a imagem nova está a correr (`docker compose ps`, `docker compose logs -f app`).
+- **Hard refresh** no browser (Ctrl+Shift+R) para carregar o bundle novo do Vite.
+- Se algo falhar: `docker compose ps`, `docker compose logs -f app` na VPS.
+
+---
+
+## Problemas frequentes
+
+- **Timeout no `deploy-vps-windows.ps1`:** firewall, IP da VPS mudou, ou SSH fechado. Confirma host no `-SshHost` e acesso `ping`/porta 22.
+- **`git push` para outro remoto falha com `unpack failed`:** problema no repositório GitHub/Git remoto; o deploy na VM usa `git pull` do remoto que lá estiver configurado (`origin`).
+- **`deploy.py --remote` pede password em loop:** esse fluxo é só com chave; para password usa a secção **Windows + PuTTY** acima.
