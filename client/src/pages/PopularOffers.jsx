@@ -1,52 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { Sparkles, Clock, X, Loader2, Zap, TrendingUp, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Loader2, Zap, TrendingUp, CheckCircle2, AlertTriangle, X } from 'lucide-react';
 import { api } from '../store/auth';
 import { useGameStore } from '../store/game';
 import { formatHashrate } from '../utils/machine';
-
-function pad(n) {
-    return String(n).padStart(2, '0');
-}
-
-function formatCountdown(ms) {
-    if (ms <= 0) return null;
-    const s = Math.floor(ms / 1000);
-    const d = Math.floor(s / 86400);
-    const h = Math.floor((s % 86400) / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    if (d > 0) return `${d}d ${pad(h)}:${pad(m)}:${pad(sec)}`;
-    return `${pad(h)}:${pad(m)}:${pad(sec)}`;
-}
-
-function EventCountdown({ endsAt, isLive, endedLabel }) {
-    const [tick, setTick] = useState(0);
-    const end = useMemo(() => new Date(endsAt).getTime(), [endsAt]);
-
-    useEffect(() => {
-        const id = setInterval(() => setTick((x) => x + 1), 1000);
-        return () => clearInterval(id);
-    }, [endsAt]);
-
-    const left = end - Date.now(); // tick forces re-render each second
-    void tick;
-    if (!isLive || left <= 0) {
-        return (
-            <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-slate-800 text-slate-500 border border-slate-700">
-                {endedLabel}
-            </span>
-        );
-    }
-    return (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
-            <Clock className="w-3.5 h-3.5 text-amber-400" />
-            <span className="font-mono text-xs font-black text-amber-400">{formatCountdown(left)}</span>
-        </div>
-    );
-}
 
 export default function PopularOffers() {
     const { t } = useTranslation();
@@ -106,35 +65,6 @@ export default function PopularOffers() {
         <div className="space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {events.map((ev) => (
                 <div key={ev.id} className="space-y-8">
-                    {/* Event Header */}
-                    <div className="rounded-[2rem] border border-gray-800/60 bg-surface overflow-hidden shadow-xl">
-                        {ev.imageUrl && (
-                            <div className="relative h-52 overflow-hidden">
-                                <img src={ev.imageUrl} alt="" className="w-full h-full object-cover object-center" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
-                                <div className="absolute bottom-5 left-7">
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] font-black uppercase tracking-widest backdrop-blur-sm">
-                                        <Sparkles className="w-3 h-3" />
-                                        {t('offers.badge')}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        <div className="px-7 py-6 flex flex-wrap items-start justify-between gap-4">
-                            <div>
-                                {!ev.imageUrl && (
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest mb-3">
-                                        <Sparkles className="w-3 h-3" />
-                                        {t('offers.badge')}
-                                    </div>
-                                )}
-                                <h1 className="text-3xl font-black text-white tracking-tight">{ev.title}</h1>
-                                <p className="text-gray-500 font-medium mt-1 max-w-2xl line-clamp-2">{ev.description}</p>
-                            </div>
-                            <EventCountdown endsAt={ev.endsAt} isLive={ev.isLive} endedLabel={t('offers.ended')} />
-                        </div>
-                    </div>
-
                     {/* Miners Grid — igual à Loja */}
                     {(ev.miners || []).length > 0 && (
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
