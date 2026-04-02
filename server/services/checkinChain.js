@@ -6,7 +6,9 @@
 
 const TX_HASH_RE = /^0x[a-fA-F0-9]{64}$/;
 const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
-const POLYGONSCAN_BASE = "https://api.polygonscan.com/api";
+// Etherscan API V2 — suporta todas as chains (Polygon = chainid 137)
+const ETHERSCAN_V2_BASE = "https://api.etherscan.io/v2/api";
+const POLYGON_CHAIN_ID_STR = "137";
 
 export function getCheckinRpcUrl() {
   const aether = process.env.AETHER_RPC_URL?.trim();
@@ -32,32 +34,32 @@ export function normalizeAddr(a) {
   return a.trim().toLowerCase();
 }
 
-// ─── Polygonscan API ────────────────────────────────────────────────────────
+// ─── Etherscan API V2 ────────────────────────────────────────────────────────
 
-async function polygonscanFetch(params) {
+async function etherscanV2Fetch(params) {
   const apiKey = getPolygonscanApiKey();
-  const url = new URL(POLYGONSCAN_BASE);
+  const url = new URL(ETHERSCAN_V2_BASE);
+  // V2 requires chainid parameter
+  url.searchParams.set("chainid", POLYGON_CHAIN_ID_STR);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   if (apiKey) url.searchParams.set("apikey", apiKey);
 
   const res = await fetch(url.toString(), { signal: AbortSignal.timeout(20_000) });
-  if (!res.ok) throw Object.assign(new Error(`Polygonscan HTTP ${res.status}`), { code: "PSCAN_HTTP" });
+  if (!res.ok) throw Object.assign(new Error(`Etherscan V2 HTTP ${res.status}`), { code: "ESCAN_HTTP" });
   const json = await res.json();
-  // Polygonscan wraps results: { status, message, result }
   if (json.message === "NOTOK" && json.result !== "No transactions found") {
-    throw Object.assign(new Error(json.result || "Polygonscan error"), { code: "PSCAN_ERROR" });
+    throw Object.assign(new Error(json.result || "Etherscan V2 error"), { code: "ESCAN_ERROR" });
   }
   return json;
 }
 
-async function polygonscanGetTx(txHash) {
-  // Uses proxy module which mirrors eth JSON-RPC response format
-  const json = await polygonscanFetch({ module: "proxy", action: "eth_getTransactionByHash", txhash: txHash });
+async function etherscanGetTx(txHash) {
+  const json = await etherscanV2Fetch({ module: "proxy", action: "eth_getTransactionByHash", txhash: txHash });
   return json.result || null;
 }
 
-async function polygonscanGetReceipt(txHash) {
-  const json = await polygonscanFetch({ module: "proxy", action: "eth_getTransactionReceipt", txhash: txHash });
+async function etherscanGetReceipt(txHash) {
+  const json = await etherscanV2Fetch({ module: "proxy", action: "eth_getTransactionReceipt", txhash: txHash });
   return json.result || null;
 }
 
@@ -90,20 +92,20 @@ export async function rpcCall(method, params) {
 async function getTxWithFallback(txHash) {
   if (getPolygonscanApiKey()) {
     try {
-      return { tx: await polygonscanGetTx(txHash), source: "polygonscan" };
+      return { tx: await etherscanGetTx(txHash), source: "etherscan" };
     } catch (e) {
-      console.warn("[checkinChain] Polygonscan getTx failed, falling back to RPC:", e.message);
+      console.warn("[checkinChain] Etherscan V2 getTx failed, falling back to RPC:", e.message);
     }
   }
   return { tx: await rpcCall("eth_getTransactionByHash", [txHash]), source: "rpc" };
 }
 
 async function getReceiptWithFallback(txHash, source) {
-  if (source === "polygonscan" && getPolygonscanApiKey()) {
+  if (source === "etherscan" && getPolygonscanApiKey()) {
     try {
-      return await polygonscanGetReceipt(txHash);
+      return await etherscanGetReceipt(txHash);
     } catch (e) {
-      console.warn("[checkinChain] Polygonscan getReceipt failed, falling back to RPC:", e.message);
+      console.warn("[checkinChain] Etherscan V2 getReceipt failed, falling back to RPC:", e.message);
     }
   }
   return rpcCall("eth_getTransactionReceipt", [txHash]);
