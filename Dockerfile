@@ -19,7 +19,7 @@ RUN apt-get update && \
 
 # Install production dependencies
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev --no-audit --no-fund
 
 # Copy Prisma schema and config, then generate client
 COPY server/prisma ./server/prisma/
