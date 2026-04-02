@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -17,17 +17,35 @@ import {
   Zap,
   Tag,
   Menu,
-  X
+  X,
+  Bell,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
+import { useGameStore } from '../store/game';
 import BrandLogo from './BrandLogo';
 
 export default function Sidebar() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuthStore();
+  const { logout, user } = useAuthStore();
+  const { notifications, markNotificationRead, toggleChat, hasMention } = useGameStore();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef(null);
+
+  const unreadCount = (notifications || []).filter(n => !n.isRead).length;
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const categories = [
     {
@@ -59,19 +77,21 @@ export default function Sidebar() {
     }
   ];
 
+  const bottomNavItems = [
+    { icon: LayoutDashboard, label: 'Início', path: '/dashboard' },
+    { icon: Cpu, label: 'Máquinas', path: '/inventory' },
+    { icon: ShoppingCart, label: 'Loja', path: '/shop' },
+    { icon: Wallet, label: 'Carteira', path: '/wallet' },
+  ];
+
   const handleNav = (path) => {
     navigate(path);
     setMobileOpen(false);
   };
 
-  const navContent = (
+  const menuContent = (
     <>
-      {/* Brand Logo */}
-      <div className="p-8">
-        <BrandLogo variant="sidebar" />
-      </div>
-
-      <nav className="flex-1 overflow-y-auto px-4 space-y-8 scrollbar-hide pb-8">
+      <nav className="flex-1 overflow-y-auto px-4 space-y-8 scrollbar-hide py-6">
         {categories.map((category) => (
           <div key={category.title} className="space-y-2">
             <h3 className="text-[9px] font-black text-gray-600 uppercase tracking-[0.3em] px-4 mb-4">{category.title}</h3>
@@ -104,7 +124,7 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Footer / Logout */}
+      {/* Logout */}
       <div className="p-4 mt-auto border-t border-gray-800/50">
         <button
           onClick={() => logout()}
@@ -119,19 +139,92 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-14 bg-surface border-b border-gray-800/50 shadow-lg">
+      {/* ── Mobile top bar ── */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-3 h-14 bg-surface border-b border-gray-800/50 shadow-lg">
         <BrandLogo variant="header" />
-        <button
-          onClick={() => setMobileOpen((v) => !v)}
-          className="p-2 text-gray-400 hover:text-white transition-colors"
-          aria-label="Menu"
-        >
-          {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+
+        <div className="flex items-center gap-0.5">
+          {/* Chat */}
+          <button
+            onClick={toggleChat}
+            className="p-2 text-gray-400 hover:text-white transition-colors relative"
+            aria-label="Chat"
+          >
+            <MessageSquare className="w-5 h-5" />
+            {hasMention && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full" />
+            )}
+          </button>
+
+          {/* Notifications */}
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={() => setNotifOpen(v => !v)}
+              className="p-2 text-gray-400 hover:text-white transition-colors relative"
+              aria-label="Notificações"
+            >
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-surface" />
+              )}
+            </button>
+
+            {notifOpen && (
+              <div className="absolute right-0 mt-2 w-72 bg-surface border border-gray-800 rounded-2xl shadow-2xl overflow-hidden z-50">
+                <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between bg-gray-900/50">
+                  <h3 className="text-xs font-black text-white uppercase tracking-widest">Notificações</h3>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={() => markNotificationRead('all')}
+                      className="text-[10px] font-bold text-primary hover:text-primary-hover uppercase tracking-tighter"
+                    >
+                      Ler todas
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-72 overflow-y-auto scrollbar-hide divide-y divide-gray-800/30">
+                  {(notifications || []).length === 0 ? (
+                    <p className="py-8 text-center text-[10px] text-gray-600 font-bold uppercase tracking-widest italic">
+                      Nenhuma notificação
+                    </p>
+                  ) : (
+                    (notifications || []).slice(0, 10).map(n => (
+                      <button
+                        key={n.id}
+                        onClick={() => { markNotificationRead(n.id); setNotifOpen(false); }}
+                        className={`w-full text-left px-4 py-3 hover:bg-gray-800/30 transition-colors ${!n.isRead ? 'bg-primary/5' : ''}`}
+                      >
+                        <p className={`text-xs font-bold truncate ${!n.isRead ? 'text-white' : 'text-gray-400'}`}>{n.title}</p>
+                        <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-2">{n.message}</p>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* User avatar → settings */}
+          <button
+            onClick={() => { navigate('/settings'); setMobileOpen(false); }}
+            className="w-8 h-8 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-white font-black border border-gray-700 text-xs mx-1 ring-1 ring-primary/20"
+            aria-label="Configurações"
+          >
+            {user?.name?.charAt(0)?.toUpperCase() || '?'}
+          </button>
+
+          {/* Hamburger */}
+          <button
+            onClick={() => setMobileOpen(v => !v)}
+            className="p-2 text-gray-400 hover:text-white transition-colors"
+            aria-label="Menu"
+          >
+            {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
 
-      {/* Mobile drawer overlay */}
+      {/* Drawer overlay */}
       {mobileOpen && (
         <div
           className="md:hidden fixed inset-0 z-30 bg-black/60 backdrop-blur-sm"
@@ -139,16 +232,45 @@ export default function Sidebar() {
         />
       )}
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer — fica entre top bar e bottom nav */}
       <aside
-        className={`md:hidden fixed top-14 left-0 bottom-0 z-40 w-72 bg-surface border-r border-gray-800/50 flex flex-col shadow-2xl transition-transform duration-300 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`md:hidden fixed top-14 bottom-16 left-0 z-40 w-72 bg-surface border-r border-gray-800/50 flex flex-col shadow-2xl transition-transform duration-300 overflow-y-auto ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
-        {navContent}
+        {menuContent}
       </aside>
 
-      {/* Desktop sidebar */}
+      {/* ── Bottom navigation bar ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-surface border-t border-gray-800/50 flex items-center justify-around px-1 shadow-2xl">
+        {bottomNavItems.map((item) => {
+          const isActive = location.pathname === item.path;
+          return (
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className={`flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-xl transition-all duration-300 ${
+                isActive ? 'text-primary' : 'text-gray-500 hover:text-white'
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="text-[8px] font-black uppercase tracking-widest leading-none">{item.label}</span>
+            </button>
+          );
+        })}
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-xl transition-all text-gray-500 hover:text-white"
+        >
+          <Menu className="w-5 h-5" />
+          <span className="text-[8px] font-black uppercase tracking-widest leading-none">Menu</span>
+        </button>
+      </nav>
+
+      {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex w-64 bg-surface border-r border-gray-800/50 shrink-0 flex-col h-full shadow-2xl relative z-20">
-        {navContent}
+        <div className="p-8">
+          <BrandLogo variant="sidebar" />
+        </div>
+        {menuContent}
       </aside>
     </>
   );
