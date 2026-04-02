@@ -38,50 +38,7 @@ import AdminLogs from './pages/AdminLogs';
 import AdminMetrics from './pages/AdminMetrics';
 import AdminOfferEvents from './pages/AdminOfferEvents';
 import AdminOfferEventManage from './pages/AdminOfferEventManage';
-
-// Main App Component
-const Landing = () => {
-  const { isAuthenticated } = useAuthStore();
-
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 text-center">
-      <div className="max-w-3xl space-y-8">
-        <h1 className="text-6xl font-black tracking-tighter bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent italic">
-          BLOCK MINER
-        </h1>
-        <p className="text-xl text-slate-400 leading-relaxed">
-          The next generation of Web3 mining simulation. Build your farm, upgrade your rigs, and mine real rewards in a premium competitive environment.
-        </p>
-        <div className="flex gap-4 justify-center pt-8">
-          <a href="/login" className="px-8 py-4 bg-primary text-white font-bold rounded-2xl hover:scale-105 transition-transform">
-            Start Mining
-          </a>
-          <a href="/register" className="px-8 py-4 bg-slate-800 text-white font-bold rounded-2xl hover:bg-slate-700 transition-colors">
-            Join the Network
-          </a>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-16">
-          <div className="p-6 bg-slate-900/50 border border-slate-800 rounded-3xl">
-            <h3 className="text-primary font-bold mb-2">Realtime Mining</h3>
-            <p className="text-sm text-slate-500">Experience block rewards every 10 minutes with live global hashpower.</p>
-          </div>
-          <div className="p-6 bg-slate-900/50 border border-slate-800 rounded-3xl">
-            <h3 className="text-primary font-bold mb-2">Economy</h3>
-            <p className="text-sm text-slate-500">Swap assets, participate in offerwalls and faucets to boost your growth.</p>
-          </div>
-          <div className="p-6 bg-slate-900/50 border border-slate-800 rounded-3xl">
-            <h3 className="text-primary font-bold mb-2">Security</h3>
-            <p className="text-sm text-slate-500">Built on top of Prisma & PostgreSQL with military-grade JWT auth.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+import Landing from './pages/Landing';
 
 const ProtectedLayout = () => {
   const { isAuthenticated, isLoading } = useAuthStore();
