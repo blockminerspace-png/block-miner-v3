@@ -94,11 +94,12 @@ export async function persistBlockRewards({ blockNumber, blockReward, totalWork,
         }
       });
 
-      // 2. Update user balances (merged into User in our schema)
+      // 2. Atualizar saldo do usuário com incremento (não SET absoluto)
+      // Usar increment garante que depósitos creditados direto no banco não sejam sobrescritos
       await tx.user.update({
         where: { id: r.userId },
         data: {
-          polBalance: r.balanceAfter,
+          polBalance: { increment: r.rewardAmount },
         }
       });
 

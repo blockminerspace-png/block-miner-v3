@@ -98,6 +98,7 @@ export class MiningEngine {
       boostMultiplier: 1,
       boostEndsAt: 0,
       balance: Number(profile?.balance || 0),
+      lastPersistedBalance: Number(profile?.balance || 0),
       lifetimeMined: Number(profile?.lifetimeMined || 0),
       connected: true,
       refCode: profile?.refCode || null,
@@ -203,6 +204,7 @@ export class MiningEngine {
       const share = work / totalWork;
       const reward = blockReward * share;
       miner.balance += reward;
+      miner.lastPersistedBalance = (miner.lastPersistedBalance ?? miner.balance - reward) + reward;
       miner.lifetimeMined += reward;
       this.totalMinted += reward;
       this.roundWork.set(minerId, 0);

@@ -87,13 +87,20 @@ export async function getOrCreateMinerProfile(user) {
 
 export async function persistMinerProfile(miner) {
   if (!miner?.userId) return;
-  
-  return prisma.user.update({
+
+  // Usa delta para n\u00e3o sobrescrever saldo creditado diretamente no banco
+  // (dep\u00f3sitos, tickets, offerwall que s\u00f3 atualizam o DB sem passar pelo engine)
+  const delta = miner.balance - (miner.lastPersistedBalance ?? miner.balance);
+  if (Math.abs(delta) < 0.0000001) return; // nada a persistir
+
+  await prisma.user.update({
     where: { id: miner.userId },
     data: {
-      polBalance: miner.balance
+      polBalance: delta > 0 ? { increment: delta } : { decrement: -delta }
     }
   });
+
+  miner.lastPersistedBalance = miner.balance;
 }
 
 export async function syncUserBaseHashRate(userId) {
