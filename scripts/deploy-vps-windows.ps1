@@ -52,7 +52,7 @@ $tmpPw = Join-Path ([System.IO.Path]::GetTempPath()) ("bm_pw_{0}.txt" -f [Guid]:
 [System.IO.File]::WriteAllText($tmpPw, $SshPassword.Trim(), [System.Text.UTF8Encoding]::new($false))
 
 try {
-    $remoteCmd = "set -e`ncd $RemotePath`ngit pull origin main`ndocker compose up -d --build --no-deps app`ncurl -sS -o /dev/null -w 'health_http:%{http_code}\n' http://127.0.0.1:3000/health || true`n"
+    $remoteCmd = "set -e`ncd $RemotePath`ngit fetch origin`ngit reset --hard origin/main`ndocker compose up -d --build --no-deps app`ncurl -sS -o /dev/null -w 'health_http:%{http_code}\n' http://127.0.0.1:3000/health || true`n"
 
     Write-Host "==> git pull + docker compose build no VPS ($SshHost)..."
     & $PlinkExe -batch -ssh -pwfile $tmpPw "${SshUser}@${SshHost}" $remoteCmd
