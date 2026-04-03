@@ -55,6 +55,7 @@ export async function listRooms(req, res) {
             id: rack.id,
             position: rack.position,
             installedAt: rack.installedAt || null,
+            blockedByMinerId: rack.blockedByMinerId || null,
             miner: rack.userMiner
               ? {
                   id: rack.userMiner.id,
@@ -79,7 +80,7 @@ export async function listRooms(req, res) {
 
     const totalRacks = rooms.reduce((s, r) => s + r.racks.length, 0);
     const occupiedRacks = rooms.reduce(
-      (s, r) => s + r.racks.filter((rack) => rack.userMinerId !== null).length,
+      (s, r) => s + r.racks.filter((rack) => rack.userMinerId !== null || rack.blockedByMinerId !== null).length,
       0
     );
 
@@ -214,7 +215,7 @@ export async function installMiner(req, res) {
       logger.warn("installMiner: rack not found", { userId, rackId });
       return res.status(404).json({ ok: false, message: "Rack não encontrado." });
     }
-    if (rack.userMinerId !== null) {
+    if (rack.userMinerId !== null || rack.blockedByMinerId !== null) {
       logger.warn("installMiner: rack occupied", { userId, rackId });
       return res.status(400).json({ ok: false, code: "RACK_OCCUPIED", message: "Este rack já está ocupado." });
     }
@@ -228,7 +229,22 @@ export async function installMiner(req, res) {
       return res.status(404).json({ ok: false, message: "Item não encontrado no inventário." });
     }
 
-    // Item presente em userInventory já confirma disponibilidade — sem necessidade de consulta adicional.
+    // Para miners de 2 slots: verificar rack adjacente (position+1)
+    const slotSize = inventoryItem.slotSize || 1;
+    let adjacentRack = null;
+    if (slotSize >= 2) {
+      adjacentRack = await prisma.userRack.findFirst({
+        where: { roomId: rack.roomId, position: rack.position + (slotSize - 1) },
+      });
+      if (!adjacentRack) {
+        logger.warn("installMiner: no adjacent rack for 2-slot miner", { userId, rackId, position: rack.position });
+        return res.status(400).json({ ok: false, code: "NO_SPACE", message: "Não há espaço suficiente para esta máquina de 2 slots. Escolha um rack anterior." });
+      }
+      if (adjacentRack.userMinerId !== null || adjacentRack.blockedByMinerId !== null) {
+        logger.warn("installMiner: adjacent rack occupied", { userId, rackId, adjacentRackId: adjacentRack.id });
+        return res.status(400).json({ ok: false, code: "ADJACENT_RACK_OCCUPIED", message: "O rack adjacente está ocupado. Escolha outro rack para esta máquina de 2 slots." });
+      }
+    }
 
     const slotIndex = rackSlotIndex(rack.room.roomNumber, rack.position);
 
@@ -253,6 +269,14 @@ export async function installMiner(req, res) {
           installedAt: new Date(),
         },
       });
+
+      // Bloquear rack adjacente para miners de 2 slots
+      if (slotSize >= 2 && adjacentRack) {
+        await tx.userRack.update({
+          where: { id: adjacentRack.id },
+          data: { blockedByMinerId: newMiner.id },
+        });
+      }
 
       await tx.userInventory.delete({ where: { id: inventoryId } });
     });
@@ -309,6 +333,12 @@ export async function uninstallMiner(req, res) {
       await tx.userRack.update({
         where: { id: rackId },
         data: { userMinerId: null, installedAt: null },
+      });
+
+      // Liberar racks bloqueados por esta máquina (slotSize >= 2)
+      await tx.userRack.updateMany({
+        where: { roomId: rack.roomId, blockedByMinerId: miner.id },
+        data: { blockedByMinerId: null },
       });
 
       await tx.userInventory.create({

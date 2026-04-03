@@ -20,9 +20,9 @@ echo "Database is ready. Syncing Prisma schema..."
 # Generate Prisma client if it's missing (failsafe)
 npx prisma generate --schema=server/prisma/schema.prisma || true
 
-# Deploy schema changes safely
+# Deploy schema changes safely (sem --accept-data-loss para proteger dados)
 echo "Running prisma db push..."
-npx prisma db push --schema=server/prisma/schema.prisma --accept-data-loss || {
+npx prisma db push --schema=server/prisma/schema.prisma || {
   echo "Warning: prisma db push failed. Continuing startup to keep service available."
 }
 

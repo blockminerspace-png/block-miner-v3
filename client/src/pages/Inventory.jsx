@@ -2,7 +2,7 @@
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { Lock, Plus, Zap, Trash2, Box, AlertCircle } from "lucide-react";
+import { Lock, Plus, Zap, Trash2, Box, AlertCircle, Layers } from "lucide-react";
 import { api } from "../store/auth";
 import { formatHashrate, DEFAULT_MINER_IMAGE_URL, getMachineDescriptor } from "../utils/machine";
 
@@ -19,6 +19,7 @@ function groupIntoRacks(racks) {
 function SlotModal({ slot, inventory, onInstall, onRemove, onClose }) {
   const { t } = useTranslation();
   const machine = slot.miner || null;
+  const isBlocked = !machine && !!slot.rack?.blockedByMinerId;
   const groupedInventory = useMemo(() => {
     const groups = {};
     for (const item of inventory) {
@@ -53,12 +54,19 @@ function SlotModal({ slot, inventory, onInstall, onRemove, onClose }) {
                   <div className="flex items-center gap-4 mt-1">
                     <div className="flex flex-col"><span className="text-[10px] font-bold text-gray-600 uppercase">{t("inventory.modal.level")}</span><span className="text-sm font-bold text-gray-300">{machine.level}</span></div>
                     <div className="flex flex-col"><span className="text-[10px] font-bold text-gray-600 uppercase">{t("inventory.modal.hashrate")}</span><span className="text-sm font-bold text-primary uppercase">{formatHashrate(machine.hashRate)}</span></div>
+                    {machine.slotSize >= 2 && <div className="flex flex-col"><span className="text-[10px] font-bold text-gray-600 uppercase">Slots</span><span className="text-sm font-bold text-amber-400">{machine.slotSize}</span></div>}
                   </div>
                 </div>
               </div>
               <button onClick={() => onRemove(slot.rack.id)} className="w-full py-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-2xl font-bold text-sm transition-all border border-red-500/20 flex items-center justify-center gap-2">
                 <Trash2 className="w-4 h-4" /> {t("inventory.modal.remove_to_inventory")}
               </button>
+            </div>
+          ) : isBlocked ? (
+            <div className="p-6 flex flex-col items-center gap-3 bg-amber-500/5 rounded-2xl border border-amber-500/20">
+              <Layers className="w-8 h-8 text-amber-500" />
+              <p className="text-sm font-bold text-amber-400 text-center">Slot reservado por máquina de 2 slots</p>
+              <p className="text-xs text-gray-500 text-center">Este slot está ocupado pela máquina instalada no rack anterior.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -109,14 +117,26 @@ function RackCard({ rackNumber, slots, onSlotClick }) {
           const machine = rack ? rack.miner : null;
           const descriptor = machine ? getMachineDescriptor(machine) : null;
           const isOccupied = !!machine;
+          const isBlocked = !machine && !!rack?.blockedByMinerId;
           return (
             <button key={rack ? rack.id : slotInRack} onClick={() => onSlotClick({ rack, miner: machine, visualRackNumber: rackNumber, slotInRack })}
-              className={`relative aspect-square rounded-2xl border ${isOccupied ? "border-primary/30 bg-primary/5" : "border-gray-800/50 bg-gray-900/30 hover:border-gray-700"} transition-all duration-300 group flex items-center justify-center`}>
+              className={`relative aspect-square rounded-2xl border ${
+                isOccupied
+                  ? "border-primary/30 bg-primary/5"
+                  : isBlocked
+                  ? "border-amber-500/30 bg-amber-500/5 cursor-pointer"
+                  : "border-gray-800/50 bg-gray-900/30 hover:border-gray-700"
+              } transition-all duration-300 group flex items-center justify-center`}>
               {isOccupied ? (
                 <>
                   <img src={descriptor.image} alt={descriptor.name} className="w-4/5 h-4/5 object-contain p-2 group-hover:scale-110 transition-transform pointer-events-none" onError={(e) => { e.target.src = DEFAULT_MINER_IMAGE_URL; }} />
                   <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary pointer-events-none" />
+                  {machine.slotSize >= 2 && (
+                    <div className="absolute bottom-1 left-1 bg-amber-500/80 text-black text-[7px] font-black px-1 rounded pointer-events-none leading-tight">2×</div>
+                  )}
                 </>
+              ) : isBlocked ? (
+                <Layers className="w-4 h-4 text-amber-500/60" />
               ) : (
                 <Plus className="w-5 h-5 text-gray-700 group-hover:text-gray-500 transition-colors" />
               )}

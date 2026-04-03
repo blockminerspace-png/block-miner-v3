@@ -23,6 +23,7 @@ import Settings from './pages/Settings';
 import AutoMining from './pages/AutoMining';
 import Games from './pages/Games';
 import ShortlinkStep from './pages/ShortlinkStep';
+import Roadmap from './pages/Roadmap';
 import ChatSidebar from './components/ChatSidebar';
 import AdBlockDetector from './components/AdBlockDetector';
 
@@ -131,6 +132,7 @@ function App() {
           <Route path="/room/:username" element={<PublicRoom />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/games" element={<Games />} />
+          <Route path="/roadmap" element={<Roadmap />} />
           <Route path="/shortlink/internal-shortlink/step/:step" element={<ShortlinkStep />} />
         </Route>
 
