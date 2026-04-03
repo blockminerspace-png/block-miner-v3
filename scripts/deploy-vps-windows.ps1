@@ -52,6 +52,17 @@ $tmpPw = Join-Path ([System.IO.Path]::GetTempPath()) ("bm_pw_{0}.txt" -f [Guid]:
 [System.IO.File]::WriteAllText($tmpPw, $SshPassword.Trim(), [System.Text.UTF8Encoding]::new($false))
 
 try {
+    # --- Upload do .env.production real para o VPS (evita ser sobrescrito pelo git reset) ---
+    $envBackupPath = Join-Path $RepoRoot '.env.production.vm-backup'
+    if (Test-Path -LiteralPath $envBackupPath) {
+        Write-Host "==> Uploading .env.production to VPS..."
+        $pscpExe = Join-Path (Split-Path $PlinkExe) 'pscp.exe'
+        & $pscpExe -batch -pw $SshPassword $envBackupPath "${SshUser}@${SshHost}:${RemotePath}/.env.production"
+        if ($LASTEXITCODE -ne 0) { throw "pscp falhou ao enviar .env.production" }
+    } else {
+        Write-Warning ".env.production.vm-backup nao encontrado - pulando upload do env"
+    }
+
     $remoteCmd = "set -e`ncd $RemotePath`ngit fetch origin`ngit reset --hard origin/main`ndocker compose up -d --build --no-deps app`ncurl -sS -o /dev/null -w 'health_http:%{http_code}\n' http://127.0.0.1:3000/health || true`n"
 
     Write-Host "==> git pull + docker compose build no VPS ($SshHost)..."

@@ -12,9 +12,9 @@ deploy-credentials.local.md
 .env.local
 .env.*.local
 env_new.tmp
-!.env.example
-!.env.production
+.env.production
 .env.production.vm-backup
+!.env.example
 
 # SQLite / local data
 data/*.db
