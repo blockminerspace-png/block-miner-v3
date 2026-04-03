@@ -465,7 +465,7 @@ export default function Wallet() {
                         </div>
 
                         <div className="p-8">
-                            {activeTab === 'withdraw' ? (
+                            {activeTab === 'withdraw' && (
                                 <form onSubmit={handleWithdraw} className="space-y-8">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-3">
@@ -540,7 +540,9 @@ export default function Wallet() {
                                         {isActionLoading ? 'Processing...' : 'Authorize Transaction'}
                                     </button>
                                 </form>
-                            ) : (
+                            )}
+
+                            {activeTab === 'deposit' && (
                                 <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-3">
