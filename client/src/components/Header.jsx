@@ -28,7 +28,7 @@ export default function Header() {
   };
 
   const title = getPageTitle();
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = (notifications || []).filter(n => !n.isRead).length;
 
   useEffect(() => {
     fetchNotifications();
@@ -108,13 +108,13 @@ export default function Header() {
                 </div>
 
                 <div className="max-h-[400px] overflow-y-auto scrollbar-hide">
-                  {notifications.length === 0 ? (
+                  {(notifications || []).length === 0 ? (
                     <div className="py-12 flex flex-col items-center justify-center text-gray-600 space-y-3">
                       <Inbox className="w-10 h-10 opacity-20" />
                       <p className="text-[10px] font-bold uppercase tracking-widest italic">Nenhum alerta pendente</p>
                     </div>
                   ) : (
-                    notifications.map((n) => (
+                    (notifications || []).map((n) => (
                       <div 
                         key={n.id} 
                         className={`px-6 py-4 border-b border-gray-800/30 hover:bg-gray-800/30 transition-colors relative group ${!n.isRead ? 'bg-primary/5' : ''}`}

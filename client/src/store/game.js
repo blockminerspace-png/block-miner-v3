@@ -171,7 +171,7 @@ export const useGameStore = create((set, get) => ({
     fetchNotifications: async () => {
         try {
             const res = await api.get('/notifications');
-            if (res.data.ok) set({ notifications: res.data.notifications });
+            if (res.data.ok) set({ notifications: Array.isArray(res.data.notifications) ? res.data.notifications : [] });
         } catch (err) { console.error(err); }
     },
 

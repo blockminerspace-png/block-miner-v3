@@ -12,6 +12,7 @@ class ErrorBoundary extends React.Component {
 
     componentDidCatch(error, errorInfo) {
         console.error("Critical Render Error caught by Boundary:", error, errorInfo);
+        this.setState({ errorDetail: error?.message || String(error), errorStack: errorInfo?.componentStack });
     }
 
     render() {
@@ -59,6 +60,14 @@ class ErrorBoundary extends React.Component {
                     >
                         Recarregar Plataforma
                     </button>
+                    {this.state.errorDetail && (
+                        <details style={{ marginTop: '20px', maxWidth: '600px', textAlign: 'left' }}>
+                            <summary style={{ cursor: 'pointer', color: '#64748b', fontSize: '11px', fontFamily: 'monospace' }}>Detalhes do erro (debug)</summary>
+                            <pre style={{ color: '#f87171', fontSize: '10px', marginTop: '8px', whiteSpace: 'pre-wrap', wordBreak: 'break-all', background: '#1e293b', padding: '12px', borderRadius: '8px' }}>
+                                {this.state.errorDetail}{'\n\n'}{this.state.errorStack}
+                            </pre>
+                        </details>
+                    )}
                 </div>
             );
         }
