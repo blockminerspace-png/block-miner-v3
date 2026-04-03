@@ -1,6 +1,5 @@
 import prisma from "../src/db/prisma.js";
 import loggerLib from "../utils/logger.js";
-import fetch from "node-fetch";
 
 const logger = loggerLib.child("DepositTicketController");
 
