@@ -53,6 +53,12 @@ export class MiningEngine {
           miner.baseHashRate = Number(profile.base_hash_rate || 0);
           miner.refCode = profile.refCode;
           miner.referralCount = profile.referralCount;
+          // Sincroniza saldo: se DB tem mais (ex: deposito creditado), atualiza memoria
+          const dbBalance = Number(profile.balance || 0);
+          if (dbBalance > miner.balance) {
+            miner.balance = dbBalance;
+            miner.lastPersistedBalance = dbBalance;
+          }
           // Emit updated miner state so referralCount updates in real-time for online referrers
           if (this.io) {
             const state = this.getPublicState(miner.id);
@@ -82,6 +88,12 @@ export class MiningEngine {
         existing.baseHashRate = Number(profile.base_hash_rate || profile.baseHashRate || 0);
         existing.refCode = profile.refCode;
         existing.referralCount = profile.referralCount;
+        // Sincroniza saldo com o banco ao reconectar (pega o maior valor para nao perder rewards nao persistidos)
+        const dbBalance = Number(profile.balance || 0);
+        if (dbBalance > existing.balance) {
+          existing.balance = dbBalance;
+          existing.lastPersistedBalance = dbBalance;
+        }
       }
       return existing;
     }
