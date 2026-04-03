@@ -1,432 +1,294 @@
-import { useEffect, useState, useCallback } from 'react';
-import { toast } from 'sonner';
-import { Building2, Server, Lock, Unlock, Cpu, Plus, X, Zap, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import { api } from '../store/auth';
+﻿import { useEffect, useState, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
+import { toast } from "sonner";
+import { Lock, Plus, Zap, Trash2 } from "lucide-react";
+import { api } from "../store/auth";
+import { formatHashrate, DEFAULT_MINER_IMAGE_URL, getMachineDescriptor } from "../utils/machine";
 
-const DEFAULT_MINER_IMAGE = '/assets/machines/reward1.png';
+// Quantos slots por rack visual (igual ao /inventory)
+const SLOTS_PER_VISUAL_RACK = 8;
 
-function formatHashrate(hr) {
-  if (!hr && hr !== 0) return '0 H/s';
-  if (hr >= 1e6) return `${(hr / 1e6).toFixed(2)} MH/s`;
-  if (hr >= 1e3) return `${(hr / 1e3).toFixed(2)} KH/s`;
-  return `${hr.toFixed(2)} H/s`;
+function groupIntoRacks(racks) {
+  const groups = [];
+  for (let r = 0; r < Math.ceil(racks.length / SLOTS_PER_VISUAL_RACK); r++) {
+    groups.push({
+      rackNumber: r + 1,
+      slots: racks.slice(r * SLOTS_PER_VISUAL_RACK, (r + 1) * SLOTS_PER_VISUAL_RACK),
+    });
+  }
+  return groups;
 }
 
-// ---------- Modal de instalação ----------
-function InstallModal({ rack, inventory, onInstall, onClose }) {
-  const [selected, setSelected] = useState(null);
-  const [loading, setLoading] = useState(false);
+function SlotModal({ slot, inventory, onInstall, onRemove, onClose }) {
+  const machine = slot.miner || null;
 
-  const handleInstall = async () => {
-    if (!selected) return;
-    setLoading(true);
-    await onInstall(rack.id, selected.id);
-    setLoading(false);
-  };
+  const groupedInventory = useMemo(() => {
+    const groups = {};
+    for (const item of inventory) {
+      const key = `${item.minerName}_${item.level}_${item.hashRate}`;
+      if (!groups[key]) groups[key] = { ...item, quantity: 1, items: [item] };
+      else { groups[key].quantity += 1; groups[key].items.push(item); }
+    }
+    return Object.values(groups);
+  }, [inventory]);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
-        <div className="flex items-center justify-between p-5 border-b border-white/5">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-white">
-            Instalar no Rack {rack.position + 1}
-          </h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-            <X className="w-4 h-4" />
+  const descriptor = machine ? getMachineDescriptor(machine) : null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="bg-surface border border-gray-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+        <div className="px-8 pt-8 pb-6 flex items-center justify-between border-b border-gray-800/50">
+          <div>
+            <h3 className="text-xl font-bold text-white">
+              {machine ? "Detalhes da Maquina" : "Instalar Maquina"}
+            </h3>
+            <p className="text-xs font-bold text-gray-500 mt-1 uppercase tracking-widest">
+              Sala {slot.roomNumber} - Rack {slot.visualRackNumber} - Slot {slot.slotInRack + 1}
+            </p>
+          </div>
+          <button onClick={onClose} className="w-10 h-10 rounded-xl bg-gray-800/50 text-gray-400 flex items-center justify-center hover:text-white transition-colors">
+            <Plus className="w-6 h-6 rotate-45" />
           </button>
         </div>
-
-        <div className="p-4 max-h-80 overflow-y-auto space-y-2 scrollbar-hide">
-          {inventory.length === 0 ? (
-            <div className="text-center py-8 text-gray-500 text-xs">
-              <Cpu className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              Nenhuma máquina no inventário
+        <div className="p-8">
+          {machine ? (
+            <div className="space-y-6">
+              <div className="flex items-center gap-6 p-4 bg-gray-800/20 rounded-2xl border border-gray-800/50">
+                <div className="w-20 h-20 bg-gray-900/50 rounded-2xl p-3 border border-gray-800/50">
+                  <img src={descriptor.image} className="w-full h-full object-contain" onError={(e) => { e.target.src = DEFAULT_MINER_IMAGE_URL; }} />
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-white">{machine.minerName || descriptor.name}</h4>
+                  <div className="flex items-center gap-4 mt-1">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-gray-600 uppercase">Nivel</span>
+                      <span className="text-sm font-bold text-gray-300">{machine.level}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-gray-600 uppercase">HashRate</span>
+                      <span className="text-sm font-bold text-primary uppercase">{formatHashrate(machine.hashRate)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => onRemove(slot.rack.id)} className="w-full py-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-2xl font-bold text-sm transition-all border border-red-500/20 flex items-center justify-center gap-2">
+                <Trash2 className="w-4 h-4" /> Remover para o inventario
+              </button>
             </div>
           ) : (
-            inventory.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setSelected(item)}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
-                  selected?.id === item.id
-                    ? 'border-primary/50 bg-primary/10 text-white'
-                    : 'border-white/5 bg-white/3 text-gray-300 hover:border-white/20 hover:bg-white/5'
-                }`}
-              >
-                <img
-                  src={item.imageUrl || DEFAULT_MINER_IMAGE}
-                  alt={item.minerName}
-                  className="w-9 h-9 rounded-lg object-contain bg-black/20 flex-shrink-0"
-                  onError={(e) => { e.target.src = DEFAULT_MINER_IMAGE; }}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold truncate">{item.minerName || 'Máquina'}</p>
-                  <p className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
-                    <Zap className="w-3 h-3 text-yellow-400" />
-                    {formatHashrate(item.hashRate)}
-                    {item.level > 1 && (
-                      <span className="ml-1 text-primary">Nível {item.level}</span>
-                    )}
-                  </p>
+            <div className="space-y-4">
+              {groupedInventory.length === 0 ? (
+                <div className="p-8 text-center bg-gray-800/20 rounded-2xl border border-dashed border-gray-800">
+                  <p className="text-gray-500 text-sm">Nenhuma maquina disponivel no inventario</p>
                 </div>
-                {selected?.id === item.id && (
-                  <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
-                )}
-              </button>
-            ))
+              ) : (
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                  {groupedInventory.map((group) => {
+                    const desc = getMachineDescriptor({ hashRate: group.hashRate, slotSize: group.slotSize, imageUrl: group.imageUrl });
+                    return (
+                      <button key={group.id} onClick={() => onInstall(slot.rack.id, group.items[0].id)}
+                        className="w-full p-4 bg-gray-800/30 hover:bg-primary/10 border border-gray-800 hover:border-primary/30 rounded-2xl flex items-center justify-between transition-all">
+                        <div className="flex items-center gap-3 text-left">
+                          <div className="w-10 h-10 bg-gray-900 rounded-lg p-2 shrink-0 relative">
+                            <img src={desc.image} className="w-full h-full object-contain" onError={(e) => { e.target.src = DEFAULT_MINER_IMAGE_URL; }} />
+                            <div className="absolute -top-2 -right-2 bg-primary text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-lg border border-primary/20">x{group.quantity}</div>
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-white">{group.minerName}</div>
+                            <div className="text-[10px] font-bold text-gray-500 uppercase">{formatHashrate(group.hashRate)}</div>
+                          </div>
+                        </div>
+                        <Plus className="w-5 h-5 text-gray-600" />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
         </div>
-
-        <div className="p-4 border-t border-white/5 flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-gray-400 text-xs font-bold uppercase tracking-wider hover:bg-white/5 transition-all"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleInstall}
-            disabled={!selected || loading}
-            className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-white text-xs font-bold uppercase tracking-wider hover:bg-primary/80 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <>
-                <Plus className="w-3.5 h-3.5" />
-                Instalar
-              </>
-            )}
-          </button>
-        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
-// ---------- Card de um Rack ----------
-function RackCard({ rack, onClickEmpty, onClickOccupied }) {
-  const occupied = rack.miner !== null;
-
-  if (occupied) {
-    return (
-      <button
-        onClick={() => onClickOccupied(rack)}
-        title={`Rack ${rack.position + 1} — ${formatHashrate(rack.miner?.hashRate)} — Clique para remover`}
-        className="aspect-square rounded-lg border border-emerald-500/30 bg-emerald-900/10 hover:border-emerald-400/60 hover:bg-emerald-900/20 transition-all flex flex-col items-center justify-center gap-1 p-1 group relative overflow-hidden"
-      >
-        <img
-          src={rack.miner?.imageUrl || DEFAULT_MINER_IMAGE}
-          alt="miner"
-          className="w-6 h-6 md:w-8 md:h-8 object-contain"
-          onError={(e) => { e.target.src = DEFAULT_MINER_IMAGE; }}
-        />
-        <span className="text-[8px] md:text-[9px] text-emerald-400 font-mono leading-none text-center truncate w-full px-0.5">
-          {formatHashrate(rack.miner?.hashRate)}
-        </span>
-        <div className="absolute inset-0 bg-red-500/80 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-          <X className="w-4 h-4 text-white" />
-        </div>
-      </button>
-    );
-  }
-
+function RackCard({ rackNumber, slots, roomNumber, onSlotClick }) {
   return (
-    <button
-      onClick={() => onClickEmpty(rack)}
-      title={`Rack ${rack.position + 1} — vazio`}
-      className="aspect-square rounded-lg border border-white/5 bg-white/2 hover:border-primary/40 hover:bg-primary/5 transition-all flex items-center justify-center group"
-    >
-      <Plus className="w-3 h-3 md:w-4 md:h-4 text-gray-600 group-hover:text-primary transition-colors" />
-    </button>
-  );
-}
-
-// ---------- Componente de Sala ----------
-function RoomCard({ room, inventory, onBuyRoom, onInstall, onUninstall, buyingRoom }) {
-  const [expanded, setExpanded] = useState(room.roomNumber === 1);
-
-  if (!room.unlocked) {
-    return (
-      <div className="rounded-2xl border border-white/5 bg-slate-900/50 overflow-hidden">
-        <div className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center">
-              <Lock className="w-4 h-4 text-gray-500" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Sala {room.roomNumber}
-              </p>
-              <p className="text-[10px] text-gray-600 mt-0.5">
-                {room.price === 0 ? 'Grátis' : `${room.price} POL`} • 24 racks
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => onBuyRoom(room.roomNumber, room.price)}
-            disabled={buyingRoom}
-            className="px-4 py-2 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-wider hover:bg-primary/80 transition-all disabled:opacity-50 flex items-center gap-1.5"
-          >
-            {buyingRoom ? (
-              <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <Unlock className="w-3 h-3" />
-            )}
-            {room.price === 0 ? 'Desbloquear' : `Comprar (${room.price} POL)`}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const occupied = room.racks.filter((r) => r.miner).length;
-  const total = room.racks.length;
-
-  return (
-    <div className="rounded-2xl border border-white/5 bg-slate-900/50 overflow-hidden">
-      {/* Header */}
-      <button
-        onClick={() => setExpanded((p) => !p)}
-        className="w-full p-4 flex items-center justify-between hover:bg-white/2 transition-colors"
-      >
+    <div className="bg-surface border border-gray-800/50 rounded-3xl overflow-hidden shadow-xl">
+      <div className="px-6 py-4 bg-gray-800/20 border-b border-gray-800/50 flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <Building2 className="w-4 h-4 text-primary" />
-          </div>
-          <div className="text-left">
-            <p className="text-xs font-bold text-white uppercase tracking-wider">
-              Sala {room.roomNumber}
-            </p>
-            <div className="flex items-center gap-2 mt-0.5">
-              <div className="h-1 w-20 bg-white/5 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full transition-all"
-                  style={{ width: `${total > 0 ? (occupied / total) * 100 : 0}%` }}
-                />
-              </div>
-              <span className="text-[10px] text-gray-500">
-                {occupied}/{total} racks
-              </span>
-            </div>
-          </div>
+          <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-glow" />
+          <h3 className="text-sm font-bold text-gray-300">Rack {rackNumber}</h3>
         </div>
-        {expanded ? (
-          <ChevronUp className="w-4 h-4 text-gray-500" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-gray-500" />
-        )}
-      </button>
-
-      {/* Grid de racks */}
-      {expanded && (
-        <div className="px-4 pb-4">
-          <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-12 gap-1.5">
-            {room.racks.map((rack) => (
-              <RackCard
-                key={rack.id}
-                rack={rack}
-                onClickEmpty={(r) => onInstall(r)}
-                onClickOccupied={(r) => onUninstall(r)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+        <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Sala {roomNumber}</span>
+      </div>
+      <div className="p-4 grid grid-cols-4 gap-3">
+        {slots.map((rack, slotInRack) => {
+          const machine = rack ? rack.miner : null;
+          const descriptor = machine ? getMachineDescriptor(machine) : null;
+          const isOccupied = !!machine;
+          return (
+            <button key={rack ? rack.id : slotInRack} onClick={() => onSlotClick({ rack, miner: machine, roomNumber, visualRackNumber: rackNumber, slotInRack })}
+              className={`relative aspect-square rounded-2xl border transition-all duration-300 group flex items-center justify-center ${
+                isOccupied
+                  ? "bg-gray-800/40 border-gray-700/50 hover:border-primary/40 hover:bg-primary/5"
+                  : "bg-gray-900/40 border-dashed border-gray-800 hover:border-gray-700 hover:bg-gray-800/30"
+              }`}
+            >
+              {isOccupied ? (
+                <>
+                  <img src={descriptor.image} alt={descriptor.name} className="w-4/5 h-4/5 object-contain p-2 group-hover:scale-110 transition-transform pointer-events-none" onError={(e) => { e.target.src = DEFAULT_MINER_IMAGE_URL; }} />
+                  <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary pointer-events-none" />
+                </>
+              ) : (
+                <Plus className="w-5 h-5 text-gray-700 group-hover:text-gray-500 transition-colors" />
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-// ---------- Página principal ----------
+function UnlockedRoom({ room, onSlotClick }) {
+  const visualRacks = groupIntoRacks(room.racks);
+  const rackOffset = (room.roomNumber - 1) * visualRacks.length;
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-gray-800/80" />
+        <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Sala {room.roomNumber}</span>
+        <div className="h-px flex-1 bg-gray-800/80" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {visualRacks.map((vr) => (
+          <RackCard key={vr.rackNumber} rackNumber={rackOffset + vr.rackNumber} slots={vr.slots} roomNumber={room.roomNumber} onSlotClick={onSlotClick} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LockedRoom({ room, onBuy, loading }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-gray-800/80" />
+        <span className="text-[10px] font-black text-gray-600 uppercase tracking-[0.3em]">Sala {room.roomNumber}</span>
+        <div className="h-px flex-1 bg-gray-800/80" />
+      </div>
+      <div className="bg-surface border border-gray-800/30 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-5">
+          <div className="w-14 h-14 rounded-2xl bg-gray-800/40 border border-gray-800/50 flex items-center justify-center flex-shrink-0">
+            <Lock className="w-6 h-6 text-gray-600" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Sala {room.roomNumber} bloqueada</p>
+            <p className="text-xs text-gray-600 mt-1">
+              {Math.ceil(24 / SLOTS_PER_VISUAL_RACK)} racks - 24 slots disponiveis apos desbloqueio
+            </p>
+          </div>
+        </div>
+        <button onClick={() => onBuy(room.roomNumber)} disabled={loading}
+          className="flex-shrink-0 px-6 py-3 rounded-2xl bg-primary text-white text-xs font-black uppercase tracking-wider hover:bg-primary/80 transition-all disabled:opacity-50 flex items-center gap-2">
+          {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Zap className="w-3.5 h-3.5" />{room.price === 0 ? "Desbloquear gratis" : `Comprar por ${room.price} POL`}</>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Farm() {
   const [rooms, setRooms] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [summary, setSummary] = useState({ totalRacks: 0, occupiedRacks: 0, freeRacks: 0 });
   const [loading, setLoading] = useState(true);
   const [buyingRoom, setBuyingRoom] = useState(false);
-  const [installModal, setInstallModal] = useState(null); // { rack }
-  const [uninstallTarget, setUninstallTarget] = useState(null); // rack
+  const [selectedSlot, setSelectedSlot] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [roomsRes, invRes] = await Promise.all([
-        api.get('/rooms'),
-        api.get('/inventory'),
-      ]);
+      const [roomsRes, invRes] = await Promise.all([api.get("/rooms"), api.get("/inventory")]);
       if (roomsRes.data.ok) {
         setRooms(roomsRes.data.rooms);
-        setSummary({
-          totalRacks: roomsRes.data.totalRacks,
-          occupiedRacks: roomsRes.data.occupiedRacks,
-          freeRacks: roomsRes.data.freeRacks,
-        });
+        setSummary({ totalRacks: roomsRes.data.totalRacks, occupiedRacks: roomsRes.data.occupiedRacks, freeRacks: roomsRes.data.freeRacks });
       }
-      if (invRes.data.ok) {
-        setInventory(invRes.data.inventory || []);
-      }
-    } catch {
-      toast.error('Erro ao carregar a fazenda.');
-    } finally {
-      setLoading(false);
-    }
+      if (invRes.data.ok) setInventory(invRes.data.inventory || []);
+    } catch { toast.error("Erro ao carregar a fazenda."); }
+    finally { setLoading(false); }
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleBuyRoom = async (roomNumber, price) => {
+  const handleBuyRoom = async (roomNumber) => {
     setBuyingRoom(true);
     try {
-      const res = await api.post('/rooms/buy');
-      if (res.data.ok) {
-        toast.success(res.data.message || `Sala ${roomNumber} desbloqueada!`);
-        await fetchData();
-      } else {
-        toast.error(res.data.message || 'Erro ao comprar sala.');
-      }
-    } catch (err) {
-      toast.error(err?.response?.data?.message || 'Erro ao comprar sala.');
-    } finally {
-      setBuyingRoom(false);
-    }
+      const res = await api.post("/rooms/buy");
+      if (res.data.ok) { toast.success(res.data.message || `Sala ${roomNumber} desbloqueada!`); await fetchData(); }
+      else toast.error(res.data.message || "Erro ao comprar sala.");
+    } catch (err) { toast.error(err?.response?.data?.message || "Erro ao comprar sala."); }
+    finally { setBuyingRoom(false); }
   };
 
   const handleInstall = async (rackId, inventoryId) => {
     try {
-      const res = await api.post('/rooms/rack/install', { rackId, inventoryId });
-      if (res.data.ok) {
-        toast.success('Máquina instalada com sucesso!');
-        setInstallModal(null);
-        await fetchData();
-      } else {
-        toast.error(res.data.message || 'Erro ao instalar.');
-      }
-    } catch (err) {
-      toast.error(err?.response?.data?.message || 'Erro ao instalar.');
-    }
+      const res = await api.post("/rooms/rack/install", { rackId, inventoryId });
+      if (res.data.ok) { toast.success("Maquina instalada!"); setSelectedSlot(null); await fetchData(); }
+      else toast.error(res.data.message || "Erro ao instalar.");
+    } catch (err) { toast.error(err?.response?.data?.message || "Erro ao instalar."); }
   };
 
-  const handleUninstall = async (rack) => {
+  const handleRemove = async (rackId) => {
     try {
-      const res = await api.post('/rooms/rack/uninstall', { rackId: rack.id });
-      if (res.data.ok) {
-        toast.success('Máquina removida do rack!');
-        setUninstallTarget(null);
-        await fetchData();
-      } else {
-        toast.error(res.data.message || 'Erro ao remover.');
-      }
-    } catch (err) {
-      toast.error(err?.response?.data?.message || 'Erro ao remover.');
-    }
+      const res = await api.post("/rooms/rack/uninstall", { rackId });
+      if (res.data.ok) { toast.success("Maquina removida do rack!"); setSelectedSlot(null); await fetchData(); }
+      else toast.error(res.data.message || "Erro ao remover.");
+    } catch (err) { toast.error(err?.response?.data?.message || "Erro ao remover."); }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const totalVisualRacks = rooms.reduce((sum, r) => r.unlocked ? sum + Math.ceil(r.racks.length / SLOTS_PER_VISUAL_RACK) : sum, 0);
+  const activeMachinesHashRate = useMemo(() => rooms.flatMap((r) => r.racks || []).filter((rack) => rack.miner).reduce((sum, rack) => sum + Number(rack.miner?.hashRate || 0), 0), [rooms]);
+
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-64">
+      <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-white uppercase tracking-widest flex items-center gap-2">
-            <Server className="w-5 h-5 text-primary" />
-            Minha Fazenda
-          </h1>
-          <p className="text-xs text-gray-500 mt-1">Gerencie suas salas e racks de mineração</p>
+          <h1 className="text-3xl font-black text-white tracking-tight">Minha Fazenda</h1>
+          <p className="text-gray-500 font-medium">Gerencie suas salas e racks de mineracao</p>
         </div>
-
-        {/* Stats rápidos */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="px-4 py-2 rounded-xl bg-slate-900 border border-white/5 text-center">
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider">Total Racks</p>
-            <p className="text-sm font-black text-white">{summary.totalRacks}</p>
+        <div className="flex items-center gap-3">
+          <div className="px-4 py-2 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs font-bold text-purple-400 flex items-center gap-1.5">
+            <Zap className="w-3.5 h-3.5" />{formatHashrate(activeMachinesHashRate)}
           </div>
-          <div className="px-4 py-2 rounded-xl bg-slate-900 border border-white/5 text-center">
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider">Ocupados</p>
-            <p className="text-sm font-black text-emerald-400">{summary.occupiedRacks}</p>
+          <div className="px-4 py-2 bg-gray-800/50 border border-gray-700/50 rounded-xl text-xs font-bold text-gray-400">
+            {totalVisualRacks} racks
           </div>
-          <div className="px-4 py-2 rounded-xl bg-slate-900 border border-white/5 text-center">
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider">Livres</p>
-            <p className="text-sm font-black text-primary">{summary.freeRacks}</p>
+          <div className="px-4 py-2 bg-primary/10 border border-primary/20 rounded-xl text-xs font-bold text-primary">
+            {summary.freeRacks} livres
           </div>
         </div>
       </div>
 
-      {/* Legenda */}
-      <div className="flex items-center gap-4 text-[10px] text-gray-500 flex-wrap">
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded border border-emerald-500/40 bg-emerald-900/20 inline-block" />
-          Rack com máquina (clique para remover)
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded border border-white/10 bg-white/2 inline-block" />
-          Rack vazio (clique para instalar)
-        </span>
+      <div className="space-y-10">
+        {rooms.map((room) =>
+          room.unlocked ? (
+            <UnlockedRoom key={room.roomNumber} room={room} onSlotClick={setSelectedSlot} />
+          ) : (
+            <LockedRoom key={room.roomNumber} room={room} onBuy={handleBuyRoom} loading={buyingRoom} />
+          )
+        )}
       </div>
 
-      {/* Lista de salas */}
-      <div className="space-y-3">
-        {rooms.map((room) => (
-          <RoomCard
-            key={room.roomNumber}
-            room={room}
-            inventory={inventory}
-            onBuyRoom={handleBuyRoom}
-            onInstall={(rack) => setInstallModal({ rack })}
-            onUninstall={(rack) => setUninstallTarget(rack)}
-            buyingRoom={buyingRoom}
-          />
-        ))}
-      </div>
-
-      {/* Modal de instalação */}
-      {installModal && (
-        <InstallModal
-          rack={installModal.rack}
-          inventory={inventory}
-          onInstall={handleInstall}
-          onClose={() => setInstallModal(null)}
-        />
-      )}
-
-      {/* Confirm uninstall */}
-      {uninstallTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-sm shadow-2xl p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
-                <AlertCircle className="w-5 h-5 text-red-400" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-white">Remover máquina?</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  A máquina voltará para o seu inventário.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setUninstallTarget(null)}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-gray-400 text-xs font-bold uppercase tracking-wider hover:bg-white/5 transition-all"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleUninstall(uninstallTarget)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold uppercase tracking-wider hover:bg-red-500/30 transition-all"
-              >
-                Remover
-              </button>
-            </div>
-          </div>
-        </div>
+      {selectedSlot && (
+        <SlotModal slot={selectedSlot} inventory={inventory} onInstall={handleInstall} onRemove={handleRemove} onClose={() => setSelectedSlot(null)} />
       )}
     </div>
   );
