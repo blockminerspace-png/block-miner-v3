@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calculator, Zap, TrendingUp, RefreshCw, Info } from 'lucide-react';
+import { Calculator, Zap, TrendingUp, RefreshCw, Info, Cpu, Wifi } from 'lucide-react';
 import { api } from '../store/auth';
 import { useGameStore } from '../store/game';
 import { formatHashrate } from '../utils/machine';
@@ -22,6 +22,7 @@ export default function CalculatorPage() {
     const [networkHashRateInput, setNetworkHashRateInput] = useState('');
     const [tokenPriceInput, setTokenPriceInput] = useState('0.35');
     const [networkManual, setNetworkManual] = useState(false);
+    const [myHashManual, setMyHashManual] = useState(false);
     const [selectedMiners, setSelectedMiners] = useState({}); // { minerId: qty }
 
     useEffect(() => { initSocket(); }, [initSocket]);
@@ -41,6 +42,14 @@ export default function CalculatorPage() {
         }
     }, [stats?.networkHashRate, networkManual]);
 
+    // Sync hash rate do usuário ao vivo (enquanto não está em modo manual)
+    useEffect(() => {
+        if (!myHashManual && stats?.miner?.estimatedHashRate) {
+            setMyHashRateInput(String(Math.round(stats.miner.estimatedHashRate)));
+            setSelectedMiners({});
+        }
+    }, [stats?.miner?.estimatedHashRate, myHashManual]);
+
     // Sync preço do token ao vivo
     useEffect(() => {
         if (stats?.tokenPrice) setTokenPriceInput(String(stats.tokenPrice));
@@ -54,7 +63,10 @@ export default function CalculatorPage() {
 
     // Quando adiciona/remove máquinas, atualiza o campo de hash rate
     useEffect(() => {
-        if (hashFromMiners > 0) setMyHashRateInput(String(hashFromMiners));
+        if (hashFromMiners > 0) {
+            setMyHashRateInput(String(hashFromMiners));
+            setMyHashManual(true);
+        }
     }, [hashFromMiners]);
 
     const myHash = parseFloat(myHashRateInput) || 0;
@@ -87,6 +99,14 @@ export default function CalculatorPage() {
         if (stats?.networkHashRate) setNetworkHashRateInput(String(Math.round(stats.networkHashRate)));
     };
 
+    const handleResetMyHash = () => {
+        setMyHashManual(false);
+        setSelectedMiners({});
+        if (stats?.miner?.estimatedHashRate) {
+            setMyHashRateInput(String(Math.round(stats.miner.estimatedHashRate)));
+        }
+    };
+
     const clearMiners = () => {
         setSelectedMiners({});
         setMyHashRateInput('');
@@ -111,6 +131,31 @@ export default function CalculatorPage() {
                 <p className="text-gray-500 font-medium">Estime seus ganhos com base no hash rate e na rede atual</p>
             </div>
 
+            {/* Banner dados automáticos */}
+            {stats?.miner?.estimatedHashRate > 0 && (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-primary/5 border border-primary/20 rounded-2xl px-6 py-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-xl">
+                            <Wifi className="w-4 h-4 text-primary" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-black text-white">Dados do seu inventário detectados</p>
+                            <p className="text-[10px] text-gray-400 font-medium">
+                                Hash rate atual: <span className="text-primary font-bold">{formatHashrate(stats.miner.estimatedHashRate)}</span>
+                                {stats?.networkHashRate ? <> · Rede: <span className="text-primary font-bold">{formatHashrate(stats.networkHashRate)}</span></> : null}
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => { setMyHashManual(false); setNetworkManual(false); setSelectedMiners({}); }}
+                        className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-primary/20 whitespace-nowrap"
+                    >
+                        Preencher automaticamente
+                    </button>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Coluna esquerda — Parâmetros + Simulação de máquinas */}
                 <div className="lg:col-span-2 space-y-6">
@@ -122,23 +167,44 @@ export default function CalculatorPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Meu Hash Rate */}
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                                    Meu Hash Rate (H/s)
-                                </label>
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                        Meu Hash Rate (H/s)
+                                    </label>
+                                    {stats?.miner?.estimatedHashRate > 0 && (
+                                        <button
+                                            type="button"
+                                            onClick={handleResetMyHash}
+                                            className="flex items-center gap-1 text-[9px] font-bold text-primary hover:text-primary-hover uppercase tracking-widest transition-colors"
+                                        >
+                                            <Cpu className="w-3 h-3" /> Meu inventário
+                                        </button>
+                                    )}
+                                </div>
                                 <input
                                     type="number"
                                     min="0"
                                     value={myHashRateInput}
-                                    onChange={e => { setMyHashRateInput(e.target.value); setSelectedMiners({}); }}
+                                    onChange={e => { setMyHashRateInput(e.target.value); setMyHashManual(true); setSelectedMiners({}); }}
                                     placeholder="Ex: 150"
                                     className="w-full bg-gray-900/50 border border-gray-800 rounded-2xl py-4 px-6 text-gray-200 text-sm focus:outline-none focus:border-primary/50 transition-all"
                                 />
-                                {hashFromMiners > 0 && (
+                                {!myHashManual && stats?.miner?.estimatedHashRate > 0 ? (
+                                    <p className="text-[10px] text-green-400 font-bold flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block" />
+                                        Sincronizado do seu inventário: {formatHashrate(stats.miner.estimatedHashRate)}
+                                    </p>
+                                ) : hashFromMiners > 0 ? (
                                     <p className="text-[10px] text-primary font-bold flex items-center gap-1">
                                         <Zap className="w-3 h-3" />
-                                        {formatHashrate(hashFromMiners)} — calculado das máquinas abaixo
+                                        {formatHashrate(hashFromMiners)} — simulado das máquinas abaixo
                                     </p>
-                                )}
+                                ) : myHashManual && stats?.miner?.estimatedHashRate > 0 ? (
+                                    <p className="text-[10px] text-amber-400 font-bold flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                                        Valor manual — clique em "Meu inventário" para sincronizar
+                                    </p>
+                                ) : null}
                             </div>
 
                             {/* Hash Rate da Rede */}
