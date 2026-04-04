@@ -30,7 +30,9 @@ function baseDirectives({ allowWebSockets }) {
       "'unsafe-inline'",
       "'unsafe-eval'",
       "https://cdn.jsdelivr.net",
-      "https://www.googletagmanager.com"
+      "https://www.googletagmanager.com",
+      "https://www.youtube.com",
+      "https://s.ytimg.com"
     ],
     styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
     connectSrc: allowWebSockets
