@@ -253,17 +253,49 @@ export default function Games() {
         }
 
         ctx.save();
-        if (isSelected) { ctx.shadowBlur = 24; ctx.shadowColor = '#3b82f6'; }
-        ctx.fillStyle = isSelected ? 'rgba(59,130,246,0.3)' : 'rgba(30,41,59,0.6)';
-        ctx.beginPath(); ctx.roundRect(drawX, drawY, s, s, 12); ctx.fill();
-        ctx.shadowBlur = 0;
+
+        if (isSelected) {
+          const t = Date.now() / 600;
+          const pulse = 28 + Math.sin(t * Math.PI * 2) * 14;
+          const cx2 = drawX + s / 2, cy2 = drawY + s / 2;
+
+          // Halo pulsante
+          ctx.shadowBlur = pulse; ctx.shadowColor = '#3b82f6';
+          ctx.strokeStyle = `rgba(59,130,246,${0.5 + 0.4 * Math.sin(t * Math.PI * 2)})`;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath(); ctx.roundRect(drawX - 2, drawY - 2, s + 4, s + 4, 14); ctx.stroke();
+          ctx.shadowBlur = 0;
+
+          // Anel giratorio
+          const angle = (Date.now() / 500) % (Math.PI * 2);
+          const r = s / 2 + 8;
+          for (let i = 0; i < 4; i++) {
+            const a = angle + (i * Math.PI / 2);
+            const dotX = cx2 + Math.cos(a) * r, dotY = cy2 + Math.sin(a) * r;
+            ctx.beginPath(); ctx.arc(dotX, dotY, 3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(99,179,237,${0.6 + 0.4 * Math.sin(a)})`; ctx.fill();
+          }
+
+          // Fundo brilhante
+          ctx.fillStyle = 'rgba(59,130,246,0.25)';
+          ctx.beginPath(); ctx.roundRect(drawX, drawY, s, s, 12); ctx.fill();
+        } else {
+          ctx.fillStyle = 'rgba(30,41,59,0.6)';
+          ctx.beginPath(); ctx.roundRect(drawX, drawY, s, s, 12); ctx.fill();
+        }
 
         const img = ICON_IMAGES[piece.symbol];
         if (img && img.complete) {
           const sc = piece.scale ?? 1.0;
+          if (isSelected) {
+            const t2 = Date.now() / 600;
+            ctx.shadowBlur = 20 + Math.sin(t2 * Math.PI * 2) * 10;
+            ctx.shadowColor = '#93c5fd';
+          }
           ctx.translate(drawX + s / 2, drawY + s / 2);
           ctx.scale(sc, sc);
           ctx.drawImage(img, -s / 2 + 8, -s / 2 + 8, s - 16, s - 16);
+          ctx.shadowBlur = 0;
         }
         ctx.restore();
       });
