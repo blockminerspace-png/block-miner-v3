@@ -23,7 +23,9 @@ import {
     Package,
     Send,
     Minus,
-    Plus
+    Plus,
+    Terminal,
+    Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../store/auth';
@@ -42,6 +44,8 @@ export default function AdminUsers() {
     const [sendMinerId, setSendMinerId] = useState('');
     const [sendQty, setSendQty] = useState(1);
     const [isSending, setIsSending] = useState(false);
+    const [userLogs, setUserLogs] = useState([]);
+    const [isLogsLoading, setIsLogsLoading] = useState(false);
     const navigate = useNavigate();
 
     const fetchUsers = useCallback(async () => {
@@ -81,6 +85,7 @@ export default function AdminUsers() {
             setDetailsTab('perfil');
             setSendMinerId('');
             setSendQty(1);
+            setUserLogs([]);
             const [detailsRes, minersRes] = await Promise.all([
                 api.get(`/admin/users/${userId}/details`),
                 minersList.length === 0 ? api.get('/admin/miners') : Promise.resolve(null)
@@ -91,6 +96,18 @@ export default function AdminUsers() {
             toast.error('Erro ao carregar detalhes do usuário.');
         } finally {
             setIsDetailsLoading(false);
+        }
+    };
+
+    const fetchUserLogs = async (userId) => {
+        setIsLogsLoading(true);
+        try {
+            const res = await api.get(`/admin/users/${userId}/logs`);
+            if (res.data.ok) setUserLogs(res.data.logs || []);
+        } catch {
+            toast.error('Erro ao carregar logs do usuário.');
+        } finally {
+            setIsLogsLoading(false);
         }
     };
 
@@ -265,20 +282,29 @@ export default function AdminUsers() {
                         </div>
 
                         {/* Tabs */}
-                        <div className="flex px-8 pt-4 gap-2 border-b border-slate-800">
-                            {['perfil', 'transações', 'tickets', 'enviar máquina'].map(tab => (
+                        <div className="flex flex-wrap px-8 pt-4 gap-2 border-b border-slate-800">
+                            {['perfil', 'transações', 'tickets', 'logs', 'enviar máquina'].map(tab => (
                                 <button
                                     key={tab}
-                                    onClick={() => setDetailsTab(tab)}
+                                    onClick={() => {
+                                        setDetailsTab(tab);
+                                        if (tab === 'logs' && userLogs.length === 0) fetchUserLogs(selectedUser.user.id);
+                                    }}
                                     className={`px-4 py-2 rounded-t-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                                         detailsTab === tab
                                             ? tab === 'enviar máquina'
                                                 ? 'bg-emerald-500/10 text-emerald-400 border-b-2 border-emerald-500'
-                                                : 'bg-amber-500/10 text-amber-500 border-b-2 border-amber-500'
+                                                : tab === 'logs'
+                                                    ? 'bg-purple-500/10 text-purple-400 border-b-2 border-purple-500'
+                                                    : 'bg-amber-500/10 text-amber-500 border-b-2 border-amber-500'
                                             : 'text-slate-500 hover:text-white'
                                     }`}
                                 >
-                                    {tab === 'enviar máquina' ? <span className="flex items-center gap-1"><Send className="w-3 h-3" /> enviar máquina</span> : tab}
+                                    {tab === 'enviar máquina'
+                                        ? <span className="flex items-center gap-1"><Send className="w-3 h-3" /> enviar máquina</span>
+                                        : tab === 'logs'
+                                            ? <span className="flex items-center gap-1"><Terminal className="w-3 h-3" /> logs</span>
+                                            : tab}
                                 </button>
                             ))}
                         </div>
@@ -292,14 +318,14 @@ export default function AdminUsers() {
                                         <DetailCard label="E-mail" value={selectedUser.user.email} icon={Search} small />
                                         <DetailCard label="Carteira" value={selectedUser.user.walletAddress || 'Não vinculada'} icon={Wallet} small />
                                         <DetailCard label="Saldo POL" value={`${Number(selectedUser.user.polBalance).toFixed(6)} POL`} icon={Wallet} color="amber" />
-                                        <DetailCard label="Hash Base" value={formatHashrate(Number(selectedUser.user.oldBaseHashRate || 0))} icon={Cpu} color="blue" />
-                                        <DetailCard label="Máquinas Ativas" value={selectedUser.metrics?.activeMachines} icon={Activity} color="emerald" />
+                                        <DetailCard label="Hash Rate" value={formatHashrate(Number(selectedUser.metrics?.realHashRate || selectedUser.user.oldBaseHashRate || 0))} icon={Cpu} color="blue" />
+                                        <DetailCard label="Máquinas Ativas" value={selectedUser.metrics?.activeMachines ?? 0} icon={Activity} color="emerald" />
                                         <DetailCard label="Cadastro" value={selectedUser.user.createdAt ? new Date(selectedUser.user.createdAt).toLocaleDateString('pt-BR') : '--'} icon={Calendar} />
                                         <DetailCard label="Último Login" value={selectedUser.user.lastLoginAt ? new Date(selectedUser.user.lastLoginAt).toLocaleString('pt-BR') : '--'} icon={Clock} small />
                                         <DetailCard label="IP de Registro" value={selectedUser.user.registrationIp || '--'} icon={Globe} small />
                                         <DetailCard label="Último IP" value={selectedUser.user.ip || '--'} icon={Globe} small />
                                         <DetailCard label="Cód. Indicação" value={selectedUser.user.refCode || '--'} icon={Users} small />
-                                        <DetailCard label="Faucet Claims" value={selectedUser.metrics?.faucetClaims || 0} icon={Activity} />
+                                        <DetailCard label="Faucet Claims" value={selectedUser.metrics?.faucetClaims ?? 0} icon={Activity} />
                                     </div>
 
                                     <button
@@ -480,6 +506,44 @@ export default function AdminUsers() {
                                     </div>
                                 </div>
                             )}
+                            {/* Tab: Logs */}
+                            {detailsTab === 'logs' && (
+                                <div className="space-y-3">
+                                    <h4 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+                                        <Terminal className="w-4 h-4 text-purple-500" /> Histórico de Atividade
+                                    </h4>
+                                    {isLogsLoading ? (
+                                        <div className="flex justify-center py-12">
+                                            <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+                                        </div>
+                                    ) : userLogs.length === 0 ? (
+                                        <p className="text-slate-500 text-xs text-center py-8">Nenhum log de atividade encontrado</p>
+                                    ) : (
+                                        <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                                            {userLogs.map(log => (
+                                                <div key={log.id} className="flex items-start gap-3 p-3 bg-slate-900/60 border border-slate-800 hover:border-purple-500/20 rounded-2xl transition-all">
+                                                    <div className="w-2 h-2 rounded-full bg-purple-500 mt-1.5 shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-white font-bold text-xs">{log.action}</p>
+                                                        {log.detailsJson && (() => {
+                                                            try {
+                                                                const d = JSON.parse(log.detailsJson);
+                                                                return <p className="text-slate-500 text-[10px] mt-0.5 font-mono truncate">{JSON.stringify(d)}</p>;
+                                                            } catch { return null; }
+                                                        })()}
+                                                        <div className="flex items-center gap-3 mt-1">
+                                                            {log.ip && <span className="text-[9px] text-slate-600 font-mono">{log.ip}</span>}
+                                                        </div>
+                                                    </div>
+                                                    <span className="text-[9px] text-slate-600 shrink-0">
+                                                        {new Date(log.createdAt).toLocaleString('pt-BR')}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>,
@@ -496,14 +560,14 @@ function DetailCard({ label, value, icon: Icon, color = 'slate', small = false }
         blue: 'text-blue-500 bg-blue-500/5',
         emerald: 'text-emerald-500 bg-emerald-500/5',
     };
-
+    const display = (value !== null && value !== undefined && value !== '') ? value : '--';
     return (
-        <div className={`p-4 rounded-2xl border border-slate-800 flex flex-col gap-2`}>
+        <div className="p-4 rounded-2xl border border-slate-800 flex flex-col gap-2">
             <div className="flex items-center gap-2 opacity-50">
                 <Icon className="w-3 h-3" />
                 <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
             </div>
-            <p className={`font-bold truncate ${small ? 'text-xs' : 'text-sm'} ${colors[color].split(' ')[0]}`}>{value || '--'}</p>
+            <p className={`font-bold truncate ${small ? 'text-xs' : 'text-sm'} ${colors[color].split(' ')[0]}`}>{display}</p>
         </div>
     );
 }

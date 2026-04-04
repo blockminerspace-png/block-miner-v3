@@ -250,7 +250,7 @@ adminRouter.get("/users/:id/details", async (req, res) => {
         const userId = parseInt(req.params.id);
         if (!userId || isNaN(userId)) return res.status(400).json({ ok: false });
 
-        const [user, machines, faucet, transactions, supportMessages] = await Promise.all([
+        const [user, machines, hashAgg, faucet, transactions, supportMessages] = await Promise.all([
             prisma.user.findUnique({
                 where: { id: userId },
                 select: {
@@ -261,6 +261,7 @@ adminRouter.get("/users/:id/details", async (req, res) => {
                 }
             }),
             prisma.userMiner.count({ where: { userId, isActive: true } }),
+            prisma.userMiner.aggregate({ where: { userId, isActive: true }, _sum: { hashRate: true } }),
             prisma.faucetClaim.findUnique({ where: { userId } }),
             prisma.transaction.findMany({
                 where: { userId },
@@ -283,13 +284,33 @@ adminRouter.get("/users/:id/details", async (req, res) => {
             user,
             metrics: {
                 activeMachines: machines,
-                faucetClaims: faucet?.totalClaims || 0,
+                realHashRate: Number(hashAgg._sum.hashRate || 0),
+                faucetClaims: faucet?.totalClaims ?? 0,
             },
             recentTransactions: transactions,
             supportMessages,
         });
     } catch (err) {
         res.status(500).json({ ok: false, message: 'Erro ao carregar detalhes' });
+    }
+});
+
+// User Activity Logs
+adminRouter.get("/users/:id/logs", async (req, res) => {
+    try {
+        const userId = parseInt(req.params.id);
+        if (!userId || isNaN(userId)) return res.status(400).json({ ok: false });
+
+        const logs = await prisma.auditLog.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+            take: 100,
+            select: { id: true, action: true, ip: true, userAgent: true, detailsJson: true, createdAt: true }
+        });
+
+        res.json({ ok: true, logs });
+    } catch (err) {
+        res.status(500).json({ ok: false, message: 'Erro ao carregar logs' });
     }
 });
 
