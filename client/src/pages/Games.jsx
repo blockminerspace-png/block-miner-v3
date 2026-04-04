@@ -259,25 +259,23 @@ export default function Games() {
           const pulse = 28 + Math.sin(t * Math.PI * 2) * 14;
           const cx2 = drawX + s / 2, cy2 = drawY + s / 2;
 
-          // Halo pulsante
+          // Halo pulsante azul
           ctx.shadowBlur = pulse; ctx.shadowColor = '#3b82f6';
           ctx.strokeStyle = `rgba(59,130,246,${0.5 + 0.4 * Math.sin(t * Math.PI * 2)})`;
           ctx.lineWidth = 2.5;
           ctx.beginPath(); ctx.roundRect(drawX - 2, drawY - 2, s + 4, s + 4, 14); ctx.stroke();
           ctx.shadowBlur = 0;
 
-          // Anel giratorio
-          const angle = (Date.now() / 500) % (Math.PI * 2);
-          const r = s / 2 + 8;
-          for (let i = 0; i < 4; i++) {
-            const a = angle + (i * Math.PI / 2);
-            const dotX = cx2 + Math.cos(a) * r, dotY = cy2 + Math.sin(a) * r;
-            ctx.beginPath(); ctx.arc(dotX, dotY, 3, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(99,179,237,${0.6 + 0.4 * Math.sin(a)})`; ctx.fill();
-          }
+          // Halo pulsante verde (defasado)
+          const pulse2 = 20 + Math.sin((t + 0.5) * Math.PI * 2) * 10;
+          ctx.shadowBlur = pulse2; ctx.shadowColor = '#22c55e';
+          ctx.strokeStyle = `rgba(34,197,94,${0.35 + 0.3 * Math.sin((t + 0.5) * Math.PI * 2)})`;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.roundRect(drawX - 5, drawY - 5, s + 10, s + 10, 17); ctx.stroke();
+          ctx.shadowBlur = 0;
 
           // Fundo brilhante
-          ctx.fillStyle = 'rgba(59,130,246,0.25)';
+          ctx.fillStyle = 'rgba(59,130,246,0.22)';
           ctx.beginPath(); ctx.roundRect(drawX, drawY, s, s, 12); ctx.fill();
         } else {
           ctx.fillStyle = 'rgba(30,41,59,0.6)';
@@ -290,7 +288,7 @@ export default function Games() {
           if (isSelected) {
             const t2 = Date.now() / 600;
             ctx.shadowBlur = 20 + Math.sin(t2 * Math.PI * 2) * 10;
-            ctx.shadowColor = '#93c5fd';
+            ctx.shadowColor = Math.sin(t2 * Math.PI * 2) > 0 ? '#60a5fa' : '#4ade80';
           }
           ctx.translate(drawX + s / 2, drawY + s / 2);
           ctx.scale(sc, sc);
