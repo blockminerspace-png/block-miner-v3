@@ -1,5 +1,7 @@
 import prisma from '../src/db/prisma.js';
 import loggerLib from "../utils/logger.js";
+import { syncUserBaseHashRate } from '../models/minerProfileModel.js';
+import { getMiningEngine } from '../src/miningEngineInstance.js';
 
 const logger = loggerLib.child("YouTubeController");
 
@@ -118,6 +120,19 @@ export async function claimReward(req, res) {
         data: { userId, action: "youtube_claim", detailsJson: JSON.stringify({ videoId, hashRate: REWARD_PER_CLAIM, expiresAt }) }
       });
     });
+
+    // Atualiza o engine de mineração em tempo real
+    try {
+      const newTotal = await syncUserBaseHashRate(userId);
+      const engine = getMiningEngine();
+      if (engine) {
+        const miner = engine.findMinerByUserId(userId);
+        if (miner) miner.baseHashRate = newTotal;
+        if (engine.io) engine.io.to(`user:${userId}`).emit("machines:update");
+      }
+    } catch (syncErr) {
+      logger.warn("YT claim: engine sync failed (non-fatal)", { error: syncErr.message });
+    }
 
     res.json({ ok: true, message: `+${REWARD_PER_CLAIM} H/s ativado por ${Number(process.env.YT_POWER_DAYS || 7)} dias!`, rewardGh: REWARD_PER_CLAIM });
   } catch (error) {

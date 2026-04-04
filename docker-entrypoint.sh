@@ -28,5 +28,10 @@ npx prisma db push --schema=server/prisma/schema.prisma || {
 
 echo "Database schema sync step finished."
 
+echo "Running database seed (upserts, safe to re-run)..."
+node server/prisma/seed.js || {
+  echo "Warning: seed.js failed. Continuing startup."
+}
+
 echo "Starting application..."
 exec "$@"
