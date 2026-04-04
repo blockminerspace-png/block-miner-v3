@@ -5,11 +5,12 @@
       "register": "Get Started"
     },
     "hero": {
-      "badge": "Polygon (POL) · Simulated Mining · ~10 min blocks",
-      "title": "Build your mining farm",
-      "title_highlight": "in real time",
-      "subtitle": "The engine closes a simulated block every 10 minutes and distributes POL rewards proportional to your hashrate and round contribution. Buy rigs in the shop, rack them up and watch the network live — no guaranteed-profit promises: it's a competitive Web3 simulation.",
-      "cta_start": "Start Mining",
+      "badge": "Game online \u2014 blocks being mined right now",
+      "title": "Play, Mine and",
+      "title_highlight": "Earn Real Crypto",
+      "title_end": "for Free",
+      "subtitle": "The mining game where you build your farm, buy machines and earn <strong>real crypto<\/strong> at every block.",
+      "cta_start": "Play Now \u2014 It's Free \u2192",
       "cta_login": "I already have an account"
     },
     "stats": {

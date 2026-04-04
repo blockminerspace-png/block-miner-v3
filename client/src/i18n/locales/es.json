@@ -5,11 +5,12 @@
       "register": "Crear cuenta"
     },
     "hero": {
-      "badge": "Polygon (POL) · Minería Simulada · Bloques ~10 min",
-      "title": "Construye tu granja de minería",
-      "title_highlight": "en tiempo real",
-      "subtitle": "El motor cierra un bloque simulado cada 10 minutos y distribuye recompensas en POL proporcionales a tu hashrate y participación en la ronda. Compra rigs en la tienda, móntalos y observa la red en vivo — sin promesas de ganancias garantizadas: es una simulación competitiva estilo Web3.",
-      "cta_start": "Empezar a minar",
+      "badge": "Juego online — bloques siendo minados ahora",
+      "title": "Juega, Mina y",
+      "title_highlight": "Gana Cripto",
+      "title_end": "de Verdad",
+      "subtitle": "El juego de minería donde montas tu granja, compras máquinas y ganas <strong>criptomonedas reales</strong> en cada bloque.",
+      "cta_start": "Jugar Ahora — Es Gratis →",
       "cta_login": "Ya tengo cuenta"
     },
     "stats": {

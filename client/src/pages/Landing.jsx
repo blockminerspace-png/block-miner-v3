@@ -157,6 +157,13 @@ export default function Landing() {
             backgroundSize: '56px 56px',
           }}
         />
+        {/* Floating square particles */}
+        <div className="absolute top-[35%] left-[7%] w-3 h-3 bg-blue-500/50 rotate-12 rounded-sm animate-blob motion-reduce:animate-none" />
+        <div className="absolute top-[58%] left-[13%] w-2 h-2 bg-violet-500/45 rotate-45 rounded-sm animate-blob-slow motion-reduce:animate-none" />
+        <div className="absolute top-[22%] left-[20%] w-2 h-2 bg-cyan-400/40 -rotate-12 rounded-sm animate-blob-delay motion-reduce:animate-none" />
+        <div className="absolute top-[43%] right-[9%] w-3 h-3 bg-cyan-400/50 -rotate-6 rounded-sm animate-blob motion-reduce:animate-none" />
+        <div className="absolute top-[67%] right-[17%] w-2 h-2 bg-blue-400/45 rotate-12 rounded-sm animate-blob-slow motion-reduce:animate-none" />
+        <div className="absolute top-[28%] right-[23%] w-2 h-2 bg-violet-400/40 -rotate-12 rounded-sm animate-blob-delay motion-reduce:animate-none" />
       </div>
 
       {/* Header */}
@@ -189,49 +196,49 @@ export default function Landing() {
       <main className="relative z-10">
         {/* Hero */}
         <section className="max-w-6xl mx-auto px-5 sm:px-8 pt-14 sm:pt-20 pb-20 sm:pb-28">
-          <FadeUp delayClass={STAGGER[0]}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 bg-primary/10 text-xs sm:text-sm font-semibold text-sky-200/95 tracking-wide">
-              <Globe className="w-4 h-4 shrink-0" aria-hidden />
-              {t('landing.hero.badge')}
-            </div>
-          </FadeUp>
-
-          <FadeUp delayClass={STAGGER[1]} className="mt-8">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-[1.08] max-w-4xl">
-              {t('landing.hero.title')}{' '}
-              <span className="relative inline-block">
-                <span className="relative z-10 bg-gradient-to-r from-sky-300 via-primary to-violet-400 bg-clip-text text-transparent">
-                  {t('landing.hero.title_highlight')}
+          <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
+            <FadeUp delayClass={STAGGER[0]}>
+              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-white/15 bg-white/[0.06] text-sm font-medium text-gray-200">
+                <span className="relative flex h-2 w-2" aria-hidden>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
                 </span>
-                <span
-                  className="absolute -inset-1 rounded-lg bg-gradient-to-r from-primary/20 via-accent/20 to-cyan-500/20 blur-xl opacity-70"
-                  aria-hidden
-                />
-              </span>
-            </h1>
-          </FadeUp>
+                {t('landing.hero.badge')}
+              </div>
+            </FadeUp>
 
-          <FadeUp delayClass={STAGGER[2]} className="mt-7 max-w-2xl">
-            <p className="text-lg sm:text-xl text-gray-400 leading-relaxed">
-              {t('landing.hero.subtitle')}
-            </p>
-          </FadeUp>
+            <FadeUp delayClass={STAGGER[1]} className="mt-8">
+              <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight text-white leading-[1.05]">
+                <span>{t('landing.hero.title')}</span><br />
+                <span className="bg-gradient-to-r from-sky-400 to-blue-500 bg-clip-text text-transparent">
+                  {t('landing.hero.title_highlight')}
+                </span><br />
+                <span>{t('landing.hero.title_end')}</span>
+              </h1>
+            </FadeUp>
 
-          <FadeUp delayClass={STAGGER[3]} className="mt-10 flex flex-col sm:flex-row gap-4">
-            <Link
-              to="/register"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-white bg-gradient-to-r from-primary to-blue-500 shadow-xl shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.02] active:scale-[0.98] transition-all"
-            >
-              <Pickaxe className="w-5 h-5" aria-hidden />
-              {t('landing.hero.cta_start')}
-            </Link>
-            <Link
-              to="/login"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-semibold text-gray-200 border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] hover:border-white/25 backdrop-blur-sm transition-all"
-            >
-              {t('landing.hero.cta_login')}
-            </Link>
-          </FadeUp>
+            <FadeUp delayClass={STAGGER[2]} className="mt-7 max-w-2xl">
+              <p
+                className="text-lg sm:text-xl text-gray-400 leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: t('landing.hero.subtitle') }}
+              />
+            </FadeUp>
+
+            <FadeUp delayClass={STAGGER[3]} className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                to="/register"
+                className="inline-flex items-center justify-center px-9 py-4 rounded-full font-bold text-white bg-gradient-to-r from-primary to-blue-500 shadow-xl shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.02] active:scale-[0.98] transition-all text-base"
+              >
+                {t('landing.hero.cta_start')}
+              </Link>
+              <Link
+                to="/login"
+                className="inline-flex items-center justify-center px-9 py-4 rounded-full font-semibold text-gray-200 border border-white/20 bg-white/[0.06] hover:bg-white/[0.10] hover:border-white/30 transition-all text-base"
+              >
+                {t('landing.hero.cta_login')}
+              </Link>
+            </FadeUp>
+          </div>
 
           {/* Quick stats */}
           <FadeUp delayClass="[animation-delay:360ms]" className="mt-16 sm:mt-20">

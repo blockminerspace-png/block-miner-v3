@@ -166,4 +166,9 @@ describe("Landing page", () => {
     renderLanding();
     expect(document.title).toContain("Block Miner");
   });
+
+  it("renders hero title_end i18n key", () => {
+    renderLanding();
+    expect(screen.getByText("landing.hero.title_end")).toBeInTheDocument();
+  });
 });
