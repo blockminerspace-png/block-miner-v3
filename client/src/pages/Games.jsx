@@ -188,7 +188,10 @@ export default function Games() {
   useEffect(() => {
     if (!activeGame || isGameOver) return;
     const render = () => {
-      const canvas = canvasRef.current; if (!canvas) return;
+      const canvas = canvasRef.current;
+      // Canvas ainda não montado — mantém o loop vivo até ele aparecer
+      if (!canvas) { gameLoopRef.current = requestAnimationFrame(render); return; }
+      if (!gameStateRef.current) { gameLoopRef.current = requestAnimationFrame(render); return; }
       if (processingClearRef.current) { processingClearRef.current = false; setIsProcessing(false); }
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, 500, 500);
