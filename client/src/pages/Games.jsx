@@ -28,9 +28,9 @@ export default function Games() {
   const [rewardMessage, setRewardMessage] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [dragInfo, setDragInfo] = useState(null);
   const [memoryCooldown, setMemoryCooldown] = useState(0);
   const [match3Cooldown, setMatch3Cooldown] = useState(0);
+  const [gameTimerKey, setGameTimerKey] = useState(0);
   const activeGameRef = useRef(null);
 
   // High Precision Engine States
@@ -39,6 +39,10 @@ export default function Games() {
   const particles = useRef([]);
   const visualBoard = useRef([]);
   const pointer = useRef({ x: 400, y: 250, isDown: false });
+  const isTouchDevice = useRef('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  const selectedCell = useRef(null);
+  const swapAnim = useRef(null);
+  const processingClearRef = useRef(false);
 
   useEffect(() => {
     const newSocket = io(SOCKET_URL, { auth: { token }, withCredentials: true });
@@ -52,9 +56,11 @@ export default function Games() {
 
     newSocket.on('game:started', (data) => {
       setGameState(data); setIsGameOver(false); setRewardMessage(null); setIsProcessing(false);
+      setGameTimerKey(k => k + 1);
       particles.current = [];
       if (data.game === 'crypto-match-3' && data.board) {
-        visualBoard.current = data.board.map((row, y) => row.map((s, x) => ({ symbol: s, x, y, visualX: x, visualY: y })));
+        selectedCell.current = null; swapAnim.current = null;
+        visualBoard.current = data.board.map((row, y) => row.map((s, x) => ({ symbol: s, x, y, visualX: x, visualY: y, scale: 1.0 })));
       }
       setTimeLeft(data.game === 'crypto-memory' ? 60 : 180);
     });
@@ -78,15 +84,22 @@ export default function Games() {
 
     newSocket.on('game:board_update', (data) => {
       if (!data.board) return;
+      swapAnim.current = null; selectedCell.current = null;
       if (visualBoard.current.length > 0) {
         visualBoard.current = data.board.map((row, y) => row.map((symbol, x) => {
           const currentVisual = visualBoard.current[y]?.[x];
-          if (!currentVisual || currentVisual.symbol !== symbol) return { symbol, x, y, visualX: x, visualY: y - 3 };
-          return { ...currentVisual, x, y };
+          if (!currentVisual || currentVisual.symbol !== symbol) return { symbol, x, y, visualX: x, visualY: y - 3, scale: 1.0 };
+          return { ...currentVisual, x, y, scale: 1.0 };
         }));
       }
       setGameState(prev => ({ ...prev, score: data.score, board: data.board }));
       createExplosion(400, 250);
+      setIsProcessing(false);
+    });
+
+    newSocket.on('game:invalid_swap', () => {
+      if (swapAnim.current) { swapAnim.current.returning = true; swapAnim.current.t = 0; }
+      selectedCell.current = null;
     });
 
     newSocket.on('game:score_update', (data) => { setGameState(prev => prev ? ({ ...prev, score: data.score }) : prev); });
@@ -106,18 +119,17 @@ export default function Games() {
   }, [token]);
 
   useEffect(() => {
-    if (gameState && !isGameOver && timeLeft > 0) {
-      const timer = setInterval(() => { setTimeLeft(prev => { 
-        if (prev <= 1) { 
-          clearInterval(timer); 
-          setIsGameOver(true); 
-          if (socket) socket.emit('game:end');
-          return 0; 
-        } return prev - 1; 
-      }); }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [gameState, isGameOver, timeLeft, socket]);
+    if (!gameTimerKey || isGameOver) return;
+    const timer = setInterval(() => { setTimeLeft(prev => { 
+      if (prev <= 1) { 
+        clearInterval(timer); 
+        setIsGameOver(true); 
+        if (socket) socket.emit('game:end');
+        return 0; 
+      } return prev - 1; 
+    }); }, 1000);
+    return () => clearInterval(timer);
+  }, [gameTimerKey, isGameOver, socket]);
 
   useEffect(() => {
     if (memoryCooldown > 0) {
@@ -143,6 +155,7 @@ export default function Games() {
     if (!activeGame || !gameState || isGameOver) return;
     const render = () => {
       const canvas = canvasRef.current; if (!canvas) return;
+      if (processingClearRef.current) { processingClearRef.current = false; setIsProcessing(false); }
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, 800, 500);
 
@@ -153,7 +166,7 @@ export default function Games() {
       for (let i = 0; i < 500; i += 50) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(800, i); ctx.stroke(); }
 
       if (activeGame === 'memory') drawMemory(ctx, gameState);
-      if (activeGame === 'match-3') drawMatch3(ctx, gameState);
+      if (activeGame === 'match-3') drawMatch3(ctx);
 
       // Update Particles
       particles.current = particles.current.filter(p => p.life > 0);
@@ -164,28 +177,26 @@ export default function Games() {
       });
       ctx.globalAlpha = 1.0;
 
-      // --- CUSTOM VIRTUAL CURSOR (Cyberpunk Mira) ---
-      const mx = pointer.current.x;
-      const my = pointer.current.y;
-      ctx.strokeStyle = pointer.current.isDown ? '#ef4444' : '#3b82f6';
-      ctx.lineWidth = 2;
-      ctx.shadowBlur = 10; ctx.shadowColor = ctx.strokeStyle;
-
-      // Circular scope
-      ctx.beginPath(); ctx.arc(mx, my, 12, 0, Math.PI * 2); ctx.stroke();
-      // Crosshair lines
-      ctx.beginPath(); ctx.moveTo(mx - 18, my); ctx.lineTo(mx + 18, my); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(mx, my - 18); ctx.lineTo(mx, my + 18); ctx.stroke();
-      // Dot center
-      ctx.fillStyle = ctx.strokeStyle;
-      ctx.beginPath(); ctx.arc(mx, my, 2, 0, Math.PI * 2); ctx.fill();
-      ctx.shadowBlur = 0;
+      // --- CUSTOM VIRTUAL CURSOR (desktop only) ---
+      if (!isTouchDevice.current) {
+        const mx = pointer.current.x;
+        const my = pointer.current.y;
+        ctx.strokeStyle = pointer.current.isDown ? '#ef4444' : '#3b82f6';
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 10; ctx.shadowColor = ctx.strokeStyle;
+        ctx.beginPath(); ctx.arc(mx, my, 12, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(mx - 18, my); ctx.lineTo(mx + 18, my); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(mx, my - 18); ctx.lineTo(mx, my + 18); ctx.stroke();
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.beginPath(); ctx.arc(mx, my, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+      }
 
       gameLoopRef.current = requestAnimationFrame(render);
     };
     gameLoopRef.current = requestAnimationFrame(render);
     return () => cancelAnimationFrame(gameLoopRef.current);
-  }, [activeGame, gameState, isGameOver, dragInfo]);
+  }, [activeGame, gameState, isGameOver]);
 
   const drawMemory = (ctx, state) => {
     if (!state.board) return;
@@ -213,36 +224,50 @@ export default function Games() {
     });
   };
 
-  const drawMatch3 = (ctx, state) => {
+  const drawMatch3 = (ctx) => {
     if (!visualBoard.current.length) return;
     const s = 50, p = 8;
     const sx = (800 - (8 * (s + p))) / 2, sy = (500 - (8 * (s + p))) / 2;
+    const eio = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+
+    const sa = swapAnim.current;
+    if (sa) {
+      sa.t = Math.min(1, sa.t + 0.1);
+      if (sa.t >= 1 && sa.returning) { swapAnim.current = null; processingClearRef.current = true; }
+    }
+    const saOffset = sa ? (sa.returning ? 1 - eio(sa.t) : eio(sa.t)) : 0;
+
     visualBoard.current.forEach((row, y) => {
       row.forEach((piece, x) => {
-        piece.visualY += (y - piece.visualY) * 0.15; piece.visualX += (x - piece.visualX) * 0.15;
-        if (dragInfo && dragInfo.cx === x && dragInfo.cy === y) return;
-        const px = sx + piece.visualX * (s + p), py = sy + piece.visualY * (s + p);
-        ctx.fillStyle = 'rgba(30, 41, 59, 0.6)'; ctx.beginPath(); ctx.roundRect(sx + x * (s + p), sy + y * (s + p), s, s, 12); ctx.fill();
+        piece.visualY += (y - piece.visualY) * 0.18;
+        piece.visualX += (x - piece.visualX) * 0.18;
+        const isSelected = selectedCell.current?.cx === x && selectedCell.current?.cy === y;
+        piece.scale = (piece.scale ?? 1.0) + ((isSelected ? 1.18 : 1.0) - (piece.scale ?? 1.0)) * 0.2;
+
+        let drawX = sx + piece.visualX * (s + p);
+        let drawY = sy + piece.visualY * (s + p);
+
+        if (sa) {
+          if (sa.fx === x && sa.fy === y) { drawX += (sa.tx - sa.fx) * saOffset * (s + p); drawY += (sa.ty - sa.fy) * saOffset * (s + p); }
+          else if (sa.tx === x && sa.ty === y) { drawX += (sa.fx - sa.tx) * saOffset * (s + p); drawY += (sa.fy - sa.ty) * saOffset * (s + p); }
+        }
+
+        ctx.save();
+        if (isSelected) { ctx.shadowBlur = 24; ctx.shadowColor = '#3b82f6'; }
+        ctx.fillStyle = isSelected ? 'rgba(59,130,246,0.3)' : 'rgba(30,41,59,0.6)';
+        ctx.beginPath(); ctx.roundRect(drawX, drawY, s, s, 12); ctx.fill();
+        ctx.shadowBlur = 0;
+
         const img = ICON_IMAGES[piece.symbol];
         if (img && img.complete) {
-          ctx.save(); ctx.translate(px + s / 2, py + s / 2);
-          ctx.scale(-1, 1); ctx.drawImage(img, -s / 2 + 10, -s / 2 + 10, s - 20, s - 20);
-          ctx.restore();
+          const sc = piece.scale ?? 1.0;
+          ctx.translate(drawX + s / 2, drawY + s / 2);
+          ctx.scale(sc, sc);
+          ctx.drawImage(img, -s / 2 + 8, -s / 2 + 8, s - 16, s - 16);
         }
+        ctx.restore();
       });
     });
-    if (dragInfo && state.board) {
-      const symbol = state.board[dragInfo.cy]?.[dragInfo.cx];
-      if (symbol) {
-        const img = ICON_IMAGES[symbol];
-        if (img && img.complete) {
-          ctx.save(); ctx.shadowBlur = 30; ctx.shadowColor = '#3b82f6';
-          ctx.translate(dragInfo.mX, dragInfo.mY); ctx.scale(-1.2, 1.2);
-          ctx.drawImage(img, -s / 2 + 10, -s / 2 + 10, s - 20, s - 20);
-          ctx.restore();
-        }
-      }
-    }
   };
 
   const syncMouse = (e) => {
@@ -276,27 +301,33 @@ export default function Games() {
     } else if (activeGame === 'match-3') {
       const s = 50, p = 8, sx = (800 - (8 * (s + p))) / 2, sy = (500 - (8 * (s + p))) / 2;
       const cx = Math.floor((x - sx) / (s + p)), cy = Math.floor((y - sy) / (s + p));
-      if (cx >= 0 && cx < 8 && cy >= 0 && cy < 8) setDragInfo({ cx, cy, mX: x, mY: y });
+      if (cx < 0 || cx >= 8 || cy < 0 || cy >= 8) return;
+      const sel = selectedCell.current;
+      if (!sel) {
+        selectedCell.current = { cx, cy };
+      } else if (sel.cx === cx && sel.cy === cy) {
+        selectedCell.current = null;
+      } else {
+        const dx = Math.abs(cx - sel.cx), dy = Math.abs(cy - sel.cy);
+        if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
+          if (!swapAnim.current) {
+            swapAnim.current = { fx: sel.cx, fy: sel.cy, tx: cx, ty: cy, t: 0, returning: false };
+            socket.emit('game:action', { type: 'swap', from: { x: sel.cx, y: sel.cy }, to: { x: cx, y: cy } });
+            selectedCell.current = null;
+            setIsProcessing(true);
+          }
+        } else {
+          selectedCell.current = { cx, cy };
+        }
+      }
     }
   };
 
-  const handleMouseMove = (e) => {
-    const { x, y } = syncMouse(e);
-    if (dragInfo) setDragInfo(p => ({ ...p, mX: x, mY: y }));
-  };
+  const handleMouseMove = (e) => { syncMouse(e); };
 
   const handleMouseUp = (e) => {
     pointer.current.isDown = false;
-    if (activeGame === 'match-3' && dragInfo) {
-      const { x, y } = syncMouse(e);
-      const s = 50, p = 8, sx = (800 - (8 * (s + p))) / 2, sy = (500 - (8 * (s + p))) / 2;
-      const cx = Math.floor((x - sx) / (s + p)), cy = Math.floor((y - sy) / (s + p));
-      if (cx >= 0 && cx < 8 && cy >= 0 && cy < 8) {
-        const dx = Math.abs(cx - dragInfo.cx), dy = Math.abs(cy - dragInfo.cy);
-        if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) socket.emit('game:action', { type: 'swap', from: { x: dragInfo.cx, y: dragInfo.cy }, to: { x: cx, y: cy } });
-      }
-      setDragInfo(null);
-    }
+    syncMouse(e);
   };
 
   return (
@@ -350,7 +381,7 @@ export default function Games() {
               <div className="h-[550px] flex flex-col items-center justify-center gap-6"><div className="w-24 h-24 border-8 border-primary border-t-transparent rounded-full animate-spin shadow-glow" /><p className="text-white font-black uppercase tracking-[0.6em] animate-pulse">Sincronizando...</p></div>
             ) : (
               <div className="relative w-full h-[500px] rounded-[2.5rem] overflow-hidden bg-black shadow-inner">
-                <canvas ref={canvasRef} width={800} height={500} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onTouchStart={handleMouseDown} onTouchMove={handleMouseMove} onTouchEnd={handleMouseUp} className="w-full h-full object-contain" style={{ cursor: 'none' }} />
+                <canvas ref={canvasRef} width={800} height={500} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onTouchStart={handleMouseDown} onTouchMove={handleMouseMove} onTouchEnd={handleMouseUp} className="w-full h-full object-contain" style={{ cursor: isTouchDevice.current ? 'default' : 'none' }} />
               </div>
             )}
           </div>

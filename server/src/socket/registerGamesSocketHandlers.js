@@ -6,6 +6,10 @@ import { getTokenFromRequest } from '../../utils/token.js';
 
 const logger = loggerLib.child("GamesSocket");
 const GAME_SESSIONS = new Map();
+const GAME_NAMES = {
+  'crypto-memory': 'Memory Sync',
+  'crypto-match-3': 'Power Match',
+};
 const LAST_GAME_FINISH = new Map(); // key: `${userId}-${gameSlug}`
 const GAME_COOLDOWN_MS = Number(process.env.GAME_COOLDOWN_MS) || 180000;
 const GAME_POWER_DAYS = Number(process.env.GAME_POWER_DAYS) || 7;
@@ -36,8 +40,14 @@ export function registerGamesSocketHandlers({ io, engine }) {
           }
         }
 
-        const game = await prisma.game.findUnique({ where: { slug: gameSlug } });
-        if (!game || !game.isActive) return socket.emit("game:error", "Jogo indisponível.");
+        const gameName = GAME_NAMES[gameSlug];
+        if (!gameName) return socket.emit("game:error", "Jogo indisponível.");
+        const game = await prisma.game.upsert({
+          where: { slug: gameSlug },
+          create: { name: gameName, slug: gameSlug, isActive: true },
+          update: {},
+        });
+        if (!game.isActive) return socket.emit("game:error", "Jogo pausado temporariamente.");
 
         let initialState = {
           gameId: Number(game.id),
@@ -64,6 +74,7 @@ export function registerGamesSocketHandlers({ io, engine }) {
         GAME_SESSIONS.set(socket.id, initialState);
       } catch (error) {
         logger.error("Game Start Error", error);
+        socket.emit("game:error", "Erro ao iniciar o jogo. Tente novamente.");
       }
     });
 

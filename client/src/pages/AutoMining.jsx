@@ -18,6 +18,7 @@ export default function AutoMining() {
     
     const timerRef = useRef(null);
     const isClaimingRef = useRef(false);
+    const processAutoClaimRef = useRef(null);
 
     const fetchData = useCallback(async () => {
         try {
@@ -72,41 +73,59 @@ export default function AutoMining() {
         }
     }, [availableGpus, fetchData]);
 
-    // Heartbeat to sync time with server (anti-cheat + focus check)
+    // Mantém ref sempre atualizada para o timer acessar sem virar dependência do effect
     useEffect(() => {
-        let heartbeatInterval;
-        if (isRunning && !document.hidden) {
-            heartbeatInterval = setInterval(async () => {
-                try {
-                    const security = generateSecurityPayload();
-                    await api.post('/session/heartbeat', { 
-                        type: 'auto-mining',
-                        security
-                    });
-                } catch (err) {
-                    console.error("Heartbeat sync failed");
-                }
-            }, 10000); // sync every 10s
-        }
-        return () => clearInterval(heartbeatInterval);
+        processAutoClaimRef.current = processAutoClaim;
+    }, [processAutoClaim]);
+
+    // Heartbeat: roda sempre que isRunning=true, independente de aba visível
+    useEffect(() => {
+        if (!isRunning) return;
+
+        const sendHeartbeat = async () => {
+            try {
+                const security = generateSecurityPayload();
+                await api.post('/session/heartbeat', { type: 'auto-mining', security });
+            } catch (err) {
+                console.error("Heartbeat sync failed");
+            }
+        };
+
+        let heartbeatInterval = setInterval(sendHeartbeat, 10000);
+
+        // Ao voltar para a aba, reinicia o intervalo imediatamente para evitar gap longo
+        const onVisible = () => {
+            if (!document.hidden) {
+                clearInterval(heartbeatInterval);
+                sendHeartbeat();
+                heartbeatInterval = setInterval(sendHeartbeat, 10000);
+            }
+        };
+        document.addEventListener('visibilitychange', onVisible);
+
+        return () => {
+            clearInterval(heartbeatInterval);
+            document.removeEventListener('visibilitychange', onVisible);
+        };
     }, [isRunning]);
 
+    // Timer: roda sempre que isRunning=true — sem depender de document.hidden nem de processAutoClaim
     useEffect(() => {
-        if (isRunning && !document.hidden) {
-            timerRef.current = setInterval(() => {
-                setCountdown(prev => {
-                    if (prev <= 1) {
-                        processAutoClaim();
-                        return 300;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        } else {
+        if (!isRunning) {
             clearInterval(timerRef.current);
+            return;
         }
+        timerRef.current = setInterval(() => {
+            setCountdown(prev => {
+                if (prev <= 1) {
+                    processAutoClaimRef.current?.();
+                    return 300;
+                }
+                return prev - 1;
+            });
+        }, 1000);
         return () => clearInterval(timerRef.current);
-    }, [isRunning, processAutoClaim]);
+    }, [isRunning]);
 
     const handleToggleSystem = (e) => {
         if (!validateTrustedEvent(e)) return;

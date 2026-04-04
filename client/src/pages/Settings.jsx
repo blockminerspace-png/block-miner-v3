@@ -43,7 +43,7 @@ export default function Settings() {
         const trimmed = newUsername.trim();
         if (!trimmed) return;
         if (trimmed.length < 3) return toast.error('Nome deve ter pelo menos 3 caracteres.');
-        if (!/^[a-zA-Z0-9._-]+$/.test(trimmed)) return toast.error('Nome só pode conter letras, números, ponto, underline e hífen.');
+        if (!/^[a-zA-Z0-9._\- ]+$/.test(trimmed)) return toast.error('Nome só pode conter letras, números, espaço, ponto, underline e hífen.');
         try {
             setIsChangingUsername(true);
             const res = await api.post('/user/change-username', { username: trimmed });
@@ -158,7 +158,7 @@ export default function Settings() {
                                     Salvar
                                 </button>
                             </div>
-                            <p className="text-[9px] text-gray-600 font-medium px-4">3–24 caracteres. Letras, números, ponto, underline e hífen.</p>
+                            <p className="text-[9px] text-gray-600 font-medium px-4">3–24 caracteres. Letras, números, espaço, ponto, underline e hífen.</p>
                         </form>
 
                         <form onSubmit={handleUpdateWallet} className="space-y-4">
