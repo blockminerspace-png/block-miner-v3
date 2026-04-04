@@ -38,7 +38,7 @@ export default function Games() {
   const gameLoopRef = useRef(null);
   const particles = useRef([]);
   const visualBoard = useRef([]);
-  const pointer = useRef({ x: 400, y: 250, isDown: false });
+  const pointer = useRef({ x: 250, y: 250, isDown: false });
   const isTouchDevice = useRef('ontouchstart' in window || navigator.maxTouchPoints > 0);
   const selectedCell = useRef(null);
   const swapAnim = useRef(null);
@@ -71,7 +71,7 @@ export default function Games() {
 
     newSocket.on('game:match', (data) => {
       setGameState(prev => { if (!prev || !prev.board) return prev; return { ...prev, score: data.score, board: prev.board.map(c => data.ids.includes(c.id) ? { ...c, isMatched: true } : c) }; });
-      createExplosion(400, 250);
+      createExplosion(250, 250);
     });
 
     newSocket.on('game:mismatch', (data) => {
@@ -93,7 +93,7 @@ export default function Games() {
         }));
       }
       setGameState(prev => ({ ...prev, score: data.score, board: data.board }));
-      createExplosion(400, 250);
+      createExplosion(250, 250);
       setIsProcessing(false);
     });
 
@@ -157,13 +157,13 @@ export default function Games() {
       const canvas = canvasRef.current; if (!canvas) return;
       if (processingClearRef.current) { processingClearRef.current = false; setIsProcessing(false); }
       const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, 800, 500);
+      ctx.clearRect(0, 0, 500, 500);
 
       // Cyberpunk BG
-      ctx.fillStyle = '#020617'; ctx.fillRect(0, 0, 800, 500);
+      ctx.fillStyle = '#020617'; ctx.fillRect(0, 0, 500, 500);
       ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1;
-      for (let i = 0; i < 800; i += 50) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 500); ctx.stroke(); }
-      for (let i = 0; i < 500; i += 50) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(800, i); ctx.stroke(); }
+      for (let i = 0; i < 500; i += 50) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 500); ctx.stroke(); }
+      for (let i = 0; i < 500; i += 50) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(500, i); ctx.stroke(); }
 
       if (activeGame === 'memory') drawMemory(ctx, gameState);
       if (activeGame === 'match-3') drawMatch3(ctx);
@@ -200,8 +200,8 @@ export default function Games() {
 
   const drawMemory = (ctx, state) => {
     if (!state.board) return;
-    const cols = 4, padding = 20, size = 100;
-    const sx = (800 - (cols * (size + padding))) / 2, sy = (500 - (4 * (size + padding))) / 2;
+    const cols = 4, padding = 10, size = 110;
+    const sx = (500 - (cols * (size + padding))) / 2, sy = (500 - (4 * (size + padding))) / 2;
     state.board.forEach((card, i) => {
       const x = sx + (i % cols) * (size + padding), y = sy + Math.floor(i / cols) * (size + padding);
       ctx.save(); ctx.translate(x + size / 2, y + size / 2);
@@ -226,8 +226,8 @@ export default function Games() {
 
   const drawMatch3 = (ctx) => {
     if (!visualBoard.current.length) return;
-    const s = 50, p = 8;
-    const sx = (800 - (8 * (s + p))) / 2, sy = (500 - (8 * (s + p))) / 2;
+    const s = 55, p = 7;
+    const sx = (500 - (8 * (s + p))) / 2, sy = (500 - (8 * (s + p))) / 2;
     const eio = t => t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
 
     const sa = swapAnim.current;
@@ -299,7 +299,7 @@ export default function Games() {
     const clientX = e.clientX || (e.touches && e.touches[0].clientX);
     const clientY = e.clientY || (e.touches && e.touches[0].clientY);
 
-    const x = ((clientX - rect.left) / rect.width) * 800;
+    const x = ((clientX - rect.left) / rect.width) * 500;
     const y = ((clientY - rect.top) / rect.height) * 500;
 
     pointer.current.x = x;
@@ -312,14 +312,14 @@ export default function Games() {
     pointer.current.isDown = true;
     const { x, y } = syncMouse(e);
     if (activeGame === 'memory') {
-      const p = 20, s = 100, sx = (800 - (4 * (s + p))) / 2, sy = (500 - (4 * (s + p))) / 2;
+      const p = 10, s = 110, sx = (500 - (4 * (s + p))) / 2, sy = (500 - (4 * (s + p))) / 2;
       const col = Math.floor((x - sx) / (s + p)), row = Math.floor((y - sy) / (s + p));
       if (col >= 0 && col < 4 && row >= 0 && row < 4) {
         const lx = (x - sx) % (s + p), ly = (y - sy) % (s + p);
         if (lx < s && ly < s) socket.emit('game:action', { type: 'flip', cardId: row * 4 + col });
       }
     } else if (activeGame === 'match-3') {
-      const s = 50, p = 8, sx = (800 - (8 * (s + p))) / 2, sy = (500 - (8 * (s + p))) / 2;
+      const s = 55, p = 7, sx = (500 - (8 * (s + p))) / 2, sy = (500 - (8 * (s + p))) / 2;
       const cx = Math.floor((x - sx) / (s + p)), cy = Math.floor((y - sy) / (s + p));
       if (cx < 0 || cx >= 8 || cy < 0 || cy >= 8) return;
       const sel = selectedCell.current;
@@ -384,7 +384,7 @@ export default function Games() {
         <div className="relative">
           <div className="bg-slate-900 border border-slate-800 rounded-[3rem] p-4 shadow-2xl relative overflow-hidden flex flex-col items-center">
             {isGameOver ? (
-              <div className="h-[550px] flex flex-col items-center justify-center text-center space-y-10 z-10 relative animate-in zoom-in duration-500">
+              <div className="w-full min-h-[380px] max-w-[500px] mx-auto flex flex-col items-center justify-center text-center space-y-10 z-10 relative animate-in zoom-in duration-500 py-10">
                 <Trophy className="w-24 h-24 text-primary animate-bounce" />
                 <h2 className="text-7xl font-black text-white italic tracking-tighter uppercase leading-none">Relatório Final</h2>
                 {rewardMessage ? <div className="p-12 bg-emerald-500/10 border border-emerald-500/20 rounded-[3rem] shadow-2xl backdrop-blur-md"><p className="text-emerald-400 font-black text-4xl uppercase">Bônus Concedido!</p><p className="text-emerald-400/70 font-bold mt-2 text-xl uppercase">{rewardMessage}</p></div> : <div className="p-10 bg-red-500/10 border border-red-500/20 rounded-[2rem]"><p className="text-red-400 font-black text-2xl uppercase tracking-widest">Missão Falhou</p></div>}
@@ -398,10 +398,10 @@ export default function Games() {
                 <button onClick={() => { setActiveGame(null); setGameState(null); }} className="text-slate-500 font-bold uppercase text-xs tracking-[0.3em] hover:text-white transition-colors">Voltar ao Terminal</button>
               </div>
             ) : !gameState ? (
-              <div className="h-[550px] flex flex-col items-center justify-center gap-6"><div className="w-24 h-24 border-8 border-primary border-t-transparent rounded-full animate-spin shadow-glow" /><p className="text-white font-black uppercase tracking-[0.6em] animate-pulse">Sincronizando...</p></div>
+              <div className="w-full min-h-[380px] flex flex-col items-center justify-center gap-6"><div className="w-24 h-24 border-8 border-primary border-t-transparent rounded-full animate-spin shadow-glow" /><p className="text-white font-black uppercase tracking-[0.6em] animate-pulse">Sincronizando...</p></div>
             ) : (
-              <div className="relative w-full h-[500px] rounded-[2.5rem] overflow-hidden bg-black shadow-inner">
-                <canvas ref={canvasRef} width={800} height={500} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onTouchStart={handleMouseDown} onTouchMove={handleMouseMove} onTouchEnd={handleMouseUp} className="w-full h-full object-contain" style={{ cursor: isTouchDevice.current ? 'default' : 'none' }} />
+              <div className="relative w-full max-w-[500px] aspect-square mx-auto rounded-[2rem] overflow-hidden bg-black shadow-inner">
+                <canvas ref={canvasRef} width={500} height={500} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onTouchStart={handleMouseDown} onTouchMove={handleMouseMove} onTouchEnd={handleMouseUp} className="w-full h-full object-contain" style={{ cursor: isTouchDevice.current ? 'default' : 'none' }} />
               </div>
             )}
           </div>
