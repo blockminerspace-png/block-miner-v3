@@ -145,6 +145,19 @@ export default function Games() {
     }
   }, [match3Cooldown]);
 
+  // Listener não-passivo para eliminar delay de 300ms no touch e prevenir scroll durante o jogo
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !activeGame || !gameState || isGameOver) return;
+    const noDefault = (e) => e.preventDefault();
+    canvas.addEventListener('touchstart', noDefault, { passive: false });
+    canvas.addEventListener('touchmove', noDefault, { passive: false });
+    return () => {
+      canvas.removeEventListener('touchstart', noDefault);
+      canvas.removeEventListener('touchmove', noDefault);
+    };
+  }, [activeGame, gameState, isGameOver]);
+
   const createExplosion = (x, y) => {
     for (let i = 0; i < 25; i++) {
       particles.current.push({ x, y, vx: (Math.random() - 0.5) * 12, vy: (Math.random() - 0.5) * 12, life: 1.0, color: '#3b82f6', size: Math.random() * 5 + 2 });
@@ -351,63 +364,90 @@ export default function Games() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-1000" style={{ direction: 'ltr' }}>
-      <div className="flex justify-between items-center bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 shadow-xl">
-        <h1 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">Miner<span className="text-primary">Games</span></h1>
-
-        {activeGame && !isGameOver && (
-          <div className="flex items-center gap-8">
-            <div className="flex flex-col items-center">
-              <span className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Hash Score</span>
-              <span className="text-white font-black text-2xl leading-none">{gameState?.score || 0}</span>
+    <>
+      {/* Overlay fullscreen durante o jogo */}
+      {activeGame && gameState && !isGameOver && (
+        <div className="fixed inset-0 z-[100] bg-[#020617] flex flex-col" style={{ direction: 'ltr' }}>
+          {/* Barra fina de status */}
+          <div className="flex items-center justify-between px-4 py-2 bg-black/70 border-b border-slate-800 shrink-0">
+            <div className="flex flex-col">
+              <span className="text-[8px] text-slate-500 font-black uppercase tracking-widest">Hash Score</span>
+              <span className="text-white font-black text-xl leading-none">{gameState?.score || 0}</span>
             </div>
-            <div className="w-[1px] h-8 bg-white/10" />
-            <div className="flex flex-col items-center">
-              <span className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Time Sync</span>
-              <div className="flex items-center gap-2 text-primary font-black text-2xl leading-none"><Clock className="w-4 h-4" /><span>{timeLeft}s</span></div>
+            <h1 className="text-sm font-black text-white italic tracking-tight uppercase">Miner<span className="text-primary">Games</span></h1>
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col items-end">
+                <span className="text-[8px] text-slate-500 font-black uppercase tracking-widest">Time Sync</span>
+                <div className="flex items-center gap-1 text-primary font-black text-xl leading-none"><Clock className="w-3.5 h-3.5" /><span>{timeLeft}s</span></div>
+              </div>
+              <button onClick={() => { if (socket) socket.emit('game:end'); setActiveGame(null); setGameState(null); }} className="bg-red-500/20 hover:bg-red-500/40 text-red-400 p-2 rounded-lg border border-red-500/30 transition-all">
+                <RotateCcw className="w-4 h-4" />
+              </button>
             </div>
-            <button onClick={() => { 
-              if (socket) socket.emit('game:end');
-              setActiveGame(null); 
-              setGameState(null); 
-            }} className="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-5 py-2.5 rounded-xl border border-red-500/20 font-black text-[10px] uppercase transition-all flex items-center gap-2 group"><RotateCcw className="w-3 h-3 group-hover:rotate-180 transition-transform" /> Abortar</button>
           </div>
-        )}
-      </div>
-
-      {!activeGame ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <GameCard title="Memory Sync" description="Combine pares de moedas em alta velocidade." icon={Brain} color="from-blue-600 to-indigo-700" onClick={() => { setActiveGame('memory'); activeGameRef.current = 'memory'; socket.emit('game:start', 'crypto-memory'); }} disabled={memoryCooldown > 0} cooldown={memoryCooldown} />
-          <GameCard title="Power Match" description="Gere cascatas de energia minerando ativos." icon={LayoutGrid} color="from-primary to-orange-700" onClick={() => { setActiveGame('match-3'); activeGameRef.current = 'match-3'; socket.emit('game:start', 'crypto-match-3'); }} disabled={match3Cooldown > 0} cooldown={match3Cooldown} />
-        </div>
-      ) : (
-        <div className="relative">
-          <div className="bg-slate-900 border border-slate-800 rounded-[3rem] p-4 shadow-2xl relative overflow-hidden flex flex-col items-center">
-            {isGameOver ? (
-              <div className="w-full min-h-[380px] max-w-[500px] mx-auto flex flex-col items-center justify-center text-center space-y-10 z-10 relative animate-in zoom-in duration-500 py-10">
-                <Trophy className="w-24 h-24 text-primary animate-bounce" />
-                <h2 className="text-7xl font-black text-white italic tracking-tighter uppercase leading-none">Relatório Final</h2>
-                {rewardMessage ? <div className="p-12 bg-emerald-500/10 border border-emerald-500/20 rounded-[3rem] shadow-2xl backdrop-blur-md"><p className="text-emerald-400 font-black text-4xl uppercase">Bônus Concedido!</p><p className="text-emerald-400/70 font-bold mt-2 text-xl uppercase">{rewardMessage}</p></div> : <div className="p-10 bg-red-500/10 border border-red-500/20 rounded-[2rem]"><p className="text-red-400 font-black text-2xl uppercase tracking-widest">Missão Falhou</p></div>}
-                <button 
-                  onClick={() => { const slug = activeGame === 'memory' ? 'crypto-memory' : 'crypto-match-3'; setIsGameOver(false); setGameState(null); socket.emit('game:start', slug); }}
-                  disabled={(activeGame === 'memory' ? memoryCooldown : match3Cooldown) > 0}
-                  className={`px-20 py-7 bg-primary text-white font-black rounded-[2rem] hover:scale-105 transition-all uppercase italic tracking-widest shadow-glow text-xl ${(activeGame === 'memory' ? memoryCooldown : match3Cooldown) > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {(activeGame === 'memory' ? memoryCooldown : match3Cooldown) > 0 ? `AGUARDE ${activeGame === 'memory' ? memoryCooldown : match3Cooldown}s` : 'REINICIAR LINK'}
-                </button>
-                <button onClick={() => { setActiveGame(null); setGameState(null); }} className="text-slate-500 font-bold uppercase text-xs tracking-[0.3em] hover:text-white transition-colors">Voltar ao Terminal</button>
-              </div>
-            ) : !gameState ? (
-              <div className="w-full min-h-[380px] flex flex-col items-center justify-center gap-6"><div className="w-24 h-24 border-8 border-primary border-t-transparent rounded-full animate-spin shadow-glow" /><p className="text-white font-black uppercase tracking-[0.6em] animate-pulse">Sincronizando...</p></div>
-            ) : (
-              <div className="relative w-full max-w-[500px] aspect-square mx-auto rounded-[2rem] overflow-hidden bg-black shadow-inner">
-                <canvas ref={canvasRef} width={500} height={500} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onTouchStart={handleMouseDown} onTouchMove={handleMouseMove} onTouchEnd={handleMouseUp} className="w-full h-full object-contain" style={{ cursor: isTouchDevice.current ? 'default' : 'none' }} />
-              </div>
-            )}
+          {/* Canvas ocupa todo o espaço restante */}
+          <div className="flex-1 flex items-center justify-center overflow-hidden">
+            <div
+              className="rounded-2xl overflow-hidden"
+              style={{ width: 'min(100vw, 100dvh - 52px)', height: 'min(100vw, 100dvh - 52px)' }}
+            >
+              <canvas
+                ref={canvasRef}
+                width={500}
+                height={500}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onTouchStart={handleMouseDown}
+                onTouchMove={handleMouseMove}
+                onTouchEnd={handleMouseUp}
+                className="w-full h-full block"
+                style={{ cursor: isTouchDevice.current ? 'default' : 'none', touchAction: 'none' }}
+              />
+            </div>
           </div>
         </div>
       )}
-    </div>
+
+      {/* Fluxo normal da página */}
+      <div className="space-y-8 animate-in fade-in duration-1000" style={{ direction: 'ltr' }}>
+        <div className="flex justify-between items-center bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 shadow-xl">
+          <h1 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">Miner<span className="text-primary">Games</span></h1>
+        </div>
+
+        {!activeGame ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <GameCard title="Memory Sync" description="Combine pares de moedas em alta velocidade." icon={Brain} color="from-blue-600 to-indigo-700" onClick={() => { setActiveGame('memory'); activeGameRef.current = 'memory'; socket.emit('game:start', 'crypto-memory'); }} disabled={memoryCooldown > 0} cooldown={memoryCooldown} />
+            <GameCard title="Power Match" description="Gere cascatas de energia minerando ativos." icon={LayoutGrid} color="from-primary to-orange-700" onClick={() => { setActiveGame('match-3'); activeGameRef.current = 'match-3'; socket.emit('game:start', 'crypto-match-3'); }} disabled={match3Cooldown > 0} cooldown={match3Cooldown} />
+          </div>
+        ) : (
+          <div className="relative">
+            <div className="bg-slate-900 border border-slate-800 rounded-[3rem] p-4 shadow-2xl relative overflow-hidden flex flex-col items-center">
+              {isGameOver ? (
+                <div className="w-full min-h-[380px] max-w-[500px] mx-auto flex flex-col items-center justify-center text-center space-y-10 z-10 relative animate-in zoom-in duration-500 py-10">
+                  <Trophy className="w-24 h-24 text-primary animate-bounce" />
+                  <h2 className="text-7xl font-black text-white italic tracking-tighter uppercase leading-none">Relatório Final</h2>
+                  {rewardMessage ? <div className="p-12 bg-emerald-500/10 border border-emerald-500/20 rounded-[3rem] shadow-2xl backdrop-blur-md"><p className="text-emerald-400 font-black text-4xl uppercase">Bônus Concedido!</p><p className="text-emerald-400/70 font-bold mt-2 text-xl uppercase">{rewardMessage}</p></div> : <div className="p-10 bg-red-500/10 border border-red-500/20 rounded-[2rem]"><p className="text-red-400 font-black text-2xl uppercase tracking-widest">Missão Falhou</p></div>}
+                  <button
+                    onClick={() => { const slug = activeGame === 'memory' ? 'crypto-memory' : 'crypto-match-3'; setIsGameOver(false); setGameState(null); socket.emit('game:start', slug); }}
+                    disabled={(activeGame === 'memory' ? memoryCooldown : match3Cooldown) > 0}
+                    className={`px-20 py-7 bg-primary text-white font-black rounded-[2rem] hover:scale-105 transition-all uppercase italic tracking-widest shadow-glow text-xl ${(activeGame === 'memory' ? memoryCooldown : match3Cooldown) > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {(activeGame === 'memory' ? memoryCooldown : match3Cooldown) > 0 ? `AGUARDE ${activeGame === 'memory' ? memoryCooldown : match3Cooldown}s` : 'REINICIAR LINK'}
+                  </button>
+                  <button onClick={() => { setActiveGame(null); setGameState(null); }} className="text-slate-500 font-bold uppercase text-xs tracking-[0.3em] hover:text-white transition-colors">Voltar ao Terminal</button>
+                </div>
+              ) : (
+                <div className="w-full min-h-[380px] flex flex-col items-center justify-center gap-6">
+                  <div className="w-24 h-24 border-8 border-primary border-t-transparent rounded-full animate-spin shadow-glow" />
+                  <p className="text-white font-black uppercase tracking-[0.6em] animate-pulse">Sincronizando...</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
