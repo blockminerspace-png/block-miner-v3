@@ -1,5 +1,5 @@
 export const SLOTS_PER_RACK = 8;
-export const RACKS_COUNT = 10;
+export const RACKS_COUNT = 24;
 export const DEFAULT_MINER_IMAGE_URL = "/machines/reward1.png";
 
 export function getGlobalSlotIndex(rackIndex, localSlotIndex) {
