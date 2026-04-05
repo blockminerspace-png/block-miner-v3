@@ -215,7 +215,7 @@ export default function Manual() {
                                 <div className="space-y-0 rounded-xl overflow-hidden border border-gray-800/50 mb-5">
                                     {[
                                         { coin: 'POL',  desc: 'Token de saque — Polygon',       hl: 'text-primary',    status: 'Ativo',   statusColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
-                                        { coin: 'BLT',  desc: 'Token interno da plataforma',     hl: 'text-purple-400', status: 'Ativo',   statusColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+                                        { coin: 'BLT',  desc: 'Token interno da plataforma',     hl: 'text-purple-400', status: 'Em Desenvolvimento',   statusColor: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' },
                                         { coin: 'BTC',  desc: 'Bitcoin',                          hl: 'text-amber-400',  status: 'Futuro',  statusColor: 'bg-gray-700/30 text-gray-500 border-gray-700/40' },
                                         { coin: 'ETH',  desc: 'Ethereum',                         hl: 'text-blue-400',   status: 'Futuro',  statusColor: 'bg-gray-700/30 text-gray-500 border-gray-700/40' },
                                         { coin: 'LTC',  desc: 'Litecoin',                         hl: 'text-slate-400',  status: 'Futuro',  statusColor: 'bg-gray-700/30 text-gray-500 border-gray-700/40' },
