@@ -54,14 +54,6 @@ export default function PublicRoom() {
     const totalHashRate = activeMachinesHashRate + gamePower;
     const installedCount = machines.length;
 
-    const activeMachinesHashRate = useMemo(() => {
-        return machines.reduce((sum, machine) => sum + Number(machine.hashRate || machine.hash_rate || 0), 0);
-    }, [machines]);
-
-    const gamePower = targetUser?.gamePower || 0;
-    const totalHashRate = activeMachinesHashRate + gamePower;
-    const installedCount = machines.filter(m => !m.isSecondSlot).length;
-
     if (isLoading) {
         return (
             <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
