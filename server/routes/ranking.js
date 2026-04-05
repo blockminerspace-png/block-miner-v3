@@ -107,7 +107,7 @@ rankingRouter.get("/room/:username", requireAuth, async (req, res) => {
             customName: true
           }
         },
-        rooms: {
+        userRooms: {
           select: { roomNumber: true }
         }
       }
@@ -136,7 +136,7 @@ rankingRouter.get("/room/:username", requireAuth, async (req, res) => {
       racks[config.rackIndex] = config.customName;
     });
 
-    const unlockedRooms = new Set(targetUser.rooms.map(r => r.roomNumber));
+    const unlockedRooms = new Set(targetUser.userRooms.map(r => r.roomNumber));
     const roomList = Array.from({ length: ROOM_MAX }, (_, i) => ({
       roomNumber: i + 1,
       unlocked: unlockedRooms.has(i + 1),
