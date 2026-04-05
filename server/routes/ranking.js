@@ -70,6 +70,7 @@ rankingRouter.get("/room/:username", requireAuth, async (req, res) => {
   try {
     const { username } = req.params;
     const now = new Date();
+    const ROOM_MAX = parseInt(process.env.ROOM_MAX || "4", 10);
     
     const targetUser = await prisma.user.findFirst({
       where: { username },
@@ -105,6 +106,9 @@ rankingRouter.get("/room/:username", requireAuth, async (req, res) => {
             rackIndex: true,
             customName: true
           }
+        },
+        rooms: {
+          select: { roomNumber: true }
         }
       }
     });
@@ -132,13 +136,21 @@ rankingRouter.get("/room/:username", requireAuth, async (req, res) => {
       racks[config.rackIndex] = config.customName;
     });
 
+    const unlockedRooms = new Set(targetUser.rooms.map(r => r.roomNumber));
+    const roomList = Array.from({ length: ROOM_MAX }, (_, i) => ({
+      roomNumber: i + 1,
+      unlocked: unlockedRooms.has(i + 1),
+    }));
+
     res.json({ 
       ok: true, 
       user: { 
         ...targetUser, 
         miners: mappedMiners, 
         racks,
-        gamePower
+        gamePower,
+        rooms: roomList,
+        roomMax: ROOM_MAX,
       } 
     });
   } catch (error) {
