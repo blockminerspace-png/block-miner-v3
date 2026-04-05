@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, Pencil, X, Save, Megaphone, ToggleLeft, ToggleRight, Upload, Image as ImageIcon, Film } from 'lucide-react';
+import { Plus, Trash2, Pencil, X, Save, Megaphone, ToggleLeft, ToggleRight, Upload } from 'lucide-react';
 import { api } from '../store/auth';
 
 const isVideo = (url) => url && /\.(mp4|webm|ogg|mov|avi)$/i.test(url);
@@ -45,50 +45,53 @@ function BannerForm({ initial, onSave, onCancel, isSaving }) {
     <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        {/* Image upload */}
+        {/* Image / URL */}
         <div className="md:col-span-2 space-y-2">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Imagem do Banner</label>
-          <div
-            onClick={() => fileRef.current?.click()}
-            className="relative w-full rounded-xl border-2 border-dashed border-slate-700 hover:border-amber-500/50 transition-colors cursor-pointer overflow-hidden"
-            style={{ aspectRatio: '16/5' }}
-          >
-            {form.imageUrl ? (
-              <>
-                {isVideo(form.imageUrl) ? (
-                  <video src={form.imageUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline />
-                ) : (
-                  <img src={form.imageUrl} alt="" className="w-full h-full object-cover" />
-                )}
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                  <div className="flex items-center gap-2 text-white font-bold text-sm">
-                    <Upload className="w-4 h-4" /> Trocar mídia
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-500">
-                <div className="flex items-center gap-3">
-                  <ImageIcon className="w-7 h-7" />
-                  <span className="text-slate-600 text-lg">|</span>
-                  <Film className="w-7 h-7" />
-                </div>
-                <p className="text-xs font-bold text-center px-4">
-                  {uploading ? 'Enviando...' : 'Clique para enviar imagem ou vídeo'}
-                </p>
-                <p className="text-[10px] text-slate-600">PNG, JPG, GIF, WebP, MP4, WebM · máx 100 MB</p>
-              </div>
-            )}
-          </div>
-          <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleUpload} />
-          {form.imageUrl && (
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mídia do Banner</label>
+
+          {/* URL input — sempre visível */}
+          <div className="flex gap-2">
             <input
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xs text-slate-400 focus:outline-none"
+              className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-500/50"
               value={form.imageUrl}
               onChange={e => set('imageUrl', e.target.value)}
-              placeholder="Ou cole a URL da imagem"
+              placeholder="Cole a URL da imagem (https://...) ou envie um arquivo →"
             />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-700 hover:border-amber-500/50 text-slate-400 hover:text-amber-400 text-xs font-bold transition-colors disabled:opacity-40"
+            >
+              <Upload className="w-4 h-4" />
+              {uploading ? 'Enviando…' : 'Upload'}
+            </button>
+          </div>
+          <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleUpload} />
+
+          {/* Preview */}
+          {form.imageUrl && (
+            <div className="relative w-full rounded-xl overflow-hidden bg-slate-950 border border-slate-800" style={{ aspectRatio: '16/5' }}>
+              {isVideo(form.imageUrl) ? (
+                <video src={form.imageUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline />
+              ) : (
+                <img
+                  src={form.imageUrl}
+                  alt="preview"
+                  className="w-full h-full object-cover"
+                  onError={e => { e.target.style.display = 'none'; }}
+                />
+              )}
+              <button
+                type="button"
+                onClick={() => set('imageUrl', '')}
+                className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/70 hover:bg-red-500/80 text-white flex items-center justify-center transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
           )}
+          <p className="text-[10px] text-slate-600">Upload: PNG, JPG, GIF, WebP, MP4, WebM · máx 100 MB &nbsp;|&nbsp; URL: qualquer imagem HTTPS</p>
         </div>
 
         <div className="space-y-1 md:col-span-2">
