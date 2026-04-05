@@ -162,6 +162,7 @@ function IncomeCard({ entry }) {
   );
 }
 
+function EntryRow({ entry }) {
   const meta = CATEGORY_META[entry.category] || CATEGORY_META.misc;
   const Icon = meta.icon;
   return (
