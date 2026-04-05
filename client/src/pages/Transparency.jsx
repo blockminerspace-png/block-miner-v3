@@ -23,6 +23,16 @@ const INVESTMENT_WALLET = '0x1f4872991e6bFc74C2064E2fE4875a78503B5cc1';
 // RPC público Polygon — sem API key necessária
 const POLYGON_RPC = 'https://polygon-rpc.com';
 
+// Posições ativas nas pools — atualize o strategyId quando a posição mudar
+// Imagem gerada automaticamente pelo Krystal: https://opengraph.krystal.app/api/og/strategy?id={id}
+const POOL_POSITIONS = [
+  {
+    id: 'XYaDWC63das',
+    label: 'WBTC / USDC — Uniswap V3 (0.05%)',
+    link: 'https://defi.krystal.app',
+  },
+];
+
 function truncate(addr) {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
@@ -126,6 +136,34 @@ function InvestmentWallet() {
       <p className="text-[10px] text-gray-600">
         Esta é a carteira onde os fundos de investimento do BlockMiner ficam alocados. O saldo é lido diretamente da blockchain Polygon em tempo real.
       </p>
+
+      {/* Pool Positions */}
+      {POOL_POSITIONS.length > 0 && (
+        <div className="space-y-3 pt-1">
+          <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+            <TrendingUp className="w-3 h-3 text-emerald-400" /> Posições Ativas nas Pools
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {POOL_POSITIONS.map(pos => (
+              <a
+                key={pos.id}
+                href={pos.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-xl overflow-hidden border border-white/8 hover:border-emerald-500/40 transition-colors group"
+              >
+                <img
+                  src={`https://opengraph.krystal.app/api/og/strategy?id=${pos.id}`}
+                  alt={pos.label}
+                  className="w-full object-cover group-hover:opacity-90 transition-opacity"
+                  style={{ aspectRatio: '1200/628' }}
+                  onError={e => { e.target.parentElement.style.display = 'none'; }}
+                />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
