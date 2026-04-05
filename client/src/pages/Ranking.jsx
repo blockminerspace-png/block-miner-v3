@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Trophy, Zap, Cpu, Gamepad2, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Crown, Medal, Loader2 } from 'lucide-react';
+import { Trophy, Zap, Cpu, Gamepad2, RefreshCw, ExternalLink, Crown, Medal, Loader2, ChevronRight } from 'lucide-react';
 import { api } from '../store/auth';
 import {
   formatHashrate,
@@ -149,7 +149,6 @@ export default function Ranking() {
   const navigate = useNavigate();
   const [ranking, setRanking] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [expandedId, setExpandedId] = useState(null);
 
   const fetchRanking = useCallback(async () => {
     try {
@@ -164,8 +163,6 @@ export default function Ranking() {
   }, []);
 
   useEffect(() => { fetchRanking(); }, [fetchRanking]);
-
-  const toggle = (id) => setExpandedId(prev => prev === id ? null : id);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700 pb-20">
@@ -190,7 +187,7 @@ export default function Ranking() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
           {/* Rank 2 */}
           <div
-            onClick={() => toggle(ranking[1].id)}
+            onClick={() => navigate(`/room/${ranking[1].username}`)}
             className="order-2 md:order-1 bg-surface border border-gray-800/50 rounded-[2.5rem] overflow-hidden text-center h-auto flex flex-col relative group cursor-pointer hover:border-slate-400/30 transition-all"
           >
             <div className="p-8 space-y-4 flex flex-col justify-center items-center min-h-[300px]">
@@ -206,19 +203,18 @@ export default function Ranking() {
                 </div>
                 <h3 className="text-xl font-black text-white truncate px-4 group-hover:text-primary transition-colors">{ranking[1].username}</h3>
                 <p className="text-primary font-bold text-lg">{formatHashrate(ranking[1].totalHashRate)}</p>
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">2Âº LUGAR</span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">2º LUGAR</span>
               </div>
-              <div className={`flex items-center gap-1 text-[10px] font-black text-slate-600 uppercase tracking-widest transition-colors ${expandedId === ranking[1].id ? 'text-primary' : 'group-hover:text-slate-400'}`}>
-                {expandedId === ranking[1].id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                {expandedId === ranking[1].id ? 'Fechar' : 'Ver Sala'}
+              <div className="flex items-center gap-1 text-[10px] font-black text-slate-600 uppercase tracking-widest transition-colors group-hover:text-slate-400">
+                <ChevronRight className="w-3 h-3" />
+                Ver Sala
               </div>
             </div>
-            {expandedId === ranking[1].id && <MiniRacks username={ranking[1].username} navigate={navigate} />}
           </div>
 
           {/* Rank 1 */}
           <div
-            onClick={() => toggle(ranking[0].id)}
+            onClick={() => navigate(`/room/${ranking[0].username}`)}
             className="order-1 md:order-2 bg-gradient-to-b from-amber-500/10 to-surface border border-amber-500/30 rounded-[3rem] overflow-hidden text-center h-auto flex flex-col relative shadow-2xl shadow-amber-500/5 group cursor-pointer hover:border-amber-500/50 transition-all"
           >
             <div className="p-10 space-y-6 flex flex-col justify-center items-center min-h-[360px]">
@@ -236,17 +232,16 @@ export default function Ranking() {
                 <p className="text-amber-500 font-black text-2xl">{formatHashrate(ranking[0].totalHashRate)}</p>
                 <span className="text-xs font-black text-amber-500/50 uppercase tracking-[0.3em]">REI DO BLOCO</span>
               </div>
-              <div className={`flex items-center gap-1 text-[10px] font-black text-amber-700 uppercase tracking-widest transition-colors ${expandedId === ranking[0].id ? 'text-amber-400' : 'group-hover:text-amber-500'}`}>
-                {expandedId === ranking[0].id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                {expandedId === ranking[0].id ? 'Fechar' : 'Ver Sala'}
+              <div className="flex items-center gap-1 text-[10px] font-black text-amber-700 uppercase tracking-widest transition-colors group-hover:text-amber-500">
+                <ChevronRight className="w-3 h-3" />
+                Ver Sala
               </div>
             </div>
-            {expandedId === ranking[0].id && <MiniRacks username={ranking[0].username} navigate={navigate} />}
           </div>
 
           {/* Rank 3 */}
           <div
-            onClick={() => toggle(ranking[2].id)}
+            onClick={() => navigate(`/room/${ranking[2].username}`)}
             className="order-3 md:order-3 bg-surface border border-gray-800/50 rounded-[2.5rem] overflow-hidden text-center h-auto flex flex-col relative group cursor-pointer hover:border-orange-700/30 transition-all"
           >
             <div className="p-8 space-y-4 flex flex-col justify-center items-center min-h-[300px]">
@@ -262,14 +257,13 @@ export default function Ranking() {
                 </div>
                 <h3 className="text-xl font-black text-white truncate px-4 group-hover:text-primary transition-colors">{ranking[2].username}</h3>
                 <p className="text-primary font-bold text-lg">{formatHashrate(ranking[2].totalHashRate)}</p>
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">3Âº LUGAR</span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">3º LUGAR</span>
               </div>
-              <div className={`flex items-center gap-1 text-[10px] font-black text-slate-600 uppercase tracking-widest transition-colors ${expandedId === ranking[2].id ? 'text-primary' : 'group-hover:text-slate-400'}`}>
-                {expandedId === ranking[2].id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                {expandedId === ranking[2].id ? 'Fechar' : 'Ver Sala'}
+              <div className="flex items-center gap-1 text-[10px] font-black text-slate-600 uppercase tracking-widest transition-colors group-hover:text-slate-400">
+                <ChevronRight className="w-3 h-3" />
+                Ver Sala
               </div>
             </div>
-            {expandedId === ranking[2].id && <MiniRacks username={ranking[2].username} navigate={navigate} />}
           </div>
         </div>
       )}
@@ -296,65 +290,52 @@ export default function Ranking() {
                   </tr>
                 ))
               ) : ranking.map((entry, i) => (
-                <>
-                  <tr
-                    key={entry.id}
-                    onClick={() => toggle(entry.id)}
-                    className={`cursor-pointer hover:bg-primary/5 transition-colors group ${i < 3 ? 'bg-primary/5' : ''} ${expandedId === entry.id ? 'bg-primary/10 border-l-2 border-primary' : ''}`}
-                  >
-                    <td className="px-8 py-5">
-                      {entry.isCreator
-                        ? <YtBadge youtubeUrl={entry.youtubeUrl} className={`w-8 h-8 ${i < 3 ? 'animate-pulse' : ''}`} />
-                        : <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${
-                            i === 0 ? 'bg-amber-500 text-slate-950' :
-                            i === 1 ? 'bg-slate-400 text-slate-950' :
-                            i === 2 ? 'bg-orange-700 text-white' :
-                                      'bg-gray-800 text-gray-500'
-                          }`}>{entry.rank}</span>
-                      }
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-[10px] font-bold text-white border border-gray-700">
-                          {entry.username.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="text-white font-bold">{entry.username}</span>
+                <tr
+                  key={entry.id}
+                  onClick={() => navigate(`/room/${entry.username}`)}
+                  className={`cursor-pointer hover:bg-primary/5 transition-colors group ${i < 3 ? 'bg-primary/5' : ''}`}
+                >
+                  <td className="px-8 py-5">
+                    {entry.isCreator
+                      ? <YtBadge youtubeUrl={entry.youtubeUrl} className={`w-8 h-8 ${i < 3 ? 'animate-pulse' : ''}`} />
+                      : <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${
+                          i === 0 ? 'bg-amber-500 text-slate-950' :
+                          i === 1 ? 'bg-slate-400 text-slate-950' :
+                          i === 2 ? 'bg-orange-700 text-white' :
+                                    'bg-gray-800 text-gray-500'
+                        }`}>{entry.rank}</span>
+                    }
+                  </td>
+                  <td className="px-8 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-[10px] font-bold text-white border border-gray-700">
+                        {entry.username.charAt(0).toUpperCase()}
                       </div>
-                    </td>
-                    <td className="px-8 py-5 text-primary font-black">
-                      {formatHashrate(entry.totalHashRate)}
-                    </td>
-                    <td className="px-8 py-5 hidden md:table-cell text-[10px] uppercase font-bold tracking-tighter">
-                      <div className="flex items-center gap-2">
-                        <Cpu className="w-3 h-3 text-slate-500" />
-                        {formatHashrate(entry.baseHashRate)}
-                      </div>
-                    </td>
-                    <td className="px-8 py-5 hidden md:table-cell text-[10px] uppercase font-bold tracking-tighter">
-                      <div className="flex items-center gap-2">
-                        <Gamepad2 className="w-3 h-3 text-slate-500" />
-                        {formatHashrate(entry.gameHashRate)}
-                      </div>
-                    </td>
-                    <td className="px-8 py-5 text-right">
-                      <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${
-                        expandedId === entry.id
-                          ? 'bg-primary/10 border-primary/30 text-primary'
-                          : 'bg-gray-800/50 border-gray-700/50 text-gray-500 group-hover:border-primary/30 group-hover:text-primary'
-                      }`}>
-                        {expandedId === entry.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                        {expandedId === entry.id ? 'Fechar' : 'Ver'}
-                      </div>
-                    </td>
-                  </tr>
-                  {expandedId === entry.id && (
-                    <tr key={`expand-${entry.id}`} className="bg-slate-950/30">
-                      <td colSpan="6" className="p-0">
-                        <MiniRacks username={entry.username} navigate={navigate} />
-                      </td>
-                    </tr>
-                  )}
-                </>
+                      <span className="text-white font-bold">{entry.username}</span>
+                    </div>
+                  </td>
+                  <td className="px-8 py-5 text-primary font-black">
+                    {formatHashrate(entry.totalHashRate)}
+                  </td>
+                  <td className="px-8 py-5 hidden md:table-cell text-[10px] uppercase font-bold tracking-tighter">
+                    <div className="flex items-center gap-2">
+                      <Cpu className="w-3 h-3 text-slate-500" />
+                      {formatHashrate(entry.baseHashRate)}
+                    </div>
+                  </td>
+                  <td className="px-8 py-5 hidden md:table-cell text-[10px] uppercase font-bold tracking-tighter">
+                    <div className="flex items-center gap-2">
+                      <Gamepad2 className="w-3 h-3 text-slate-500" />
+                      {formatHashrate(entry.gameHashRate)}
+                    </div>
+                  </td>
+                  <td className="px-8 py-5 text-right">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border bg-gray-800/50 border-gray-700/50 text-gray-500 group-hover:border-primary/30 group-hover:text-primary">
+                      <ChevronRight className="w-3 h-3" />
+                      Ver
+                    </div>
+                  </td>
+                </tr>
               ))}
             </tbody>
           </table>
