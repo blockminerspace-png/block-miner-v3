@@ -318,16 +318,25 @@ export default function Transparency() {
       .finally(() => setLoading(false));
   }, []);
 
-  const recurring = entries.filter(e => e.period !== 'one_time');
-  const oneTime   = entries.filter(e => e.period === 'one_time');
-  const totalMonthly = recurring.reduce((s, e) => s + toMonthly(e.amountUsd, e.period), 0);
-  const totalAnnual  = recurring.reduce((s, e) => s + toAnnual(e.amountUsd, e.period), 0)
-                     + oneTime.reduce((s, e) => s + parseFloat(e.amountUsd), 0);
-  const paidUp  = entries.filter(e => e.isPaid).length;
-  const pending = entries.filter(e => !e.isPaid).length;
+  const expenses = entries.filter(e => !e.type || e.type === 'expense');
+  const incomes  = entries.filter(e => e.type === 'income');
+
+  const expRecurring = expenses.filter(e => e.period !== 'one_time');
+  const expOneTime   = expenses.filter(e => e.period === 'one_time');
+  const totalMonthly = expRecurring.reduce((s, e) => s + toMonthly(e.amountUsd, e.period), 0);
+  const totalAnnual  = expRecurring.reduce((s, e) => s + toAnnual(e.amountUsd, e.period), 0)
+                     + expOneTime.reduce((s, e) => s + parseFloat(e.amountUsd), 0);
+
+  const incRecurring    = incomes.filter(e => e.period !== 'one_time');
+  const totalIncMonthly = incRecurring.reduce((s, e) => s + toMonthly(e.amountUsd, e.period), 0);
+  const netBalance      = totalIncMonthly - totalMonthly;
+  const netPositive     = netBalance >= 0;
+
+  const paidUp  = expenses.filter(e => e.isPaid).length;
+  const pending = expenses.filter(e => !e.isPaid).length;
 
   const byCategory = {};
-  for (const e of entries) {
+  for (const e of expenses) {
     if (!byCategory[e.category]) byCategory[e.category] = [];
     byCategory[e.category].push(e);
   }
