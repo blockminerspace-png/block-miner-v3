@@ -235,26 +235,31 @@ export default function Manual() {
 
                                 {/* Limites e pagamento */}
                                 <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-3">Operações de saque (POL)</p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div className="space-y-0 rounded-xl overflow-hidden border border-gray-800/50">
-                                        <InfoRow label="Saque mínimo" value="10 POL" valueClass="text-primary" />
-                                        <InfoRow label="Rede" value="Polygon" valueClass="text-purple-400" />
-                                        <InfoRow label="Processamento" value="Manual" valueClass="text-amber-400" />
-                                        <InfoRow label="Prazo" value="Até 72h úteis" valueClass="text-amber-400" />
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                                    {[
+                                        { label: 'Mínimo',         value: '10 POL',       color: 'text-primary',    bg: 'bg-primary/8 border-primary/20' },
+                                        { label: 'Rede',           value: 'Polygon',       color: 'text-purple-400', bg: 'bg-purple-500/8 border-purple-500/20' },
+                                        { label: 'Processamento',  value: 'Manual',        color: 'text-amber-400',  bg: 'bg-amber-500/8 border-amber-500/20' },
+                                        { label: 'Prazo',          value: 'Até 72h úteis', color: 'text-amber-400',  bg: 'bg-amber-500/8 border-amber-500/20' },
+                                    ].map(({ label, value, color, bg }) => (
+                                        <div key={label} className={`flex flex-col items-center text-center p-3 rounded-xl border ${bg}`}>
+                                            <span className="text-[8px] font-black text-gray-600 uppercase tracking-widest mb-1.5">{label}</span>
+                                            <span className={`text-xs font-black ${color} leading-tight`}>{value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl flex gap-2">
+                                        <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                                        <p className="text-[10px] text-amber-500/80 leading-relaxed">
+                                            <strong className="text-amber-400">Pagamentos são processados manualmente</strong> pela equipe em até 72 horas úteis. Solicite o saque e aguarde — não é necessário abrir chamado.
+                                        </p>
                                     </div>
-                                    <div className="space-y-2">
-                                        <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl flex gap-2">
-                                            <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                                            <p className="text-[10px] text-amber-500/80 leading-relaxed">
-                                                <strong className="text-amber-400">Pagamentos são processados manualmente</strong> pela equipe em até 72 horas úteis. Solicite o saque e aguarde — não é necessário abrir chamado.
-                                            </p>
-                                        </div>
-                                        <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl flex gap-2">
-                                            <Info className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
-                                            <p className="text-[10px] text-blue-400/80 leading-relaxed">
-                                                Se o prazo for excedido, abra um ticket de suporte informando o valor e a data da solicitação.
-                                            </p>
-                                        </div>
+                                    <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl flex gap-2">
+                                        <Info className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
+                                        <p className="text-[10px] text-blue-400/80 leading-relaxed">
+                                            Se o prazo for excedido, abra um ticket de suporte informando o valor e a data da solicitação.
+                                        </p>
                                     </div>
                                 </div>
                             </Card>
