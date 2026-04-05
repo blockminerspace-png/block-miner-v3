@@ -373,18 +373,18 @@ function InvestmentWallet() {
             <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
               <Activity className="w-3 h-3 text-emerald-400" aria-hidden="true" /> {t('transparency.wallet.active_pools')}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-2">
               {POOL_POSITIONS.map(pos => (
-                <a key={pos.id} href={pos.link} target="_blank" rel="noopener noreferrer"
-                  className="block rounded-2xl overflow-hidden border border-white/8 hover:border-emerald-500/40 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10 group"
-                  aria-label={pos.label}>
-                  <img
-                    src={`https://opengraph.krystal.app/api/og/strategy?id=${pos.id}`}
-                    alt={pos.label}
-                    className="w-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
-                    style={{ aspectRatio: '1200/628' }}
-                    onError={e => { e.currentTarget.parentElement.style.display = 'none'; }}
-                  />
+                <a
+                  key={pos.id}
+                  href={pos.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-emerald-500/15 bg-emerald-950/20 hover:bg-emerald-950/40 hover:border-emerald-500/30 transition-colors group"
+                  aria-label={pos.label}
+                >
+                  <span className="text-xs font-bold text-emerald-300 group-hover:text-emerald-200">{pos.label}</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-emerald-600 group-hover:text-emerald-400 shrink-0 transition-colors" aria-hidden="true" />
                 </a>
               ))}
             </div>
