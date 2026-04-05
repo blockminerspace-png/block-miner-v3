@@ -203,42 +203,56 @@ export default function Manual() {
                     </Section>
 
                     {/* 2. Economia */}
-                    <Section id="economia" icon={Coins} color="text-amber-400" title="Economia & POL" subtitle="Token nativo, Polygon e saldos multi-moeda">
+                    <Section id="economia" icon={Coins} color="text-amber-400" title="Economia & Tokens" subtitle="Token nativo, pagamentos e roadmap de moedas">
                         <div className="space-y-3">
                             <Card>
-                                <p className="text-sm text-gray-400 leading-relaxed mb-4">
-                                    O token nativo da plataforma é o <strong className="text-primary">POL</strong>, operando na rede <strong className="text-white">Polygon</strong>. Todo hashrate gerado pelos seus mineradores é convertido continuamente em saldo POL, que pode ser sacado para qualquer carteira compatível.
+                                <p className="text-sm text-gray-400 leading-relaxed mb-5">
+                                    O BlockMiner opera com dois tokens: o <strong className="text-primary">POL</strong> (Polygon) para pagamentos externos e o <strong className="text-purple-400">BLT</strong> como token interno da plataforma. Novos pares de moedas estão previstos no roadmap.
                                 </p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2">Saldos disponíveis</p>
-                                        {[
-                                            { coin: 'POL', desc: 'Token principal da plataforma', status: 'Ativo', hl: 'text-primary' },
-                                            { coin: 'BTC', desc: 'Bitcoin', status: 'Ativo', hl: 'text-amber-400' },
-                                            { coin: 'ETH', desc: 'Ethereum', status: 'Ativo', hl: 'text-blue-400' },
-                                            { coin: 'USDT', desc: 'Tether USD', status: 'Ativo', hl: 'text-emerald-400' },
-                                            { coin: 'USDC', desc: 'USD Coin', status: 'Ativo', hl: 'text-sky-400' },
-                                            { coin: 'ZER', desc: 'Token interno', status: 'Ativo', hl: 'text-purple-400' },
-                                        ].map(({ coin, desc, status, hl }) => (
-                                            <div key={coin} className="flex items-center justify-between py-2 border-b border-gray-800/40 last:border-0">
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`text-xs font-black ${hl}`}>{coin}</span>
-                                                    <span className="text-[10px] text-gray-600">{desc}</span>
-                                                </div>
-                                                <Pill color="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">{status}</Pill>
+
+                                {/* Tabela de tokens */}
+                                <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-3">Status dos tokens</p>
+                                <div className="space-y-0 rounded-xl overflow-hidden border border-gray-800/50 mb-5">
+                                    {[
+                                        { coin: 'POL',  desc: 'Token de saque — Polygon',       hl: 'text-primary',    status: 'Ativo',   statusColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+                                        { coin: 'BLT',  desc: 'Token interno da plataforma',     hl: 'text-purple-400', status: 'Ativo',   statusColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+                                        { coin: 'BTC',  desc: 'Bitcoin',                          hl: 'text-amber-400',  status: 'Futuro',  statusColor: 'bg-gray-700/30 text-gray-500 border-gray-700/40' },
+                                        { coin: 'ETH',  desc: 'Ethereum',                         hl: 'text-blue-400',   status: 'Futuro',  statusColor: 'bg-gray-700/30 text-gray-500 border-gray-700/40' },
+                                        { coin: 'LTC',  desc: 'Litecoin',                         hl: 'text-slate-400',  status: 'Futuro',  statusColor: 'bg-gray-700/30 text-gray-500 border-gray-700/40' },
+                                        { coin: 'USDC', desc: 'USD Coin',                         hl: 'text-sky-400',    status: 'Futuro',  statusColor: 'bg-gray-700/30 text-gray-500 border-gray-700/40' },
+                                        { coin: 'TRX',  desc: 'TRON',                             hl: 'text-red-400',    status: 'Futuro',  statusColor: 'bg-gray-700/30 text-gray-500 border-gray-700/40' },
+                                        { coin: '...',  desc: 'Mais moedas em desenvolvimento',   hl: 'text-gray-600',   status: 'Em breve',statusColor: 'bg-gray-700/20 text-gray-600 border-gray-800/40' },
+                                    ].map(({ coin, desc, hl, status, statusColor }) => (
+                                        <div key={coin} className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800/40 last:border-0 bg-gray-900/20 odd:bg-transparent">
+                                            <div className="flex items-center gap-2.5">
+                                                <span className={`text-xs font-black w-10 shrink-0 ${hl}`}>{coin}</span>
+                                                <span className="text-[10px] text-gray-600">{desc}</span>
                                             </div>
-                                        ))}
-                                    </div>
-                                    <div className="space-y-3">
-                                        <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Limites de operação</p>
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md border text-[9px] font-black uppercase tracking-widest shrink-0 ${statusColor}`}>{status}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Limites e pagamento */}
+                                <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-3">Operações de saque (POL)</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="space-y-0 rounded-xl overflow-hidden border border-gray-800/50">
                                         <InfoRow label="Saque mínimo" value="10 POL" valueClass="text-primary" />
-                                        <InfoRow label="Confirmação" value="~5 min (cron)" valueClass="text-gray-300" />
                                         <InfoRow label="Rede" value="Polygon" valueClass="text-purple-400" />
-                                        <InfoRow label="Depósito on-chain" value="Endereço único por usuário" valueClass="text-gray-300" />
-                                        <div className="mt-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl flex gap-2">
+                                        <InfoRow label="Processamento" value="Manual" valueClass="text-amber-400" />
+                                        <InfoRow label="Prazo" value="Até 72h úteis" valueClass="text-amber-400" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl flex gap-2">
                                             <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
                                             <p className="text-[10px] text-amber-500/80 leading-relaxed">
-                                                Depósitos são processados a cada 5 minutos automaticamente. Guarde sempre o hash da transação para suporte.
+                                                <strong className="text-amber-400">Pagamentos são processados manualmente</strong> pela equipe em até 72 horas úteis. Solicite o saque e aguarde — não é necessário abrir chamado.
+                                            </p>
+                                        </div>
+                                        <div className="p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl flex gap-2">
+                                            <Info className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
+                                            <p className="text-[10px] text-blue-400/80 leading-relaxed">
+                                                Se o prazo for excedido, abra um ticket de suporte informando o valor e a data da solicitação.
                                             </p>
                                         </div>
                                     </div>
@@ -514,7 +528,7 @@ export default function Manual() {
                                         <ul className="space-y-1.5 text-[12px] text-gray-400">
                                             <li className="flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" /><span>Conecte sua carteira Web3 (MetaMask, etc.) na rede Polygon</span></li>
                                             <li className="flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" /><span>Informe o endereço de destino e o valor (mín. 10 POL)</span></li>
-                                            <li className="flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" /><span>O pagamento é processado automaticamente em até 5 min</span></li>
+                                                                                <li className="flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" /><span>O pagamento é processado <strong className="text-white">manualmente</strong> em até <strong className="text-amber-400">72 horas úteis</strong></span></li>
                                             <li className="flex items-start gap-2"><AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" /><span>Verifique o endereço antes de confirmar — transações são irreversíveis</span></li>
                                         </ul>
                                     </div>
@@ -522,7 +536,7 @@ export default function Manual() {
                                 <div className="mt-4 p-3 bg-blue-500/5 border border-blue-500/20 rounded-xl flex gap-2">
                                     <Shield className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
                                     <p className="text-[10px] text-blue-400/80 leading-relaxed">
-                                        Se seu depósito não aparecer após 10 minutos, abra um <strong className="text-blue-300">ticket de suporte</strong> na seção Carteira informando o hash da transação. Nossa equipe verifica manualmente.
+                                        Se o prazo de 72h úteis for excedido, abra um <strong className="text-blue-300">ticket de suporte</strong> na seção Carteira informando o valor e a data da solicitação.
                                     </p>
                                 </div>
                             </Card>
