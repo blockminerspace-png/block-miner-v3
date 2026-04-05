@@ -26,20 +26,28 @@ const adminLimiter = createRateLimiter({
 const UPLOADS_DIR = path.resolve(process.env.UPLOADS_DIR || path.join(path.dirname(fileURLToPath(import.meta.url)), "../../uploads"));
 // Garante que o diretório existe na inicialização (síncrono, sem risco de race condition no multer)
 mkdirSync(UPLOADS_DIR, { recursive: true });
+const sharedStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => { cb(null, UPLOADS_DIR); },
+    filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase().replace(/[^.a-z0-9]/g, '') || '.bin';
+        cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`);
+    }
+});
 const upload = multer({
-    storage: multer.diskStorage({
-        destination: (_req, _file, cb) => {
-            cb(null, UPLOADS_DIR);
-        },
-        filename: (_req, file, cb) => {
-            const ext = path.extname(file.originalname).toLowerCase().replace(/[^.a-z0-9]/g, '') || '.bin';
-            cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`);
-        }
-    }),
+    storage: sharedStorage,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
     fileFilter: (_req, file, cb) => {
         if (/^image\/(jpeg|png|gif|webp|svg\+xml)$/.test(file.mimetype)) cb(null, true);
         else cb(new Error('Somente imagens são permitidas.'));
+    }
+});
+const uploadMedia = multer({
+    storage: sharedStorage,
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB
+    fileFilter: (_req, file, cb) => {
+        const allowed = /^(image\/(jpeg|png|gif|webp|svg\+xml)|video\/(mp4|webm|ogg|quicktime|x-msvideo))$/;
+        if (allowed.test(file.mimetype)) cb(null, true);
+        else cb(new Error('Formato não suportado. Use imagens (PNG, JPG, GIF, WebP) ou vídeos (MP4, WebM).'));
     }
 });
 
@@ -50,6 +58,12 @@ adminRouter.use(adminOfferEventsRouter);
 
 // Upload de imagem (event/miner covers)
 adminRouter.post("/upload-image", upload.single("image"), (req, res) => {
+    if (!req.file) return res.status(400).json({ ok: false, message: "Nenhum arquivo enviado." });
+    const url = `/uploads/${req.file.filename}`;
+    res.json({ ok: true, url });
+});
+// Upload de mídia (banners — imagens, vídeos, GIFs até 100 MB)
+adminRouter.post("/upload-media", uploadMedia.single("media"), (req, res) => {
     if (!req.file) return res.status(400).json({ ok: false, message: "Nenhum arquivo enviado." });
     const url = `/uploads/${req.file.filename}`;
     res.json({ ok: true, url });

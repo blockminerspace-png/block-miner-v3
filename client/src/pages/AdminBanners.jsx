@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, Pencil, X, Save, Megaphone, ToggleLeft, ToggleRight, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Pencil, X, Save, Megaphone, ToggleLeft, ToggleRight, Upload, Image as ImageIcon, Film } from 'lucide-react';
 import { api } from '../store/auth';
+
+const isVideo = (url) => url && /\.(mp4|webm|ogg|mov|avi)$/i.test(url);
 
 const TYPES = [
   { value: 'info',    label: 'Info',     color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
@@ -29,10 +31,13 @@ function BannerForm({ initial, onSave, onCancel, isSaving }) {
     setUploading(true);
     try {
       const fd = new FormData();
-      fd.append('image', file);
-      const res = await api.post('/admin/upload-image', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      if (res.data.ok) { set('imageUrl', res.data.url); toast.success('Imagem enviada!'); }
-    } catch { toast.error('Erro ao enviar imagem.'); }
+      fd.append('media', file);
+      const res = await api.post('/admin/upload-media', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      if (res.data.ok) {
+        set('imageUrl', res.data.url);
+        toast.success(file.type.startsWith('video/') ? 'Vídeo enviado!' : 'Imagem enviada!');
+      }
+    } catch (err) { toast.error(err?.response?.data?.message || 'Erro ao enviar arquivo.'); }
     finally { setUploading(false); }
   };
 
@@ -50,21 +55,32 @@ function BannerForm({ initial, onSave, onCancel, isSaving }) {
           >
             {form.imageUrl ? (
               <>
-                <img src={form.imageUrl} alt="" className="w-full h-full object-cover" />
+                {isVideo(form.imageUrl) ? (
+                  <video src={form.imageUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline />
+                ) : (
+                  <img src={form.imageUrl} alt="" className="w-full h-full object-cover" />
+                )}
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                   <div className="flex items-center gap-2 text-white font-bold text-sm">
-                    <Upload className="w-4 h-4" /> Trocar imagem
+                    <Upload className="w-4 h-4" /> Trocar mídia
                   </div>
                 </div>
               </>
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-500">
-                <ImageIcon className="w-8 h-8" />
-                <p className="text-xs font-bold">{uploading ? 'Enviando...' : 'Clique para enviar imagem (PNG, JPG, GIF, WebP)'}</p>
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-500">
+                <div className="flex items-center gap-3">
+                  <ImageIcon className="w-7 h-7" />
+                  <span className="text-slate-600 text-lg">|</span>
+                  <Film className="w-7 h-7" />
+                </div>
+                <p className="text-xs font-bold text-center px-4">
+                  {uploading ? 'Enviando...' : 'Clique para enviar imagem ou vídeo'}
+                </p>
+                <p className="text-[10px] text-slate-600">PNG, JPG, GIF, WebP, MP4, WebM · máx 100 MB</p>
               </div>
             )}
           </div>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+          <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleUpload} />
           {form.imageUrl && (
             <input
               className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xs text-slate-400 focus:outline-none"

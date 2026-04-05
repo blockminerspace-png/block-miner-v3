@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 
+const isVideo = (url) => url && /\.(mp4|webm|ogg|mov|avi)$/i.test(url);
+
 function useCountdown(endsAt) {
   const calc = useCallback(() => {
     if (!endsAt) return null;
@@ -26,14 +28,22 @@ function BannerCard({ banner }) {
   const countdown = useCountdown(banner.endsAt);
   const inner = (
     <div className="relative w-full h-full overflow-hidden rounded-2xl bg-slate-900 border border-white/[0.08] group cursor-pointer select-none">
-      {/* Imagem */}
+      {/* Mídia */}
       {banner.imageUrl ? (
-        <img
-          src={banner.imageUrl}
-          alt={banner.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          draggable={false}
-        />
+        isVideo(banner.imageUrl) ? (
+          <video
+            src={banner.imageUrl}
+            className="w-full h-full object-cover"
+            autoPlay muted loop playsInline
+          />
+        ) : (
+          <img
+            src={banner.imageUrl}
+            alt={banner.title}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            draggable={false}
+          />
+        )
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
           <p className="text-sm font-bold text-slate-400 px-4 text-center">{banner.title}</p>
