@@ -13,7 +13,8 @@ import {
     MessageSquare,
     Ticket,
     Megaphone,
-    Youtube
+    Youtube,
+    Eye
 } from 'lucide-react';
 
 const adminMenuItems = [
@@ -25,6 +26,7 @@ const adminMenuItems = [
   { icon: MessageSquare, label: 'Suporte', path: '/admin/support' },
   { icon: Megaphone, label: 'Banners', path: '/admin/banners' },
   { icon: Youtube, label: 'Criadores', path: '/admin/creators' },
+  { icon: Eye, label: 'Transparência', path: '/admin/transparency' },
   { icon: Ticket, label: 'Dep. Tickets', path: '/admin/deposit-tickets' },
   { icon: Database, label: 'Backups', path: '/admin/backups' },
   { icon: FileText, label: 'Logs', path: '/admin/logs' },

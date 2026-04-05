@@ -47,6 +47,7 @@ import supportRouter from "./routes/support.js";
 import userRouter from "./routes/user.js";
 import * as healthController from "./controllers/healthController.js";
 import * as bannerController from "./controllers/bannerController.js";
+import * as transparencyController from "./controllers/transparencyController.js";
 
 // Models & Utils
 import { startCronTasks } from "./cron/index.js";
@@ -272,6 +273,9 @@ app.get("/health", healthController.health);
 
 // Active banners (no auth — used by Dashboard)
 app.get("/api/banners", bannerController.getActiveBanners);
+
+// Transparency portal (no auth — public)
+app.get("/api/transparency", transparencyController.getPublicEntries);
 
 // 7. Static Assets & Frontend Production Build
 // Serve user-uploaded miner images from the persistent volume (survives rebuilds)

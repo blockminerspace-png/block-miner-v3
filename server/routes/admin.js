@@ -4,6 +4,7 @@ import * as adminSupportController from "../controllers/adminSupportController.j
 import * as depositTicketController from "../controllers/depositTicketController.js";
 import * as bannerController from "../controllers/bannerController.js";
 import * as creatorController from "../controllers/creatorController.js";
+import * as transparencyController from "../controllers/transparencyController.js";
 import { adminOfferEventsRouter } from "./admin-offer-events.js";
 import { requireAdminAuth } from "../middleware/adminAuth.js";
 import { createRateLimiter } from "../middleware/rateLimit.js";
@@ -88,6 +89,12 @@ adminRouter.get("/creators", creatorController.adminList);
 adminRouter.get("/creators/search", creatorController.adminSearch);
 adminRouter.put("/creators/:id", creatorController.adminUpsert);
 adminRouter.delete("/creators/:id", creatorController.adminRemove);
+
+// Portal de Transparência
+adminRouter.get("/transparency", transparencyController.adminList);
+adminRouter.post("/transparency", transparencyController.adminCreate);
+adminRouter.put("/transparency/:id", transparencyController.adminUpdate);
+adminRouter.delete("/transparency/:id", transparencyController.adminDelete);
 
 // Users
 adminRouter.get("/users", adminController.listRecentUsers);

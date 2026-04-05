@@ -857,3 +857,26 @@ model UserRack {
   @@index([userId])
   @@map("user_racks")
 }
+
+model TransparencyEntry {
+  id          Int      @id @default(autoincrement())
+  // Categoria: infrastructure | tooling | marketing | payroll | legal | misc
+  category    String   @default("misc")
+  name        String
+  description String?  @db.Text
+  provider    String?                     // ex: Hetzner, Cloudflare, GitHub
+  providerUrl String?  @map("provider_url")
+  amountUsd   Decimal  @map("amount_usd") @db.Decimal(20, 2)
+  // Período: monthly | annual | one_time | daily
+  period      String   @default("monthly")
+  isPaid      Boolean  @default(true) @map("is_paid")
+  isActive    Boolean  @default(true) @map("is_active")
+  notes       String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@index([category])
+  @@map("transparency_entries")
+}

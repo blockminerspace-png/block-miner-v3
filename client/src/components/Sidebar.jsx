@@ -22,6 +22,7 @@ import {
   MessageSquare,
   Map,
   Calculator,
+  Eye,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { useGameStore } from '../store/game';
@@ -77,6 +78,7 @@ export default function Sidebar() {
         { icon: Calculator, label: t('sidebar.calculator', 'Calculadora'), path: '/calculator' },
         { icon: Trophy, label: t('sidebar.ranking', 'Ranking'), path: '/ranking' },
         { icon: Map, label: t('sidebar.roadmap', 'Roadmap'), path: '/roadmap' },
+        { icon: Eye, label: t('sidebar.transparency', 'Transparência'), path: '/transparency' },
       ]
     }
   ];

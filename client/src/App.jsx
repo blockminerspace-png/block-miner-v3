@@ -43,6 +43,8 @@ import AdminSupport from './pages/AdminSupport';
 import AdminDepositTickets from './pages/AdminDepositTickets';
 import AdminBanners from './pages/AdminBanners';
 import AdminCreators from './pages/AdminCreators';
+import AdminTransparency from './pages/AdminTransparency';
+import Transparency from './pages/Transparency';
 import Landing from './pages/Landing';
 
 const ProtectedLayout = () => {
@@ -137,6 +139,7 @@ function App() {
           <Route path="/games" element={<Games />} />
           <Route path="/roadmap" element={<Roadmap />} />
           <Route path="/calculator" element={<CalculatorPage />} />
+          <Route path="/transparency" element={<Transparency />} />
           <Route path="/shortlink/internal-shortlink/step/:step" element={<ShortlinkStep />} />
         </Route>
 
@@ -156,6 +159,7 @@ function App() {
           <Route path="/admin/deposit-tickets" element={<AdminDepositTickets />} />
           <Route path="/admin/banners" element={<AdminBanners />} />
           <Route path="/admin/creators" element={<AdminCreators />} />
+          <Route path="/admin/transparency" element={<AdminTransparency />} />
         </Route>
       </Routes>
     </BrowserRouter>
