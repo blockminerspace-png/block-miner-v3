@@ -3,6 +3,7 @@ import * as adminController from "../controllers/adminController.js";
 import * as adminSupportController from "../controllers/adminSupportController.js";
 import * as depositTicketController from "../controllers/depositTicketController.js";
 import * as bannerController from "../controllers/bannerController.js";
+import * as creatorController from "../controllers/creatorController.js";
 import { adminOfferEventsRouter } from "./admin-offer-events.js";
 import { requireAdminAuth } from "../middleware/adminAuth.js";
 import { createRateLimiter } from "../middleware/rateLimit.js";
@@ -81,6 +82,12 @@ adminRouter.get("/banners", bannerController.adminList);
 adminRouter.post("/banners", bannerController.adminCreate);
 adminRouter.put("/banners/:id", bannerController.adminUpdate);
 adminRouter.delete("/banners/:id", bannerController.adminDelete);
+
+// Criadores de Conteúdo
+adminRouter.get("/creators", creatorController.adminList);
+adminRouter.get("/creators/search", creatorController.adminSearch);
+adminRouter.put("/creators/:id", creatorController.adminUpsert);
+adminRouter.delete("/creators/:id", creatorController.adminRemove);
 
 // Users
 adminRouter.get("/users", adminController.listRecentUsers);

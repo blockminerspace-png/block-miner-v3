@@ -67,7 +67,9 @@ model User {
   miningLogs    MiningRewardsLog[]
   shortlinkComp ShortlinkCompletion?
   hasAdblock    Boolean  @default(false) @map("has_adblock")
-  
+  isCreator     Boolean  @default(false) @map("is_creator")
+  youtubeUrl    String?  @map("youtube_url")
+
   // Migration Meta & Historical Data
   oldId             Int?     @unique @map("old_id")
   oldLifetimeMined  Decimal? @default(0) @map("old_lifetime_mined") @db.Decimal(20, 8)

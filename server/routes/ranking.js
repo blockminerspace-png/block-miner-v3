@@ -14,6 +14,8 @@ rankingRouter.get("/", requireAuth, async (req, res) => {
         id: true,
         username: true,
         name: true,
+        isCreator: true,
+        youtubeUrl: true,
         miners: {
           where: { isActive: true },
           select: { hashRate: true }
@@ -40,6 +42,8 @@ rankingRouter.get("/", requireAuth, async (req, res) => {
         id: user.id,
         username: user.username || "Miner",
         name: user.name,
+        isCreator: user.isCreator,
+        youtubeUrl: user.youtubeUrl,
         totalHashRate,
         baseHashRate,
         gameHashRate
