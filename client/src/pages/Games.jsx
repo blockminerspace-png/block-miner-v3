@@ -78,7 +78,7 @@ export default function Games() {
     });
 
     newSocket.on('game:card_flipped', (data) => {
-      setGameState(prev => { if (!prev || !prev.board) return prev; return { ...prev, board: prev.board.map(c => c.id === data.id ? { ...c, symbol: data.symbol, isFlipped: true, flipStart: performance.now(), flipDir: 1 } : c) }; });
+      setGameState(prev => { if (!prev || !prev.board) return prev; return { ...prev, board: prev.board.map(c => c.id === data.id ? { ...c, symbol: data.symbol, isFlipped: true } : c) }; });
     });
 
     newSocket.on('game:match', (data) => {
@@ -88,9 +88,8 @@ export default function Games() {
 
     newSocket.on('game:mismatch', (data) => {
       setIsProcessing(true);
-      // Mostra as moedas por 300ms depois fecha imediatamente
       setTimeout(() => {
-        setGameState(prev => { if (!prev || !prev.board) return prev; return { ...prev, board: prev.board.map(c => data.ids.includes(c.id) ? { ...c, isFlipped: false, flipStart: performance.now(), flipDir: -1 } : c) }; });
+        setGameState(prev => { if (!prev || !prev.board) return prev; return { ...prev, board: prev.board.map(c => data.ids.includes(c.id) ? { ...c, isFlipped: false, symbol: null } : c) }; });
         setIsProcessing(false);
       }, 300);
     });
@@ -244,42 +243,22 @@ export default function Games() {
     if (!state.board) return;
     const cols = 4, padding = 10, size = 110;
     const sx = (500 - (cols * (size + padding))) / 2, sy = (500 - (4 * (size + padding))) / 2;
+    const r = size / 2;
     state.board.forEach((card, i) => {
       const x = sx + (i % cols) * (size + padding), y = sy + Math.floor(i / cols) * (size + padding);
-      ctx.save(); ctx.translate(x + size / 2, y + size / 2);
-      let sX = 1.0;
-      if (card.isFlipped || card.isMatched) {
-        const elapsed = performance.now() - (card.flipStart || 0);
-        const t = Math.min(1, elapsed / 160);
-        sX = Math.cos(t * Math.PI / 2);
-        if (t > 0.5) sX = -Math.sin(t * Math.PI / 2);
-      } else if (card.flipDir === -1) {
-        // Fechando: anima de volta
-        const elapsed = performance.now() - (card.flipStart || 0);
-        const t = Math.min(1, elapsed / 160);
-        const tp = 1 - t;
-        sX = Math.cos(tp * Math.PI / 2);
-        if (tp > 0.5) sX = -Math.sin(tp * Math.PI / 2);
-        if (t >= 1) { card.flipDir = 0; card.symbol = null; }
-      } else {
-        sX = 1.0;
-      }
-      ctx.scale(sX, 1);
-      const r = size / 2;
-      // Fundo do card: escuro neutro sempre
+      ctx.save();
+      ctx.translate(x + size / 2, y + size / 2);
+
       ctx.fillStyle = card.isMatched ? '#0f2d1f' : '#0f172a';
       ctx.beginPath(); ctx.roundRect(-r, -r, size, size, 16); ctx.fill();
 
-      // Borda: verde se matched, slate se fechado/virado
       ctx.strokeStyle = card.isMatched ? 'rgba(16,185,129,0.5)' : 'rgba(51,65,85,0.7)';
       ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.roundRect(-r, -r, size, size, 16); ctx.stroke();
 
-      // Imagem da moeda (frente) — só a imagem, sem efeito
-      if (Math.abs(sX) > 0.15 && (card.isFlipped || card.isMatched || card.flipDir === -1)) {
+      if (card.isFlipped || card.isMatched) {
         const img = ICON_IMAGES[card.symbol];
         if (img && img.complete && img.naturalWidth > 0) {
-          ctx.scale(-1, 1);
           const is = size * 0.68;
           ctx.drawImage(img, -is / 2, -is / 2, is, is);
         }

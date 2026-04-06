@@ -19,6 +19,7 @@ export default function AutoMining() {
     const timerRef = useRef(null);
     const isClaimingRef = useRef(false);
     const processAutoClaimRef = useRef(null);
+    const cycleStartRef = useRef(null);
 
     const fetchData = useCallback(async () => {
         try {
@@ -109,21 +110,25 @@ export default function AutoMining() {
         };
     }, [isRunning]);
 
-    // Timer: roda sempre que isRunning=true — sem depender de document.hidden nem de processAutoClaim
+    // Timer baseado em Date.now() — preciso mesmo com aba em segundo plano
     useEffect(() => {
+        clearInterval(timerRef.current);
         if (!isRunning) {
-            clearInterval(timerRef.current);
+            cycleStartRef.current = null;
             return;
         }
+        cycleStartRef.current = Date.now();
+        setCountdown(300);
         timerRef.current = setInterval(() => {
-            setCountdown(prev => {
-                if (prev <= 1) {
-                    processAutoClaimRef.current?.();
-                    return 300;
-                }
-                return prev - 1;
-            });
-        }, 1000);
+            if (!cycleStartRef.current) return;
+            const elapsed = (Date.now() - cycleStartRef.current) / 1000;
+            const remaining = Math.max(0, Math.round(300 - elapsed));
+            setCountdown(remaining || 300);
+            if (elapsed >= 300) {
+                cycleStartRef.current = Date.now(); // reinicia ciclo
+                processAutoClaimRef.current?.();
+            }
+        }, 500);
         return () => clearInterval(timerRef.current);
     }, [isRunning]);
 

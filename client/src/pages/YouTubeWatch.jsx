@@ -20,6 +20,8 @@ export default function YouTubeWatch() {
     const playerRef = useRef(null);
     const playerDivRef = useRef(null);
     const ytReadyRef = useRef(false);
+    const cycleStartRef = useRef(null);
+    const [playerResetKey, setPlayerResetKey] = useState(0);
 
     // Carrega a YouTube IFrame API uma vez
     useEffect(() => {
@@ -118,21 +120,20 @@ export default function YouTubeWatch() {
             return;
         }
         setIsRunning(false);
-        if (playerRef.current && ytReadyRef.current) {
-            // Reutiliza o player existente com novo vídeo
-            playerRef.current.loadVideoById(id);
-            setVideoId(id);
-            toast.success('Vídeo carregado! Ganhos iniciam ao apertar play.');
-        } else {
-            setVideoId(id);
-            toast.success('Vídeo carregado! Ganhos iniciam ao apertar play.');
+        // Sempre destrói o player antes de criar um novo — evita estado inválido
+        if (playerRef.current) {
+            try { playerRef.current.destroy(); } catch (_) {}
+            playerRef.current = null;
         }
+        setVideoId(id);
+        setPlayerResetKey(k => k + 1);
+        toast.success('Vídeo carregado! Ganhos iniciam ao apertar play.');
     };
 
-    // Inicializa o player YT quando videoId muda (e player ainda não existe)
+    // Inicializa o player YT quando videoId ou playerResetKey muda
     useEffect(() => {
         if (!videoId || !playerDivRef.current) return;
-        if (playerRef.current) return; // já existe, usa loadVideoById acima
+        if (playerRef.current) return; // já foi recriado
 
         const initPlayer = () => {
             if (!playerDivRef.current) return;
@@ -167,7 +168,7 @@ export default function YouTubeWatch() {
                 initPlayer();
             };
         }
-    }, [videoId]);
+    }, [videoId, playerResetKey]);
 
     const claimReward = useCallback(async () => {
         if (isClaimingRef.current) return;
@@ -176,7 +177,6 @@ export default function YouTubeWatch() {
             const res = await api.post('/youtube/claim', { videoId });
             if (res.data.ok) {
                 toast.success(`+${formatHashrate(Number(res.data.rewardGh) || 0)} aplicado!`);
-                setCountdown(60);
                 fetchStatus();
                 fetchUserStats();
             }
@@ -188,39 +188,37 @@ export default function YouTubeWatch() {
         }
     }, [videoId, fetchStatus, fetchUserStats]);
 
-    // Heartbeat to sync time with server (anti-cheat + focus check)
+    // Heartbeat — roda mesmo com a aba em segundo plano para acumular saldo no servidor
     useEffect(() => {
-        let heartbeatInterval;
-        if (isRunning && !document.hidden) {
-            heartbeatInterval = setInterval(async () => {
-                try {
-                    const security = generateSecurityPayload();
-                    await api.post('/session/heartbeat', { 
-                        type: 'youtube',
-                        security
-                    });
-                } catch (err) {
-                    console.error("Heartbeat sync failed");
-                }
-            }, 10000); // sync every 10s
-        }
+        if (!isRunning) return;
+        const heartbeatInterval = setInterval(async () => {
+            try {
+                const security = generateSecurityPayload();
+                await api.post('/session/heartbeat', { type: 'youtube', security });
+            } catch (_) {}
+        }, 10000);
         return () => clearInterval(heartbeatInterval);
     }, [isRunning]);
 
+    // Timer baseado em Date.now() — preciso mesmo com aba em segundo plano
     useEffect(() => {
-        if (isRunning && !document.hidden) {
-            timerRef.current = setInterval(() => {
-                setCountdown(prev => {
-                    if (prev <= 1) {
-                        claimReward();
-                        return 60;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        } else {
-            clearInterval(timerRef.current);
+        clearInterval(timerRef.current);
+        if (!isRunning) {
+            cycleStartRef.current = null;
+            return;
         }
+        cycleStartRef.current = Date.now();
+        setCountdown(60);
+        timerRef.current = setInterval(() => {
+            if (!cycleStartRef.current) return;
+            const elapsed = (Date.now() - cycleStartRef.current) / 1000;
+            const remaining = Math.max(0, Math.round(60 - elapsed));
+            setCountdown(remaining || 60);
+            if (elapsed >= 60) {
+                cycleStartRef.current = Date.now(); // reinicia ciclo imediatamente
+                claimReward();
+            }
+        }, 500); // poll a cada 500ms para precisão mesmo throttled
         return () => clearInterval(timerRef.current);
     }, [isRunning, claimReward]);
 

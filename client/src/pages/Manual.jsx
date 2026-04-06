@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
     BookOpen, Cpu, Zap, Wallet, Gift, Youtube, Calendar, Link as LinkIcon,
     Trophy, Gamepad2, ChevronDown, ChevronUp, Shield, Coins, LayoutGrid,
-    Server, TrendingUp, ArrowDownCircle, ArrowUpCircle, Hash, Package,
+    Server, TrendingUp, ArrowDownCircle, ArrowUpCircle, Hash,
     Star, AlertCircle, Info, CheckCircle2, Lock, Unlock, Layers, Bolt,
 } from 'lucide-react';
 
@@ -77,38 +77,6 @@ function Accordion({ title, icon: Icon, children }) {
     );
 }
 
-function MachineCard({ name, hash, slots, price, tier, image }) {
-    const tierColors = {
-        basic:    'bg-gray-700/30 text-gray-400 border-gray-700/40',
-        standard: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-        advanced: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-        pro:      'bg-primary/10 text-primary border-primary/20',
-        elite:    'bg-purple-500/10 text-purple-400 border-purple-500/20',
-        quantum:  'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    };
-    return (
-        <div className="bg-gray-900/60 border border-gray-800/60 rounded-2xl p-4 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gray-800/60 border border-gray-700/40 flex items-center justify-center shrink-0 overflow-hidden">
-                {image
-                    ? <img src={image} alt={name} className="w-10 h-10 object-contain" />
-                    : <Cpu className="w-6 h-6 text-gray-600" />}
-            </div>
-            <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                    <span className="text-sm font-black text-white truncate">{name}</span>
-                    <span className={`px-1.5 py-0.5 rounded-md border text-[8px] font-black uppercase tracking-widest ${tierColors[tier] || tierColors.basic}`}>{tier}</span>
-                </div>
-                <div className="flex flex-wrap gap-x-4 gap-y-0.5">
-                    <span className="text-[10px] text-gray-500"><span className="text-primary font-black">{hash}</span> H/s</span>
-                    <span className="text-[10px] text-gray-500">{slots} slot{slots > 1 ? 's' : ''}</span>
-                    {price > 0 && <span className="text-[10px] text-gray-500">{price} POL</span>}
-                    {price === 0 && <span className="text-[10px] text-emerald-400 font-black">Grátis</span>}
-                </div>
-            </div>
-        </div>
-    );
-}
-
 /* ── Índice lateral ───────────────────────────────────────── */
 const tocItems = [
     { id: 'intro',     label: 'Visão Geral' },
@@ -118,7 +86,6 @@ const tocItems = [
     { id: 'renda',     label: 'Fontes de Renda' },
     { id: 'carteira',  label: 'Carteira' },
     { id: 'ranking',   label: 'Ranking' },
-    { id: 'catalogo',  label: 'Catálogo' },
 ];
 
 /* ── Componente principal ─────────────────────────────────── */
@@ -584,25 +551,6 @@ export default function Manual() {
                             <InfoRow label="Sala Pública" value="Clique em qualquer usuário para ver seus racks" />
                             <InfoRow label="Salas bloqueadas" value="Exibidas com cadeado na sala pública" />
                         </Card>
-                    </Section>
-
-                    {/* 8. Catálogo */}
-                    <Section id="catalogo" icon={Package} color="text-purple-400" title="Catálogo de Hardware" subtitle="Máquinas disponíveis na loja">
-                        <div className="space-y-3">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <MachineCard name="AntMiner S19" hash={95}   slots={2} price={150}  tier="advanced" image="/machines/3.png" />
-                                <MachineCard name="Bitmain T17"  hash={40}   slots={1} price={45}   tier="standard" image="/machines/2.png" />
-                                <MachineCard name="MicroBT M30S" hash={88}   slots={2} price={120}  tier="advanced" image="/machines/1.png" />
-                                <MachineCard name="Basic USB Miner" hash={2} slots={1} price={5}    tier="basic"    image="/machines/reward3.png" />
-                                <MachineCard name="Pulse Mini v1 (Faucet)" hash={1} slots={1} price={0} tier="basic" image="/machines/reward2.png" />
-                            </div>
-                            <div className="p-3 bg-gray-800/30 border border-gray-700/30 rounded-xl flex gap-2">
-                                <Info className="w-3.5 h-3.5 text-gray-500 shrink-0 mt-0.5" />
-                                <p className="text-[10px] text-gray-500 leading-relaxed">
-                                    O catálogo é gerenciado pelo administrador e pode ser atualizado a qualquer momento. Novos modelos podem ser adicionados via painel admin. Eventos especiais podem disponibilizar máquinas exclusivas temporariamente.
-                                </p>
-                            </div>
-                        </div>
                     </Section>
 
                     {/* Rodapé */}

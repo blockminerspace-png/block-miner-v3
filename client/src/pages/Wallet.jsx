@@ -218,23 +218,27 @@ export default function Wallet() {
             const from = accounts[0];
             const valueHex = '0x' + parseEther(amount.toString()).toString(16);
 
-            // Busca nonce e gasPrice via Polygonscan API (sem depender de RPC).
-            // Isso resolve o erro eth_blockNumber quando o RPC do MetaMask está quebrado.
-            const PSCAN = 'https://api.polygonscan.com/api';
-            const PSCAN_KEY = 'DNIDH8EQQ6BXBA8A1BZS644DGGMYBACMDV';
-            const pscan = (action, extra = '') =>
-                fetch(`${PSCAN}?module=proxy&action=${action}${extra}&apikey=${PSCAN_KEY}`)
-                    .then(r => r.json()).then(r => r.result);
+            // Busca nonce e gasPrice via RPC público da Polygon (sem API key, sem endpoint deprecated).
+            const POLYGON_RPC = 'https://polygon-bor-rpc.publicnode.com';
+            const rpcCall = (method, params = []) =>
+                fetch(POLYGON_RPC, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ jsonrpc: '2.0', method, params, id: 1 })
+                }).then(r => r.json()).then(r => {
+                    if (r.error) throw new Error(r.error.message || 'RPC error');
+                    return r.result;
+                });
 
             const [nonce, gasPrice] = await Promise.all([
-                pscan('eth_getTransactionCount', `&address=${from}&tag=pending`),
-                pscan('eth_gasPrice'),
+                rpcCall('eth_getTransactionCount', [from, 'pending']),
+                rpcCall('eth_gasPrice'),
             ]);
 
             toast.info('Requesting transaction authorized...');
 
-            // type: '0x0' = transação legada (Type 0). Isso impede o MetaMask
-            // de chamar eth_blockNumber para buscar o base fee do EIP-1559.
+            // type: '0x0' = transação legada (Type 0). Impede o wallet de tentar
+            // buscar base fee EIP-1559, garantindo compatibilidade com Trust Wallet.
             const txHash = await eip1193.request({
                 method: 'eth_sendTransaction',
                 params: [{ from, to: systemDepositAddress, value: valueHex, gas: '0x5208', gasPrice, nonce, type: '0x0' }]
@@ -411,11 +415,11 @@ export default function Wallet() {
     };
 
     return (
-        <div className="max-w-6xl mx-auto space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        <div className="max-w-6xl mx-auto space-y-5 sm:space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-2">
-                    <h1 className="text-4xl font-black text-white tracking-tighter italic flex items-center gap-3">
+                    <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tighter italic flex items-center gap-3">
                         <div className="p-2 bg-primary/20 rounded-2xl">
                             <WalletIcon className="w-8 h-8 text-primary" />
                         </div>
@@ -473,16 +477,16 @@ export default function Wallet() {
                         <div className="absolute inset-0 bg-gradient-to-br from-primary via-blue-600 to-indigo-900 opacity-90 transition-opacity" />
                         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay" />
 
-                        <div className="relative p-10 text-white space-y-12">
+                        <div className="relative p-5 sm:p-10 text-white space-y-5 sm:space-y-12">
                             <div className="flex justify-between items-start">
                                 <div>
                                     <p className="text-blue-100/60 font-black uppercase tracking-[0.3em] text-[9px] mb-3">Total Liquid Assets</p>
                                     <div className="flex items-baseline gap-4">
-                                        <h2 className="text-6xl font-black tracking-tighter tabular-nums drop-shadow-2xl">
+                                        <h2 className="text-3xl sm:text-6xl font-black tracking-tighter tabular-nums drop-shadow-2xl">
                                             {balance.amount.toLocaleString(undefined, { minimumFractionDigits: 6 })}
                                         </h2>
                                         <div className="flex flex-col">
-                                            <span className="text-2xl font-black text-blue-200/80 italic">POL</span>
+                                            <span className="text-lg sm:text-2xl font-black text-blue-200/80 italic">POL</span>
                                             {polPrice > 0 && (
                                                 <span className="text-xs font-bold text-white/50">
                                                     ≈ ${(balance.amount * polPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
@@ -496,7 +500,7 @@ export default function Wallet() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-8 pt-10 border-t border-white/10">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8 pt-5 sm:pt-10 border-t border-white/10">
                                 <div className="space-y-1">
                                     <p className="text-blue-100/40 font-bold uppercase tracking-widest text-[8px]">Life Mined</p>
                                     <p className="text-lg font-black tracking-tight">{balance.lifetimeMined.toFixed(4)} <span className="text-[10px] opacity-40">POL</span></p>
@@ -544,10 +548,10 @@ export default function Wallet() {
                             </button>
                         </div>
 
-                        <div className="p-8">
+                        <div className="p-3 sm:p-8">
                             {activeTab === 'withdraw' && (
-                                <form onSubmit={handleWithdraw} className="space-y-8">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <form onSubmit={handleWithdraw} className="space-y-4 sm:space-y-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
                                         <div className="space-y-3">
                                             <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Recipient Address</label>
                                             <div className="relative group">
@@ -593,7 +597,7 @@ export default function Wallet() {
                                         </div>
                                     </div>
 
-                                    <div className="bg-slate-900/50 rounded-3xl p-6 border border-slate-800/50 flex items-center justify-between">
+                                    <div className="bg-slate-900/50 rounded-3xl p-3 sm:p-6 border border-slate-800/50 flex items-center justify-between">
                                         <div className="space-y-1">
                                             <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest italic">Network protocol fee</p>
                                             <p className="text-emerald-400 text-xs font-black uppercase">Gas Covered by Pool</p>
@@ -626,8 +630,8 @@ export default function Wallet() {
                             )}
 
                             {activeTab === 'deposit' && (
-                                <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <form onSubmit={(e) => e.preventDefault()} className="space-y-4 sm:space-y-8">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
                                         <div className="space-y-3">
                                             <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] ml-2">Deposit Address</label>
                                             <div className="relative group">
@@ -768,7 +772,7 @@ export default function Wallet() {
                                         </div>
                                     )}
 
-                                    <div className="flex flex-col lg:flex-row gap-8 items-center bg-indigo-500/5 border border-indigo-500/10 rounded-3xl p-6">
+                                    <div className="flex flex-col lg:flex-row gap-4 sm:gap-8 items-center bg-indigo-500/5 border border-indigo-500/10 rounded-3xl p-4 sm:p-6">
                                         <div className="bg-white p-4 rounded-2xl shadow-2xl shadow-indigo-500/20">
                                             {systemDepositAddress ? (
                                                 <QRCodeSVG
@@ -903,8 +907,8 @@ export default function Wallet() {
                 <div className="lg:col-span-4 space-y-8">
 
                     {/* Activity Feed */}
-                    <div className="bg-slate-950/80 border border-slate-800/50 rounded-[2.5rem] p-8 shadow-2xl flex flex-col h-full max-h-[700px]">
-                        <div className="flex items-center justify-between mb-8">
+                    <div className="bg-slate-950/80 border border-slate-800/50 rounded-[2.5rem] p-4 sm:p-8 shadow-2xl flex flex-col max-h-[700px]">
+                        <div className="flex items-center justify-between mb-4 sm:mb-8">
                             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
                                 <Clock className="w-4 h-4 text-primary" />
                                 Ledger Analytics
@@ -965,7 +969,7 @@ export default function Wallet() {
                             )}
                         </div>
 
-                        <div className="mt-8 pt-8 border-t border-slate-900">
+                        <div className="mt-4 pt-4 sm:mt-8 sm:pt-8 border-t border-slate-900">
                             <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10 flex items-center gap-3">
                                 <ShieldCheck className="w-5 h-5 text-primary" />
                                 <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tight leading-relaxed">

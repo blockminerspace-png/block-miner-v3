@@ -16,6 +16,7 @@ export default function ShortlinkStep() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [canProceed, setCanProceed] = useState(false);
     const timerRef = useRef(null);
+    const cycleStartRef = useRef(null);
 
     // Retrieve session from storage to allow page refreshes
     const getStoredSession = () => {
@@ -39,17 +40,18 @@ export default function ShortlinkStep() {
         setTimeLeft(10);
         
         if (timerRef.current) clearInterval(timerRef.current);
-        
+
+        cycleStartRef.current = Date.now();
         timerRef.current = setInterval(() => {
-            setTimeLeft(prev => {
-                if (prev <= 1) {
-                    clearInterval(timerRef.current);
-                    setCanProceed(true);
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
+            if (!cycleStartRef.current) return;
+            const elapsed = (Date.now() - cycleStartRef.current) / 1000;
+            const remaining = Math.max(0, Math.round(10 - elapsed));
+            setTimeLeft(remaining);
+            if (elapsed >= 10) {
+                clearInterval(timerRef.current);
+                setCanProceed(true);
+            }
+        }, 200); // 200ms para precisão mesmo throttled em background
 
         return () => clearInterval(timerRef.current);
     }, [currentStepNum]);

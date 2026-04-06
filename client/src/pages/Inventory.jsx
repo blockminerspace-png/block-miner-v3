@@ -99,13 +99,13 @@ function SlotModal({ slot, inventory, onInstall, onRemove, onClose }) {
 function RackCard({ rackNumber, slots, onSlotClick }) {
   return (
     <div className="bg-surface border border-gray-800/50 rounded-3xl overflow-hidden shadow-xl">
-      <div className="px-6 py-4 bg-gray-800/20 border-b border-gray-800/50">
+      <div className="px-3 py-2.5 sm:px-6 sm:py-4 bg-gray-800/20 border-b border-gray-800/50">
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-glow" />
           <h3 className="text-sm font-bold text-gray-300">Rack {rackNumber}</h3>
         </div>
       </div>
-      <div className="p-4 grid grid-cols-4 gap-3">
+      <div className="p-2.5 sm:p-4 grid grid-cols-4 gap-2 sm:gap-3">
         {(() => {
           const rendered = [];
           let i = 0;
@@ -269,11 +269,11 @@ export default function Inventory() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8 items-start">
         <div className="lg:col-span-2" role="tabpanel">
           {currentRoom ? (
             currentRoom.unlocked ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {visualRacksOfCurrent.map((vr) => (
                   <RackCard key={vr.rackNumber} rackNumber={rackOffset + vr.rackNumber} slots={vr.slots} onSlotClick={setSelectedSlot} />
                 ))}
@@ -303,8 +303,8 @@ export default function Inventory() {
           )}
         </div>
 
-        <div className="space-y-6">
-            <div className="bg-surface border border-gray-800/50 rounded-3xl p-6 shadow-xl lg:sticky top-28">
+        <div className="space-y-4">
+            <div className="bg-surface border border-gray-800/50 rounded-3xl p-4 sm:p-6 shadow-xl lg:sticky top-28">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Box className="w-5 h-5 text-primary" /> {t("sidebar.machines")}

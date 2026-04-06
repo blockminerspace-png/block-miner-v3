@@ -2,11 +2,33 @@ import crypto from "crypto";
 import prisma from '../src/db/prisma.js';
 import loggerLib from "../utils/logger.js";
 import { createAuditLog } from "../models/auditLogModel.js";
+import { INTERNAL_SHORTLINK_TYPE } from "../models/shortlinkRewardModel.js";
 
 const logger = loggerLib.child("ShortlinkController");
 const TOTAL_STEPS = 3;
 const MAX_DAILY_RUNS = 1;
-const MIN_STEP_TIME_MS = 10000; 
+const MIN_STEP_TIME_MS = 10000;
+
+/** Retorna o início do dia atual (UTC meia-noite) */
+function todayMidnightUTC() {
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
+
+/** Verifica, e faz reset se necessário. Retorna o registro atualizado. */
+async function resetDailyIfNeeded(status, tx = prisma) {
+  if (!status) return status;
+  const midnight = todayMidnightUTC();
+  const lastCompletion = status.completedAt || status.resetAt;
+  if (status.dailyRuns > 0 && lastCompletion && lastCompletion < midnight) {
+    return tx.shortlinkCompletion.update({
+      where: { userId: status.userId },
+      data: { dailyRuns: 0, resetAt: new Date() }
+    });
+  }
+  return status;
+}
 
 function generateStepToken(userId, step) {
   const secret = process.env.JWT_SECRET || 'fallback-secret-for-dev';
@@ -24,6 +46,8 @@ export async function getShortlinkStatus(req, res) {
         data: { userId, currentStep: 0, dailyRuns: 0 }
       });
     }
+    // Reset diário transparente
+    status = await resetDailyIfNeeded(status);
     res.json({
       ok: true,
       status: {
@@ -45,8 +69,10 @@ export async function startShortlink(req, res) {
   try {
     const userId = req.user.id;
     
-    // ANTI-CHEAT: Checa se o usuário já atingiu o limite diário antes de permitir que ele inicie
-    const status = await prisma.shortlinkCompletion.findUnique({ where: { userId } });
+    let status = await prisma.shortlinkCompletion.findUnique({ where: { userId } });
+    // Reset diário antes de verificar limite
+    status = await resetDailyIfNeeded(status);
+
     if (status && status.dailyRuns >= MAX_DAILY_RUNS) {
       return res.status(403).json({ ok: false, message: "Limite diário alcançado. Volte amanhã." });
     }
@@ -74,7 +100,8 @@ export async function completeShortlinkStep(req, res) {
     if (!status || !status.sessionToken) return res.status(400).json({ ok: false, message: "No session" });
 
     // ANTI-CHEAT: Proteção extra para garantir que não passe da barreira diária
-    if (status.dailyRuns >= MAX_DAILY_RUNS) {
+    const freshStatus = await resetDailyIfNeeded(status);
+    if (freshStatus.dailyRuns >= MAX_DAILY_RUNS) {
        return res.status(403).json({ ok: false, message: "Limite diário alcançado." });
     }
 
@@ -116,31 +143,37 @@ export async function completeShortlinkStep(req, res) {
           stepStartedAt: now
         }
       });
-      // ... rest of transaction (reward)
 
       if (isLastStep) {
-        let miner = await tx.miner.findFirst({ where: { baseHashRate: 5, isActive: true } });
-        if (!miner) miner = await tx.miner.findFirst({ where: { isActive: true } });
-        if (miner) {
-          await tx.userInventory.create({
-            data: {
-              userId,
-              minerId: miner.id,
-              minerName: miner.name,
-              hashRate: miner.baseHashRate,
-              slotSize: miner.slotSize,
-              imageUrl: miner.imageUrl,
-              acquiredAt: now
-            }
-          });
-          reward = { message: "Miner added!" };
+        // Busca a recompensa configurada para o shortlink interno
+        const shortlinkReward = await tx.shortlinkReward.findFirst({
+          where: { shortlinkType: INTERNAL_SHORTLINK_TYPE, isActive: true },
+          include: { miner: true }
+        });
+
+        if (!shortlinkReward?.miner) {
+          throw new Error("Recompensa de shortlink não configurada no sistema. Contate o administrador.");
         }
+
+        const miner = shortlinkReward.miner;
+        await tx.userInventory.create({
+          data: {
+            userId,
+            minerId: miner.id,
+            minerName: miner.name,
+            hashRate: miner.baseHashRate,
+            slotSize: miner.slotSize,
+            imageUrl: miner.imageUrl,
+            acquiredAt: now
+          }
+        });
+        reward = { message: `${miner.name} adicionada ao inventário!` };
       }
     });
     
     res.json({ ok: true, step: normalizedStep, runCompleted: isLastStep, sessionToken: nextSessionToken, reward });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ ok: false, message: "Process failed" });
+    logger.error("completeShortlinkStep error", { error: error.message });
+    res.status(500).json({ ok: false, message: error.message || "Process failed" });
   }
 }
