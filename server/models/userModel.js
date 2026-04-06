@@ -31,12 +31,20 @@ export async function listUsers({ page, pageSize, query, fromDate, toDate }) {
   const where = {};
 
   if (query) {
-    const q = query.toLowerCase();
-    where.OR = [
-      { email: { contains: q, mode: 'insensitive' } },
-      { username: { contains: q, mode: 'insensitive' } },
-      { name: { contains: q, mode: 'insensitive' } }
-    ];
+    const q = query.trim();
+    const numId = Number(q);
+    if (!isNaN(numId) && Number.isInteger(numId) && numId > 0) {
+      where.id = numId;
+    } else {
+      where.OR = [
+        { email: { contains: q, mode: 'insensitive' } },
+        { username: { contains: q, mode: 'insensitive' } },
+        { name: { contains: q, mode: 'insensitive' } },
+        { ip: { contains: q, mode: 'insensitive' } },
+        { walletAddress: { contains: q, mode: 'insensitive' } },
+        { refCode: { contains: q, mode: 'insensitive' } }
+      ];
+    }
   }
 
   if (fromDate || toDate) {

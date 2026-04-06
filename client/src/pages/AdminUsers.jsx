@@ -165,7 +165,7 @@ export default function AdminUsers() {
                         type="text"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Buscar por ID, E-mail ou Username..."
+                        placeholder="Buscar por ID, E-mail, Username, IP, Carteira, Ref..."
                         className="w-full bg-slate-900 border border-slate-800 rounded-2xl py-3 pl-12 pr-4 text-sm text-slate-200 focus:outline-none focus:ring-4 focus:ring-amber-500/5 focus:border-amber-500/50 transition-all"
                     />
                 </form>
