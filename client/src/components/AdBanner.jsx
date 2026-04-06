@@ -27,14 +27,16 @@ export default function AdBanner({ size = '728x90', forceProvider = null }) {
         return (
             <div className="flex flex-col items-center justify-center gap-2 my-12 animate-in fade-in duration-1000 w-full overflow-hidden">
                 <div
+                    data-silvio="1"
                     className="relative bg-slate-900/40 border border-white/10 rounded-xl overflow-hidden shadow-2xl"
                     style={{ width, height, maxWidth: '100%' }}
                 >
                     <a href="https://www.youtube.com/watch?v=QaRzOr7HPDs" target="_blank" rel="noopener noreferrer" className="block w-full h-full group">
                         <img
-                            src="/Silvio/Banner (2).jpg"
+                            src="/Silvio/Banner%20(2).jpg"
                             alt="Advertisement"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                            onError={(e) => { e.currentTarget.closest('[data-silvio]').style.display = 'none'; setProvider('zerads'); }}
                         />
                         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </a>
