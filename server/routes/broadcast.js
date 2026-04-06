@@ -1,6 +1,6 @@
 import express from "express";
 import prisma from "../src/db/prisma.js";
-import { requireAuth } from "../middleware/requireAuth.js";
+import { requireAuth } from "../middleware/auth.js";
 
 export const broadcastRouter = express.Router();
 
