@@ -879,24 +879,24 @@ export default function Wallet() {
                                         <div className="space-y-4">
                                             <h4 className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('wallet.ticket_my_tickets')}</h4>
                                             <div className="space-y-3 max-h-64 overflow-y-auto scrollbar-hide">
-                                                {myTickets.map(t => {
+                                                {myTickets.map(ticket => {
                                                     const statusCfg = {
                                                         open: { color: 'text-blue-400 bg-blue-400/10', label: t('wallet.ticket_status_open') },
                                                         analyzing: { color: 'text-amber-400 bg-amber-400/10', label: t('wallet.ticket_status_analyzing') },
                                                         credited: { color: 'text-emerald-400 bg-emerald-400/10', label: t('wallet.ticket_status_credited') },
                                                         rejected: { color: 'text-red-400 bg-red-400/10', label: t('wallet.ticket_status_rejected') },
                                                         approved: { color: 'text-emerald-400 bg-emerald-400/10', label: t('wallet.ticket_status_approved') }
-                                                    }[t.status] || { color: 'text-slate-400 bg-slate-400/10', label: t.status };
+                                                    }[ticket.status] || { color: 'text-slate-400 bg-slate-400/10', label: ticket.status };
                                                     return (
-                                                        <div key={t.id} className="flex items-center justify-between p-4 bg-slate-900/50 border border-slate-800/50 rounded-2xl">
+                                                        <div key={ticket.id} className="flex items-center justify-between p-4 bg-slate-900/50 border border-slate-800/50 rounded-2xl">
                                                             <div className="space-y-1">
-                                                                <p className="text-[10px] font-black text-white">Ticket #{t.id}</p>
-                                                                <p className="text-[9px] text-slate-500 font-mono">{t.txHash ? `${t.txHash.slice(0,12)}...` : t('wallet.ticket_no_hash')}</p>
-                                                                <p className="text-[9px] text-slate-600">{new Date(t.createdAt).toLocaleDateString()}</p>
+                                                                <p className="text-[10px] font-black text-white">Ticket #{ticket.id}</p>
+                                                                <p className="text-[9px] text-slate-500 font-mono">{ticket.txHash ? `${ticket.txHash.slice(0,12)}...` : t('wallet.ticket_no_hash')}</p>
+                                                                <p className="text-[9px] text-slate-600">{new Date(ticket.createdAt).toLocaleDateString()}</p>
                                                             </div>
                                                             <div className="text-right space-y-1">
                                                                 <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${statusCfg.color}`}>{statusCfg.label}</span>
-                                                                {t.creditedAmount && <p className="text-[9px] text-emerald-400 font-bold">+{Number(t.creditedAmount).toFixed(4)} POL</p>}
+                                                                {ticket.creditedAmount && <p className="text-[9px] text-emerald-400 font-bold">+{Number(ticket.creditedAmount).toFixed(4)} POL</p>}
                                                             </div>
                                                         </div>
                                                     );
