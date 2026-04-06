@@ -71,7 +71,7 @@ function BannerForm({ initial, onSave, onCancel, isSaving }) {
 
           {/* Preview */}
           {form.imageUrl && (
-            <div className="relative w-full rounded-xl overflow-hidden bg-slate-950 border border-slate-800" style={{ aspectRatio: '16/5' }}>
+            <div className="relative w-full rounded-xl overflow-hidden bg-slate-950 border border-slate-800" style={{ aspectRatio: '16/9' }}>
               {isVideo(form.imageUrl) ? (
                 <video src={form.imageUrl} className="w-full h-full object-cover" autoPlay muted loop playsInline />
               ) : (

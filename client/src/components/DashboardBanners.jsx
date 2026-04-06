@@ -153,7 +153,7 @@ export default function DashboardBanners() {
               className="shrink-0 px-1.5"
               style={{ width: `${cardW}%` }}
             >
-              <div className="w-full" style={{ aspectRatio: '16/7' }}>
+              <div className="w-full" style={{ aspectRatio: '16/9' }}>
                 <BannerCard banner={b} />
               </div>
             </div>
