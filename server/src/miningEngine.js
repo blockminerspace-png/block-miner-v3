@@ -7,7 +7,7 @@ export class MiningEngine {
   constructor() {
     this.tokenSymbol = "POL";
     this.blockNumber = 1;
-    this.rewardBase = 0.15;
+    this.rewardBase = 0.30;
     this.blockTarget = 100;
     this.blockProgress = 0;
     this.blockDurationMs = 10 * 60 * 1000;
