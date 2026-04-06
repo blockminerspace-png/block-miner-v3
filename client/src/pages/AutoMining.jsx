@@ -20,6 +20,7 @@ export default function AutoMining() {
     const isClaimingRef = useRef(false);
     const processAutoClaimRef = useRef(null);
     const cycleStartRef = useRef(null);
+    const pausedAtRef = useRef(null); // timestamp quando aba ficou oculta
 
     const fetchData = useCallback(async () => {
         try {
@@ -110,17 +111,35 @@ export default function AutoMining() {
         };
     }, [isRunning]);
 
-    // Timer baseado em Date.now() — preciso mesmo com aba em segundo plano
+    // Timer baseado em Date.now() — pausa quando aba fica oculta
     useEffect(() => {
         clearInterval(timerRef.current);
         if (!isRunning) {
             cycleStartRef.current = null;
+            pausedAtRef.current = null;
             return;
         }
         cycleStartRef.current = Date.now();
+        pausedAtRef.current = null;
         setCountdown(300);
+
+        const onVisibility = () => {
+            if (document.hidden) {
+                // Aba saiu: guarda o momento para pausar o tempo
+                pausedAtRef.current = Date.now();
+            } else {
+                // Aba voltou: empurra o cycleStart pelo tempo que ficou oculto
+                if (pausedAtRef.current !== null && cycleStartRef.current !== null) {
+                    const hiddenDuration = Date.now() - pausedAtRef.current;
+                    cycleStartRef.current += hiddenDuration;
+                }
+                pausedAtRef.current = null;
+            }
+        };
+        document.addEventListener('visibilitychange', onVisibility);
+
         timerRef.current = setInterval(() => {
-            if (!cycleStartRef.current) return;
+            if (!cycleStartRef.current || pausedAtRef.current !== null) return;
             const elapsed = (Date.now() - cycleStartRef.current) / 1000;
             const remaining = Math.max(0, Math.round(300 - elapsed));
             setCountdown(remaining || 300);
@@ -129,7 +148,11 @@ export default function AutoMining() {
                 processAutoClaimRef.current?.();
             }
         }, 500);
-        return () => clearInterval(timerRef.current);
+
+        return () => {
+            clearInterval(timerRef.current);
+            document.removeEventListener('visibilitychange', onVisibility);
+        };
     }, [isRunning]);
 
     const handleToggleSystem = (e) => {
