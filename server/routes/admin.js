@@ -141,6 +141,7 @@ adminRouter.get("/miners", async (req, res) => {
 
         res.json({ ok: true, miners });
     } catch (error) {
+        console.error('[admin miners error]', error?.message || error);
         res.status(500).json({ ok: false, message: "Load failed" });
     }
 });
@@ -368,6 +369,7 @@ adminRouter.get("/users/:id/details", async (req, res) => {
             supportMessages,
         });
     } catch (err) {
+        console.error('[admin details error]', err?.message || err);
         res.status(500).json({ ok: false, message: 'Erro ao carregar detalhes' });
     }
 });
