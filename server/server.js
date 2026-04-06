@@ -6,60 +6,18 @@ import { fileURLToPath } from "url";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import { Server } from "socket.io";
 
-import prisma from "./src/db/prisma.js";
-import { MiningEngine } from "./src/miningEngine.js";
-import { setMiningEngine } from "./src/miningEngineInstance.js";
 import loggerLib from "./utils/logger.js";
 
 // Middlewares
 import { createRateLimiter } from "./middleware/rateLimit.js";
 import { createCspMiddleware } from "./middleware/csp.js";
-import { createCsrfMiddleware } from "./middleware/csrf.js";
 
-// Routes
-import { authRouter } from "./routes/auth.js";
-import { faucetRouter } from "./routes/faucet.js";
-import { walletRouter } from "./routes/wallet.js";
-import { depositTicketRouter } from "./routes/deposit-tickets.js";
-import { shopRouter } from "./routes/shop.js";
-import { inventoryRouter } from "./routes/inventory.js";
-import { machinesRouter } from "./routes/machines.js";
-import { racksRouter } from "./routes/racks.js";
-import { roomsRouter } from "./routes/rooms.js";
-import { checkinRouter } from "./routes/checkin.js";
-import { offerEventsRouter } from "./routes/offer-events.js";
-import { chatRouter } from "./routes/chat.js";
-import { rankingRouter } from "./routes/ranking.js";
-import { shortlinkRouter } from "./routes/shortlink.js";
-import { zeradsRouter } from "./routes/zerads.js";
-import { offerwallRouter } from "./routes/offerwall.js";
-import { youtubeRouter } from "./routes/youtube.js";
-import { autoMiningGpuRouter } from "./routes/auto-mining-gpu.js";
-import { sessionRouter } from "./routes/session.js";
-import { notificationRouter } from "./routes/notification.js";
-import { broadcastRouter } from "./routes/broadcast.js";
-import { swapRouter } from "./routes/swap.js";
-import { ptpRouter } from "./routes/ptp.js";
+// Admin Routes
 import { adminAuthRouter } from "./routes/admin-auth.js";
+import { adminRouter } from "./routes/admin.js";
 import { adminAutoMiningRewardsRouter } from "./routes/admin-auto-mining-rewards.js";
-import supportRouter from "./routes/support.js";
-import userRouter from "./routes/user.js";
 import * as healthController from "./controllers/healthController.js";
-import * as bannerController from "./controllers/bannerController.js";
-import * as transparencyController from "./controllers/transparencyController.js";
-
-// Models & Utils
-import { startCronTasks } from "./cron/index.js";
-import { startDepositVerifier } from "./services/depositVerifier.js";
-import { registerMinerSocketHandlers } from "./src/socket/registerMinerSocketHandlers.js";
-import { registerGamesSocketHandlers } from "./src/socket/registerGamesSocketHandlers.js";
-import serverDatabaseModel from "./models/database/serverDatabaseModel.js";
-import { getUserById } from "./models/userModel.js";
-import { verifyAccessToken } from "./utils/authTokens.js";
-import { getOrCreateMinerProfile, persistMinerProfile, syncUserBaseHashRate } from "./models/minerProfileModel.js";
-import { ensureDefaultInternalReward } from "./models/shortlinkRewardModel.js";
 
 const logger = loggerLib.child("Server");
 const __filename = fileURLToPath(import.meta.url);
@@ -67,120 +25,9 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(",") : "*",
-    methods: ["GET", "POST"],
-    credentials: true
-  }
-});
 
-// 1. Initialize Mining Engine
-const engine = new MiningEngine();
-setMiningEngine(engine);
-engine.setIo(io);
-
-// 1.1 Preload historical blocks into memory
-const bootstrapEngine = async () => {
-  try {
-    const blocks = await serverDatabaseModel.loadRecentBlocks(12);
-    if (blocks && blocks.length > 0) {
-      engine.blockHistory = blocks.map(b => ({
-        blockNumber: b.blockNumber,
-        reward: b.reward,
-        minerCount: b.minerCount,
-        timestamp: b.timestamp,
-        userRewards: b.userRewards
-      }));
-    }
-
-    const [maxDist, maxLog] = await Promise.all([
-      prisma.blockDistribution.aggregate({ _max: { blockNumber: true } }),
-      prisma.miningRewardsLog.aggregate({ _max: { blockNumber: true } })
-    ]);
-
-    const currentMax = Math.max(maxDist._max.blockNumber || 0, maxLog._max.blockNumber || 0);
-    engine.blockNumber = currentMax + 1;
-
-    logger.info(`Engine bootstrap complete. Current Block: #${currentMax}. Next: #${engine.blockNumber}`);
-    
-    // 1.2 Sync miners after block initialization
-    await syncEngineMiners(engine);
-  } catch (err) {
-    logger.error("Failed to bootstrap mining engine", { error: err.message });
-  }
-};
-
-bootstrapEngine();
-
-engine.setProfileLoader(async (userId) => {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (user) return getOrCreateMinerProfile(user);
-  return null;
-});
-
-// 1.2 Function to sync all active users with the engine
-async function syncEngineMiners(engine) {
-  try {
-    const users = await prisma.user.findMany({
-      where: { isBanned: false }
-    });
-    
-    logger.info(`Syncing ${users.length} users into mining engine...`);
-    
-    for (const user of users) {
-      const profile = await getOrCreateMinerProfile(user);
-      if (profile.base_hash_rate > 0) {
-        engine.createOrGetMiner({
-          userId: user.id,
-          username: profile.username || user.name,
-          walletAddress: profile.wallet_address,
-          profile: {
-            rigs: profile.rigs,
-            base_hash_rate: profile.base_hash_rate,
-            balance: profile.balance,
-            lifetimeMined: profile.lifetime_mined,
-            refCode: profile.refCode,
-            referralCount: profile.referralCount
-          }
-        });
-      }
-    }
-    logger.info("Engine sync complete.");
-  } catch (error) {
-    logger.error("Failed to sync engine miners", { error: error.message });
-  }
-}
-
-// 2. Setup Database Persistence for the Engine
-engine.setPersistBlockRewardsCallback(async (payload) => {
-  try {
-    await serverDatabaseModel.persistBlockRewards(payload);
-  } catch (error) {
-    logger.error("Engine persistence error", { error: error.message });
-    throw error;
-  }
-});
-
-// 3. Register Socket Handlers
-registerMinerSocketHandlers({
-  io,
-  engine,
-  verifyAccessToken,
-  getUserById,
-  getOrCreateMinerProfile,
-  syncUserBaseHashRate,
-  persistMinerProfile,
-  buildPublicState: async (minerId) => engine.getPublicState(minerId)
-});
-
-registerGamesSocketHandlers({
-  io,
-  engine
-});
-
-// 4. Global Security Stack
-app.use(helmet({ 
+// 1. Global Security Stack
+app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
 }));
@@ -189,113 +36,47 @@ app.use(cors({
   origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(",") : "*",
   credentials: true
 }));
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-// app.use(createCsrfMiddleware());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Global Rate Limiter
-const globalLimiter = createRateLimiter({
+// Rate Limiter (admin only — less permissive)
+const adminLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 5000, // Increased from 2000 to 5000
-  skip: (req) => {
-    const skipPaths = ["/api/session/heartbeat", "/api/wallet/balance", "/api/checkin/status"];
-    return skipPaths.includes(req.originalUrl);
-  },
+  max: 500,
   message: "Too many requests from this IP, please try again later."
 });
-app.use("/api", globalLimiter);
+app.use("/api", adminLimiter);
 
-app.use("/api", (req, res, next) => {
-  logger.info(`INCOMING API REQUEST: ${req.method} ${req.originalUrl}`);
+app.use("/api", (req, _res, next) => {
+  logger.info(`[ADMIN API] ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// 5. API Routes
-import * as zeradsController from "./controllers/zeradsController.js";
-app.get("/zeradsptc.php", zeradsController.handlePtcCallback);
-app.post("/zeradsptc.php", zeradsController.handlePtcCallback);
-
-app.use("/api/auth", authRouter);
-app.use("/api/faucet", faucetRouter);
-app.use("/api/wallet", walletRouter);
-app.use("/api/deposit-tickets", depositTicketRouter);
-app.use("/api/shop", shopRouter);
-app.use("/api/inventory", inventoryRouter);
-app.use("/api/machines", machinesRouter);
-app.use("/api/racks", racksRouter);
-app.use("/api/rooms", roomsRouter);
-app.use("/api/checkin", checkinRouter);
-app.use("/api/offer-events", offerEventsRouter);
-app.use("/api/chat", chatRouter);
-app.use("/api/ranking", rankingRouter);
-app.use("/api/shortlink", shortlinkRouter);
-app.use("/api/zerads", zeradsRouter);
-app.use("/api/offerwall", offerwallRouter);
-app.use("/api/youtube", youtubeRouter);
-app.use("/api/auto-mining-gpu", autoMiningGpuRouter);
-app.use("/api/session", sessionRouter);
-app.use("/api/notifications", notificationRouter);
-app.use("/api/broadcast", broadcastRouter);
-app.use("/api/swap", swapRouter);
-app.use("/api/support", supportRouter);
-app.use("/api/user", userRouter);
-// app.use("/api/ptp", ptpRouter);
-
-// 6. Admin Routes
-import { adminRouter } from "./routes/admin.js";
+// 2. Admin API Routes
 app.use("/api/admin/auth", adminAuthRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/admin/auto-mining-rewards", adminAutoMiningRewardsRouter);
 
-// Public stats (no auth — used by Landing page)
-app.get("/api/public-stats", async (req, res) => {
-  try {
-    const [userCount, withdrawnAgg, activeMiners] = await Promise.all([
-      prisma.user.count(),
-      prisma.transaction.aggregate({
-        where: { type: "withdrawal", status: "completed" },
-        _sum: { amount: true },
-      }),
-      prisma.userMiner.count({ where: { isActive: true } }),
-    ]);
-    res.json({
-      ok: true,
-      users: userCount,
-      totalWithdrawn: Number(withdrawnAgg._sum.amount || 0),
-      activeMiners,
-      launchDate: "2026-03-05T00:00:00.000Z",
-    });
-  } catch {
-    res.status(500).json({ ok: false });
-  }
-});
-
-// Health check
+// 3. Health check
 app.get("/health", healthController.health);
 
-// Active banners (no auth — used by Dashboard)
-app.get("/api/banners", bannerController.getActiveBanners);
+// 4. Static uploads (keep serving uploads volume)
+app.use("/uploads", express.static(process.env.UPLOADS_DIR || "/app/uploads"));
 
-// Transparency portal (no auth — public)
-app.get("/api/transparency", transparencyController.getPublicEntries);
-
-// 7. Static Assets & Frontend Production Build
-// Serve user-uploaded miner images from the persistent volume (survives rebuilds)
-app.use('/uploads', express.static('/app/uploads'));
-
+// 5. Serve admin SPA
 const publicPath = path.join(__dirname, "..", "client", "dist");
-app.use(express.static(publicPath, { index: false })); // Don't serve index.html statically automatically
+app.use(express.static(publicPath, { index: false }));
 
-// Express 5 / path-to-regexp 8+ catch-all syntax
+// Redirect root to /admin/login
+app.get("/", (_req, res) => res.redirect(302, "/admin/login"));
+
+// Catch-all: serve admin SPA for all non-API routes
 app.get("/{*all}", async (req, res) => {
   try {
     const indexPath = path.join(publicPath, "index.html");
     let html = await fs.readFile(indexPath, "utf8");
-    
-    // Inject the nonce into all script and style tags that have the placeholder
     const nonce = res.locals.cspNonce || "";
     html = html.replace(/__CSP_NONCE__/g, nonce);
-    
     res.send(html);
   } catch (error) {
     logger.error("Error serving index.html", { error: error.message });
@@ -303,72 +84,13 @@ app.get("/{*all}", async (req, res) => {
   }
 });
 
-// 8. Bootstrap
+// 6. Bootstrap
 async function bootstrap() {
   try {
-      const port = process.env.PORT || 3000;
-      const host = process.env.HOST || '0.0.0.0';
-    // Ensure shortlink reward is correctly set up
-    await ensureDefaultInternalReward().catch(err => logger.error("Failed to ensure shortlink reward", { error: err.message }));
-
-    // --- ONE-TIME SCRIPT: Reset all shortlinks on startup ---
-    try {
-      logger.info("Running one-time shortlink reset for all users...");
-      const { count } = await prisma.shortlinkCompletion.updateMany({
-        where: { dailyRuns: { gt: 0 } },
-        data: { dailyRuns: 0, resetAt: new Date() }
-      });
-      logger.info(`One-time reset completed for ${count} users.`);
-    } catch (e) {
-      logger.error("One-time shortlink reset failed", { error: e.message });
-    }
-    // --- END ONE-TIME SCRIPT ---
-
-    // --- MIGRATION: Extend game/yt powers criados com 24h para GAME_POWER_DAYS ---
-    try {
-      const GAME_POWER_DAYS = Number(process.env.GAME_POWER_DAYS) || 7;
-      const YT_POWER_DAYS = Number(process.env.YT_POWER_DAYS) || 7;
-      const now = new Date();
-      // Pega apenas powers ativos criados nos últimos 3 dias que ainda expiram em < 2 dias (criados com expiry de 24h)
-      const cutoffCreated = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-      const shortExpiryThreshold = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
-
-      const oldGamePowers = await prisma.userPowerGame.findMany({
-        where: { playedAt: { gt: cutoffCreated }, expiresAt: { gt: now, lt: shortExpiryThreshold } },
-        select: { id: true, playedAt: true }
-      });
-      for (const p of oldGamePowers) {
-        const newExpiry = new Date(p.playedAt.getTime() + GAME_POWER_DAYS * 24 * 60 * 60 * 1000);
-        await prisma.userPowerGame.update({ where: { id: p.id }, data: { expiresAt: newExpiry } });
-      }
-      if (oldGamePowers.length > 0) logger.info(`Migrated ${oldGamePowers.length} game powers to ${GAME_POWER_DAYS}-day expiry.`);
-
-      const oldYtPowers = await prisma.youtubeWatchPower.findMany({
-        where: { claimedAt: { gt: cutoffCreated }, expiresAt: { gt: now, lt: shortExpiryThreshold } },
-        select: { id: true, claimedAt: true }
-      });
-      for (const p of oldYtPowers) {
-        const newExpiry = new Date(p.claimedAt.getTime() + YT_POWER_DAYS * 24 * 60 * 60 * 1000);
-        await prisma.youtubeWatchPower.update({ where: { id: p.id }, data: { expiresAt: newExpiry } });
-      }
-      if (oldYtPowers.length > 0) logger.info(`Migrated ${oldYtPowers.length} YT powers to ${YT_POWER_DAYS}-day expiry.`);
-    } catch (e) {
-      logger.error("Power expiry migration failed", { error: e.message });
-    }
-    // --- END MIGRATION ---
-
+    const port = process.env.PORT || 3001;
+    const host = process.env.HOST || "0.0.0.0";
     server.listen(port, host, () => {
-      logger.info(`Server running on ${host}:${port}`);
-      
-      // Start background tasks
-      startCronTasks({
-        engine,
-        io,
-        persistMinerProfile,
-        syncUserBaseHashRate,
-        buildPublicState: async (minerId) => engine.getPublicState(minerId)
-      });
-      startDepositVerifier();
+      logger.info(`[support-block-miner] Admin server running on ${host}:${port}`);
     });
   } catch (error) {
     logger.error("Bootstrap failed", { error: error.message });

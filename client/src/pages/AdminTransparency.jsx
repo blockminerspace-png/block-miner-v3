@@ -12,7 +12,6 @@
  * All user-facing strings are internationalised via react-i18next.
  */
 import { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   Eye, Plus, Pencil, Trash2, Check, X,
   Server, Wrench, Megaphone, Briefcase, Scale, Package,
@@ -82,7 +81,8 @@ const inputCls = 'bg-slate-800/60 border border-white/8 rounded-xl px-3 py-2 tex
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function AdminTransparency() {
-  const { t } = useTranslation();
+  // fallback simples sem i18n
+  const t = (key, fallback) => fallback !== undefined ? String(fallback) : key.split('.').pop().replace(/_/g, ' ');
   const [entries, setEntries]           = useState([]);
   const [loading, setLoading]           = useState(true);
   const [showForm, setShowForm]         = useState(false);

@@ -3,6 +3,13 @@ node_modules/
 client/node_modules/
 server/node_modules/
 
+# Build output — gerado pelo Dockerfile, não commitar
+client/dist/
+
+# Pasta original do projeto (referência de desenvolvimento)
+block-miner (5)/
+block-miner (5).zip
+
 # Env / secrets
 # Ficheiro único de deploy (host/user/password) — ler deploy.secrets.example
 deploy.secrets.local
@@ -45,3 +52,5 @@ nginx/certs/
 backups/
 
 /src/generated/prisma
+
+.env.production.support-backup

@@ -1,34 +1,5 @@
-import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { useAuthStore } from './store/auth';
-
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import Dashboard from './pages/Dashboard';
-import Shop from './pages/Shop';
-import Inventory from './pages/Inventory';
-import Wallet from './pages/Wallet';
-import Faucet from './pages/Faucet';
-import Shortlinks from './pages/Shortlinks';
-import Checkin from './pages/Checkin';
-import PopularOffers from './pages/PopularOffers';
-import YouTubeWatch from './pages/YouTubeWatch';
-import Ranking from './pages/Ranking';
-import PublicRoom from './pages/PublicRoom';
-import Settings from './pages/Settings';
-import AutoMining from './pages/AutoMining';
-import Games from './pages/Games';
-import ShortlinkStep from './pages/ShortlinkStep';
-import Roadmap from './pages/Roadmap';
-import Manual from './pages/Manual';
-import CalculatorPage from './pages/Calculator';
-import ChatSidebar from './components/ChatSidebar';
-import AdBlockDetector from './components/AdBlockDetector';
-import AdBanner from './components/AdBanner';
 
 import AdminLogin from './pages/AdminLogin';
 import AdminLayout from './components/AdminLayout';
@@ -48,60 +19,8 @@ import AdminCreators from './pages/AdminCreators';
 import AdminTransparency from './pages/AdminTransparency';
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminBroadcast from './pages/AdminBroadcast';
-import BroadcastPopup from './components/BroadcastPopup';
-import Transparency from './pages/Transparency';
-import TransparencyErrorBoundary from './components/TransparencyErrorBoundary';
-import Landing from './pages/Landing';
-
-const ProtectedLayout = () => {
-  const { isAuthenticated, isLoading } = useAuthStore();
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return (
-    <div className="flex h-screen bg-background overflow-hidden text-gray-100 font-sans">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        <Header />
-        <BroadcastPopup />
-        <main className="flex-1 overflow-y-auto scrollbar-hide mt-14 md:mt-0">
-          <div className="p-4 pb-24 md:p-8 md:pb-8 max-w-7xl mx-auto">
-            <AdBanner size="728x90" />
-            <Outlet />
-            <AdBanner size="728x90" />
-          </div>
-        </main>
-        <ChatSidebar />
-      </div>
-    </div>
-  );
-};
 
 function App() {
-  const { checkSession, isLoading } = useAuthStore();
-
-  useEffect(() => {
-    checkSession();
-  }, [checkSession]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex justify-center items-center">
-        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
   return (
     <BrowserRouter>
       <Toaster
@@ -124,38 +43,16 @@ function App() {
           },
         }}
       />
-      <AdBlockDetector />
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+        {/* Redireciona raiz direto para login admin */}
+        <Route path="/" element={<Navigate to="/admin/login" replace />} />
 
-        <Route element={<ProtectedLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/shop" element={<Shop />} />
-          <Route path="/offers" element={<PopularOffers />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/wallet" element={<Wallet />} />
-          <Route path="/faucet" element={<Faucet />} />
-          <Route path="/shortlinks" element={<Shortlinks />} />
-          <Route path="/checkin" element={<Checkin />} />
-          <Route path="/youtube" element={<YouTubeWatch />} />
-          <Route path="/auto-mining" element={<AutoMining />} />
-          <Route path="/ranking" element={<Ranking />} />
-          <Route path="/room/:username" element={<PublicRoom />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/games" element={<Games />} />
-          <Route path="/roadmap" element={<Roadmap />} />
-          <Route path="/manual" element={<Manual />} />
-          <Route path="/calculator" element={<CalculatorPage />} />
-          <Route path="/transparency" element={<TransparencyErrorBoundary><Transparency /></TransparencyErrorBoundary>} />
-          <Route path="/shortlink/internal-shortlink/step/:step" element={<ShortlinkStep />} />
-        </Route>
-
-        {/* Admin Routes */}
+        {/* Login do admin */}
         <Route path="/admin/login" element={<AdminLogin />} />
+
+        {/* Painel admin protegido */}
         <Route element={<AdminLayout />}>
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/miners" element={<AdminMiners />} />
@@ -173,9 +70,12 @@ function App() {
           <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="/admin/broadcast" element={<AdminBroadcast />} />
         </Route>
+
+        {/* Qualquer rota desconhecida vai pro login */}
+        <Route path="*" element={<Navigate to="/admin/login" replace />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
 export default App;

@@ -37,9 +37,8 @@ RUN mkdir -p data backups logs uploads
 
 ENV NODE_ENV=production
 
-EXPOSE 3000
+EXPOSE 3001
 
-# Use an entrypoint script to run migrations automatically before starting
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && \
     chmod +x /usr/local/bin/docker-entrypoint.sh
