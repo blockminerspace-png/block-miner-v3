@@ -100,10 +100,8 @@ export function registerGamesSocketHandlers({ io, engine }) {
             socket.emit("game:match", { ids: [c1.id, c2.id], score: state.score });
             if (state.board.every(c => c.isMatched)) finishGame(socket, state, true, engine);
           } else {
-            setTimeout(() => {
-              c1.isFlipped = false; c2.isFlipped = false; state.flipped = [];
-              socket.emit("game:mismatch", { ids: [c1.id, c2.id] });
-            }, 800);
+            c1.isFlipped = false; c2.isFlipped = false; state.flipped = [];
+            socket.emit("game:mismatch", { ids: [c1.id, c2.id] });
           }
         }
       }

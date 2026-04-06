@@ -91,7 +91,7 @@ export default function Games() {
       setTimeout(() => {
         setGameState(prev => { if (!prev || !prev.board) return prev; return { ...prev, board: prev.board.map(c => data.ids.includes(c.id) ? { ...c, isFlipped: false, symbol: null } : c) }; });
         setIsProcessing(false);
-      }, 300);
+      }, 600);
     });
 
     newSocket.on('game:board_update', (data) => {
