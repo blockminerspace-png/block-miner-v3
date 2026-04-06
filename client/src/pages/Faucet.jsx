@@ -30,6 +30,30 @@ export default function Faucet() {
     
     const timerRef = useRef(null);
     const partnerTimerRef = useRef(null);
+    const zerAdsRef = useRef(null);
+
+    useEffect(() => {
+        fetch('https://zerads.com/ad/ad.php?ref=10776&width=468')
+            .then(r => r.text())
+            .then(data => {
+                const el = zerAdsRef.current;
+                if (!el) return;
+                if (!data.includes('*BLANK*')) {
+                    const cleaned = data.replace('<meta http-equiv="refresh" content="280">', '');
+                    const iframe = document.createElement('iframe');
+                    iframe.style.border = 'none';
+                    iframe.style.maxWidth = '100%';
+                    iframe.width = '468';
+                    iframe.height = '60';
+                    iframe.srcdoc = cleaned;
+                    el.innerHTML = '';
+                    el.appendChild(iframe);
+                } else {
+                    el.innerHTML = `<a href="https://zerads.com/index.php?view=site&id=10776" target="_blank" rel="noopener noreferrer"><div style="width:468px;max-width:100%;height:60px;background:rgba(200,200,200,0.05);display:flex;align-items:center;justify-content:center;"><span style="color:#666;font-family:Arial;font-style:italic">Advertise Here</span></div></a>`;
+                }
+            })
+            .catch(() => {});
+    }, []);
 
     const fetchStatus = useCallback(async () => {
         try {
@@ -227,25 +251,16 @@ export default function Faucet() {
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
-                                            <div className="relative w-full rounded-2xl overflow-hidden border border-gray-700 bg-gray-900" style={{ height: '120px' }}>
-                                                {/* iframe ZerAds carrega no fundo para contar impressão */}
-                                                <iframe
-                                                    src="https://zerads.com/ad/ad.php?width=300&ref=10776"
-                                                    width="300"
-                                                    height="120"
-                                                    marginWidth={0}
-                                                    marginHeight={0}
-                                                    scrolling="no"
-                                                    frameBorder={0}
-                                                    style={{ border: 'none', width: '100%', height: '120px', display: 'block', pointerEvents: 'none', position: 'absolute', inset: 0 }}
-                                                    title="ZerAds Sponsor"
-                                                />
-                                                {/* Overlay visível com CTA — some ao clicar */}
-                                                <div
-                                                    className="absolute inset-0 flex flex-col items-center justify-center gap-2 cursor-pointer bg-black/60 hover:bg-black/40 transition-colors"
-                                                    onClick={handleAdClick}
-                                                >
-                                                    <MousePointer2 className="w-6 h-6 text-primary animate-bounce" />
+                                            <div
+                                                className="relative w-full rounded-2xl overflow-hidden border border-gray-700 bg-gray-900 flex items-center justify-center cursor-pointer"
+                                                style={{ minHeight: '60px' }}
+                                                onClick={handleAdClick}
+                                            >
+                                                {/* Banner ZerAds via fetch+srcdoc */}
+                                                <div ref={zerAdsRef} style={{ lineHeight: 0, maxWidth: '100%', overflow: 'hidden', pointerEvents: 'none' }} />
+                                                {/* Overlay CTA */}
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/55 hover:bg-black/35 transition-colors">
+                                                    <MousePointer2 className="w-5 h-5 text-primary animate-bounce" />
                                                     <p className="text-[10px] font-black uppercase tracking-widest text-white/90">Visitar Patrocinador</p>
                                                     <p className="text-[8px] font-bold text-gray-400 uppercase">Clique para desbloquear</p>
                                                 </div>
