@@ -93,14 +93,14 @@ export default function Games() {
       setIsProcessing(true);
       const now = performance.now();
       data.ids.forEach(id => {
-        cardFlipAnims.current.set(id, { startTime: now, duration: 250, opening: false });
+        cardFlipAnims.current.set(id, { startTime: now, duration: 500, opening: false });
       });
       // Atualiza estado no meio da animação (carta está de lado, invisível)
       setTimeout(() => {
         setGameState(prev => { if (!prev || !prev.board) return prev; return { ...prev, board: prev.board.map(c => data.ids.includes(c.id) ? { ...c, isFlipped: false, symbol: null } : c) }; });
-      }, 125);
+      }, 250);
       // Libera processamento após animação completa
-      setTimeout(() => { setIsProcessing(false); }, 300);
+      setTimeout(() => { setIsProcessing(false); }, 550);
     });
 
     newSocket.on('game:board_update', (data) => {
