@@ -120,13 +120,13 @@ adminRouter.get("/miners", async (req, res) => {
         if (req.query.withEvents === '1') {
             const eventMiners = await prisma.eventMiner.findMany({
                 where: { isActive: true, event: { isActive: true, deletedAt: null } },
-                include: { event: { select: { name: true } } },
+                include: { event: { select: { title: true } } },
                 orderBy: { id: 'asc' }
             });
             for (const em of eventMiners) {
                 miners.push({
                     id: `event_${em.id}`,
-                    name: `[Evento: ${em.event.name}] ${em.name}`,
+                    name: `[Evento: ${em.event.title}] ${em.name}`,
                     baseHashRate: Number(em.hashRate),
                     price: 0,
                     slotSize: Number(em.slotSize ?? 1),
