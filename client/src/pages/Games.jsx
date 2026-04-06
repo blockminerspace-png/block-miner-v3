@@ -55,6 +55,7 @@ export default function Games() {
   const swapAnim = useRef(null);
   const processingClearRef = useRef(false);
   const gameStateRef = useRef(null);
+  const cardFlipAnims = useRef(new Map()); // Map<cardId, {startTime, duration, opening}>
 
   useEffect(() => {
     const newSocket = io(SOCKET_URL, { auth: { token }, withCredentials: true });
@@ -70,6 +71,7 @@ export default function Games() {
       setGameState(data); setIsGameOver(false); setRewardMessage(null); setIsProcessing(false);
       setGameTimerKey(k => k + 1);
       particles.current = [];
+      cardFlipAnims.current.clear();
       if (data.game === 'crypto-match-3' && data.board) {
         selectedCell.current = null; swapAnim.current = null;
         visualBoard.current = data.board.map((row, y) => row.map((s, x) => ({ symbol: s, x, y, visualX: x, visualY: y, scale: 1.0 })));
@@ -78,6 +80,7 @@ export default function Games() {
     });
 
     newSocket.on('game:card_flipped', (data) => {
+      cardFlipAnims.current.set(data.id, { startTime: performance.now(), duration: 1000, opening: true });
       setGameState(prev => { if (!prev || !prev.board) return prev; return { ...prev, board: prev.board.map(c => c.id === data.id ? { ...c, symbol: data.symbol, isFlipped: true } : c) }; });
     });
 
@@ -88,10 +91,16 @@ export default function Games() {
 
     newSocket.on('game:mismatch', (data) => {
       setIsProcessing(true);
+      const now = performance.now();
+      data.ids.forEach(id => {
+        cardFlipAnims.current.set(id, { startTime: now, duration: 1000, opening: false });
+      });
+      // Atualiza estado no meio da animação (carta está de lado, invisível)
       setTimeout(() => {
         setGameState(prev => { if (!prev || !prev.board) return prev; return { ...prev, board: prev.board.map(c => data.ids.includes(c.id) ? { ...c, isFlipped: false, symbol: null } : c) }; });
-        setIsProcessing(false);
-      }, 600);
+      }, 500);
+      // Libera processamento após animação completa
+      setTimeout(() => { setIsProcessing(false); }, 1000);
     });
 
     newSocket.on('game:board_update', (data) => {
@@ -244,23 +253,58 @@ export default function Games() {
     const cols = 4, padding = 10, size = 110;
     const sx = (500 - (cols * (size + padding))) / 2, sy = (500 - (4 * (size + padding))) / 2;
     const r = size / 2;
+    const now = performance.now();
     state.board.forEach((card, i) => {
       const x = sx + (i % cols) * (size + padding), y = sy + Math.floor(i / cols) * (size + padding);
+
+      // --- animação de flip ---
+      const anim = cardFlipAnims.current.get(card.id);
+      let scaleX = 1;
+      let showFront = card.isFlipped || card.isMatched;
+      if (anim) {
+        const t = Math.min(1, (now - anim.startTime) / anim.duration);
+        const cosT = Math.cos(t * Math.PI); // 1 → 0 → -1
+        scaleX = Math.abs(cosT);
+        showFront = anim.opening ? (cosT < 0) : (cosT >= 0);
+        if (t >= 1) {
+          cardFlipAnims.current.delete(card.id);
+          scaleX = 1;
+          showFront = anim.opening;
+        }
+      }
+
       ctx.save();
       ctx.translate(x + size / 2, y + size / 2);
+      ctx.scale(scaleX, 1);
 
-      ctx.fillStyle = card.isMatched ? '#0f2d1f' : '#0f172a';
+      ctx.fillStyle = card.isMatched ? '#0f2d1f' : (showFront ? '#0d1f3a' : '#0f172a');
       ctx.beginPath(); ctx.roundRect(-r, -r, size, size, 16); ctx.fill();
 
-      ctx.strokeStyle = card.isMatched ? 'rgba(16,185,129,0.5)' : 'rgba(51,65,85,0.7)';
+      ctx.strokeStyle = card.isMatched ? 'rgba(16,185,129,0.5)' : (showFront ? 'rgba(59,130,246,0.5)' : 'rgba(51,65,85,0.7)');
       ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.roundRect(-r, -r, size, size, 16); ctx.stroke();
 
-      if (card.isFlipped || card.isMatched) {
+      if (showFront && !card.isMatched) {
+        // Padrão de fundo sutil na frente da carta
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+        grad.addColorStop(0, 'rgba(59,130,246,0.08)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad; ctx.beginPath(); ctx.roundRect(-r, -r, size, size, 16); ctx.fill();
+      }
+
+      if (showFront || card.isMatched) {
         const img = ICON_IMAGES[card.symbol];
         if (img && img.complete && img.naturalWidth > 0) {
           const is = size * 0.68;
           ctx.drawImage(img, -is / 2, -is / 2, is, is);
+        }
+      } else {
+        // Verso da carta: símbolo decorativo
+        ctx.strokeStyle = 'rgba(51,65,85,0.4)';
+        ctx.lineWidth = 1;
+        const hs = r * 0.6;
+        for (let d = -hs; d <= hs; d += 14) {
+          ctx.beginPath(); ctx.moveTo(-hs, d); ctx.lineTo(hs, d); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(d, -hs); ctx.lineTo(d, hs); ctx.stroke();
         }
       }
       ctx.restore();
