@@ -1,6 +1,9 @@
 # Stage 1: Build React Frontend
 FROM node:20-bookworm-slim AS frontend-builder
 WORKDIR /app
+# Accept build-time env vars for Vite (VITE_* are baked into the bundle)
+ARG VITE_LOGS_PASSWORD
+ENV VITE_LOGS_PASSWORD=$VITE_LOGS_PASSWORD
 COPY client/package*.json ./
 RUN npm install --no-audit --no-fund
 COPY client/ ./
