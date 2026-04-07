@@ -330,16 +330,6 @@ export default function AdminUsers() {
                                         <DetailCard label="Faucet Claims" value={selectedUser.metrics?.faucetClaims ?? 0} icon={Activity} />
                                     </div>
 
-                                    <button
-                                        onClick={() => handleBanToggle(selectedUser.user)}
-                                        className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${
-                                            selectedUser.user.isBanned
-                                                ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500'
-                                                : 'bg-red-500/10 hover:bg-red-500/20 text-red-500'
-                                        }`}
-                                    >
-                                        {selectedUser.user.isBanned ? 'Revogar Banimento' : 'Banir permanentemente'}
-                                    </button>
                                 </>
                             )}
 
