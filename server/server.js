@@ -62,6 +62,8 @@ app.get("/health", healthController.health);
 
 // 4. Static uploads (keep serving uploads volume)
 app.use("/uploads", express.static(process.env.UPLOADS_DIR || "/app/uploads"));
+// Serve /machines/* from uploads/machines (image_url in DB uses /machines/filename)
+app.use("/machines", express.static(path.join(process.env.UPLOADS_DIR || "/app/uploads", "machines")));
 
 // 5. Serve admin SPA
 const publicPath = path.join(__dirname, "..", "client", "dist");
