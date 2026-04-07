@@ -184,7 +184,7 @@ export default function AdminUsers() {
                                 <th className="px-8 py-4">Saldo</th>
                                 <th className="px-8 py-4">Poder</th>
                                 <th className="px-8 py-4">Status</th>
-                                <th className="px-8 py-4 text-right">Ações</th>
+                                <th className="px-8 py-4 text-right">Detalhes</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800 font-medium">
@@ -217,23 +217,13 @@ export default function AdminUsers() {
                                         </span>
                                     </td>
                                     <td className="px-8 py-5 text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            <button
-                                                onClick={() => loadUserDetails(u.id)}
-                                                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-all"
-                                                title="Ver Detalhes"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleBanToggle(u)}
-                                                className={`p-2 rounded-lg transition-all ${u.isBanned ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
-                                                    }`}
-                                                title={u.isBanned ? 'Desbanir' : 'Banir'}
-                                            >
-                                                <Ban className="w-4 h-4" />
-                                            </button>
-                                        </div>
+                                        <button
+                                            onClick={() => loadUserDetails(u.id)}
+                                            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg transition-all"
+                                            title="Ver Detalhes"
+                                        >
+                                            <Eye className="w-4 h-4" />
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
