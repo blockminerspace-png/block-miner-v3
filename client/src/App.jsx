@@ -6,8 +6,6 @@ import AdminLayout from './components/AdminLayout';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminMiners from './pages/AdminMiners';
 import AdminUsers from './pages/AdminUsers';
-import AdminFinance from './pages/AdminFinance';
-import AdminBackups from './pages/AdminBackups';
 import AdminLogs from './pages/AdminLogs';
 import AdminMetrics from './pages/AdminMetrics';
 import AdminOfferEvents from './pages/AdminOfferEvents';
@@ -56,8 +54,6 @@ function App() {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/miners" element={<AdminMiners />} />
-          <Route path="/admin/finance" element={<AdminFinance />} />
-          <Route path="/admin/backups" element={<AdminBackups />} />
           <Route path="/admin/logs" element={<AdminLogs />} />
           <Route path="/admin/metrics" element={<AdminMetrics />} />
           <Route path="/admin/offer-events" element={<AdminOfferEvents />} />

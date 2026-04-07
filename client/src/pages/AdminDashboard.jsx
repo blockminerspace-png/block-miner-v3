@@ -5,16 +5,7 @@ import {
     Cpu, 
     Wallet, 
     Activity, 
-    Clock, 
-    ShieldAlert, 
-    ArrowUpCircle, 
-    ArrowDownCircle, 
-    Search,
     RefreshCw,
-    CheckCircle2,
-    XCircle,
-    Copy,
-    ExternalLink,
     Ban,
     ChevronRight,
     Server,
@@ -26,23 +17,20 @@ import { api } from '../store/auth';
 export default function AdminDashboard() {
     const [stats, setStats] = useState(null);
     const [users, setUsers] = useState([]);
-    const [withdrawals, setWithdrawals] = useState([]);
     const [auditLogs, setAuditLogs] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
-            const [statsRes, usersRes, withdrawalsRes, auditRes] = await Promise.all([
+            const [statsRes, usersRes, auditRes] = await Promise.all([
                 api.get('/admin/stats'),
                 api.get('/admin/users?limit=10'),
-                api.get('/admin/withdrawals/pending'),
                 api.get('/admin/audit?limit=10')
             ]);
 
             if (statsRes.data.ok) setStats(statsRes.data.stats);
             if (usersRes.data.ok) setUsers(usersRes.data.users);
-            if (withdrawalsRes.data.ok) setWithdrawals(withdrawalsRes.data.withdrawals);
             if (auditRes.data.ok) setAuditLogs(auditRes.data.logs);
         } catch (err) {
             console.error("Erro ao carregar dados administrativos", err);
@@ -65,18 +53,6 @@ export default function AdminDashboard() {
             }
         } catch (err) {
             toast.error('Erro ao atualizar status do usuário.');
-        }
-    };
-
-    const handleApproveWithdrawal = async (id) => {
-        try {
-            const res = await api.post(`/admin/withdrawals/${id}/approve`);
-            if (res.data.ok) {
-                toast.success('Saque aprovado!');
-                fetchData();
-            }
-        } catch (err) {
-            toast.error('Erro ao aprovar saque.');
         }
     };
 
@@ -130,65 +106,7 @@ export default function AdminDashboard() {
                 />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Pending Withdrawals */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
-                    <div className="px-8 py-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/20">
-                        <h2 className="text-lg font-bold text-white flex items-center gap-3">
-                            <Wallet className="w-5 h-5 text-amber-500" /> Saques Pendentes
-                        </h2>
-                        <span className="bg-amber-500/10 text-amber-500 text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-widest">
-                            {withdrawals.length} Aguardando
-                        </span>
-                    </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-slate-400">
-                            <thead className="bg-slate-800/30 text-[10px] uppercase font-bold tracking-widest text-slate-500">
-                                <tr>
-                                    <th className="px-8 py-4">Usuário</th>
-                                    <th className="px-8 py-4">Valor</th>
-                                    <th className="px-8 py-4">Ação</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800 font-medium">
-                                {withdrawals.map((w) => (
-                                    <tr key={w.id} className="hover:bg-slate-800/30 transition-colors group">
-                                        <td className="px-8 py-5">
-                                            <div className="flex flex-col">
-                                                <span className="text-white font-bold text-xs">ID #{w.user_id}</span>
-                                                <span className="text-[10px] font-mono text-slate-500 truncate w-32">{w.address}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <span className="text-amber-500 font-black">{Number(w.amount).toFixed(4)} <span className="text-[10px] font-normal opacity-60">POL</span></span>
-                                        </td>
-                                        <td className="px-8 py-5">
-                                            <div className="flex gap-2">
-                                                <button 
-                                                    onClick={() => handleApproveWithdrawal(w.id)}
-                                                    className="p-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 rounded-lg transition-all"
-                                                >
-                                                    <CheckCircle2 className="w-4 h-4" />
-                                                </button>
-                                                <button className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-all">
-                                                    <XCircle className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {withdrawals.length === 0 && (
-                                    <tr>
-                                        <td colSpan="3" className="px-8 py-12 text-center text-slate-500 italic">
-                                            Nenhum saque pendente no momento.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
+            <div className="grid grid-cols-1 gap-8">
                 {/* Recent Users */}
                 <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
                     <div className="px-8 py-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/20">
