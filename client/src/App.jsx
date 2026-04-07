@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 import AdminLogin from './pages/AdminLogin';
-import AdminLayout from './components/AdminLayout';
+import AdminLayout, { useAdminCtx } from './components/AdminLayout';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminMiners from './pages/AdminMiners';
 import AdminUsers from './pages/AdminUsers';
@@ -17,6 +17,14 @@ import AdminCreators from './pages/AdminCreators';
 import AdminTransparency from './pages/AdminTransparency';
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminBroadcast from './pages/AdminBroadcast';
+
+// Protege rotas que exigem nivel <= maxLevel; level 2 e redirecionado
+function RequireLevel({ maxLevel, children }) {
+  const { adminLevel } = useAdminCtx();
+  if (adminLevel === null) return null; // ainda carregando
+  if (adminLevel > maxLevel) return <Navigate to="/admin/dashboard" replace />;
+  return children;
+}
 
 function App() {
   return (
@@ -54,16 +62,16 @@ function App() {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/miners" element={<AdminMiners />} />
-          <Route path="/admin/logs" element={<AdminLogs />} />
-          <Route path="/admin/metrics" element={<AdminMetrics />} />
+          <Route path="/admin/logs" element={<RequireLevel maxLevel={1}><AdminLogs /></RequireLevel>} />
+          <Route path="/admin/metrics" element={<RequireLevel maxLevel={1}><AdminMetrics /></RequireLevel>} />
           <Route path="/admin/offer-events" element={<AdminOfferEvents />} />
           <Route path="/admin/offer-events/:id" element={<AdminOfferEventManage />} />
           <Route path="/admin/support" element={<AdminSupport />} />
           <Route path="/admin/deposit-tickets" element={<AdminDepositTickets />} />
           <Route path="/admin/banners" element={<AdminBanners />} />
           <Route path="/admin/creators" element={<AdminCreators />} />
-          <Route path="/admin/transparency" element={<AdminTransparency />} />
-          <Route path="/admin/analytics" element={<AdminAnalytics />} />
+          <Route path="/admin/transparency" element={<RequireLevel maxLevel={1}><AdminTransparency /></RequireLevel>} />
+          <Route path="/admin/analytics" element={<RequireLevel maxLevel={1}><AdminAnalytics /></RequireLevel>} />
           <Route path="/admin/broadcast" element={<AdminBroadcast />} />
         </Route>
 

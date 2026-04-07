@@ -16,29 +16,33 @@ import {
     TrendingUp,
     Bell
 } from 'lucide-react';
+import { useAdminCtx } from './AdminLayout';
 
+// minLevel: nivel MINIMO para ver o item (0 = só superadmin, 1 = full, 2 = todos)
 const adminMenuItems = [
-  { icon: LayoutDashboard, label: 'Resumo', path: '/admin/dashboard' },
-  { icon: Users, label: 'Usuários', path: '/admin/users' },
-  { icon: Cpu, label: 'Mineradoras', path: '/admin/miners' },
-  { icon: Tag, label: 'Ofertas', path: '/admin/offer-events' },
-  { icon: MessageSquare, label: 'Suporte', path: '/admin/support' },
-  { icon: Megaphone, label: 'Banners', path: '/admin/banners' },
-  { icon: Youtube, label: 'Criadores', path: '/admin/creators' },
-  { icon: Eye, label: 'Transparência', path: '/admin/transparency' },
-  { icon: Ticket, label: 'Dep. Tickets', path: '/admin/deposit-tickets' },
-  { icon: FileText, label: 'Logs', path: '/admin/logs' },
-  { icon: Activity, label: 'Métricas', path: '/admin/metrics' },
-  { icon: TrendingUp, label: 'Analytics', path: '/admin/analytics' },
-  { icon: Bell, label: 'Notificacoes', path: '/admin/broadcast' },
+  { icon: LayoutDashboard, label: 'Resumo', path: '/admin/dashboard', minLevel: 2 },
+  { icon: Users, label: 'Usuários', path: '/admin/users', minLevel: 2 },
+  { icon: Cpu, label: 'Mineradoras', path: '/admin/miners', minLevel: 2 },
+  { icon: Tag, label: 'Ofertas', path: '/admin/offer-events', minLevel: 2 },
+  { icon: MessageSquare, label: 'Suporte', path: '/admin/support', minLevel: 2 },
+  { icon: Megaphone, label: 'Banners', path: '/admin/banners', minLevel: 2 },
+  { icon: Youtube, label: 'Criadores', path: '/admin/creators', minLevel: 2 },
+  { icon: Ticket, label: 'Dep. Tickets', path: '/admin/deposit-tickets', minLevel: 2 },
+  { icon: Bell, label: 'Notificacoes', path: '/admin/broadcast', minLevel: 2 },
+  { icon: Eye, label: 'Transparência', path: '/admin/transparency', minLevel: 1 },
+  { icon: Activity, label: 'Métricas', path: '/admin/metrics', minLevel: 1 },
+  { icon: TrendingUp, label: 'Analytics', path: '/admin/analytics', minLevel: 1 },
+  { icon: FileText, label: 'Logs', path: '/admin/logs', minLevel: 1 },
 ];
 
 export default function AdminSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { adminLevel } = useAdminCtx();
+
+  const visibleItems = adminLevel === null ? [] : adminMenuItems.filter(item => adminLevel <= item.minLevel);
 
   const handleLogout = () => {
-    // Aqui removeríamos o token de admin
     navigate('/admin/login');
   };
 
@@ -53,7 +57,7 @@ export default function AdminSidebar() {
 
       <nav className="space-y-1 flex-1">
         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-2 mb-4">Gestão do Sistema</p>
-        {adminMenuItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive =
             location.pathname === item.path ||
             (item.path !== '/admin/dashboard' && location.pathname.startsWith(item.path + '/'));

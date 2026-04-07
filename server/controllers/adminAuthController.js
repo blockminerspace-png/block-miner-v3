@@ -25,17 +25,17 @@ function getAdminUsers() {
     if (raw) return JSON.parse(raw);
   } catch {}
   if (ADMIN_EMAIL && ADMIN_SECURITY_CODE) {
-    return [{ email: ADMIN_EMAIL, password: ADMIN_SECURITY_CODE }];
+    return [{ email: ADMIN_EMAIL, password: ADMIN_SECURITY_CODE, level: 0 }];
   }
   return [];
 }
 
-function validateAdminCredentials(email, code) {
+function findAdminUser(email, code) {
   const users = getAdminUsers();
-  return users.some(u =>
+  return users.find(u =>
     timingSafeStringEqual(email, String(u.email || "").trim().toLowerCase()) &&
     timingSafeStringEqual(code, String(u.password || "").trim())
-  );
+  ) || null;
 }
 
 /** Use Secure cookie only over HTTPS (or when forced), so admin login works on http://IP:port in production. */
@@ -94,14 +94,17 @@ export async function login(req, res) {
       return res.status(401).json({ ok: false, message: "Invalid credentials" });
     }
 
-    const token = jwt.sign({ role: "admin", type: "admin_session" }, JWT_SECRET, {
+    const adminUser = findAdminUser(userEmail, userCode);
+    const adminLevel = typeof adminUser?.level === 'number' ? adminUser.level : 2;
+
+    const token = jwt.sign({ role: "admin", type: "admin_session", level: adminLevel, email: userEmail }, JWT_SECRET, {
       expiresIn: JWT_EXPIRES_IN,
       issuer: "blockminer-admin"
     });
 
     const cookieSecure = adminCookieShouldBeSecure(req);
     res.setHeader("Set-Cookie", buildAdminCookie(token, { secure: cookieSecure }));
-    return res.json({ ok: true, message: "Authenticated", token });
+    return res.json({ ok: true, message: "Authenticated", token, level: adminLevel });
   } catch (error) {
     logger.error("Admin login error", { error: error.message });
     return res.status(500).json({ ok: false, message: "Internal server error" });
@@ -124,7 +127,7 @@ export async function check(req, res) {
     if (payload.role !== "admin" || payload.type !== "admin_session") {
       return res.status(403).json({ ok: false, message: "Forbidden" });
     }
-    return res.json({ ok: true });
+    return res.json({ ok: true, level: payload.level ?? 2, email: payload.email ?? null });
   } catch {
     return res.status(401).json({ ok: false, message: "Not authenticated" });
   }
