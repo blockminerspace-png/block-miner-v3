@@ -29,7 +29,7 @@ services:
       NODE_ENV: production
       PORT: 3001
       UPLOADS_DIR: /app/uploads
-      DATABASE_URL: "postgresql://blockminer:blockminer_password@db:5432/blockminer_db?schema=public"
+      # DATABASE_URL vem do .env.production — deve apontar para o DB real de produção
     volumes:
       - ./data:/app/data
       - ./backups:/app/backups
