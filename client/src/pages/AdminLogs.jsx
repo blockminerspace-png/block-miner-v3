@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { Activity, RefreshCw, Terminal, Search, Filter, Lock } from 'lucide-react';
 import { api } from '../store/auth';
 
-const LOGS_PASSWORD = 'admin2025';
+const LOGS_PASSWORD = import.meta.env.VITE_LOGS_PASSWORD || 'admin2025';
 
 export default function AdminLogs() {
     const [unlocked, setUnlocked] = useState(false);

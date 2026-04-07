@@ -17,6 +17,27 @@ const ADMIN_SECURITY_CODE = String(process.env.ADMIN_SECURITY_CODE || "").trim()
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.ADMIN_JWT_EXPIRES_IN || "24h";
 
+// Suporte a múltiplos admins: ADMIN_USERS=[{"email":"a@b.com","password":"x"},{...}]
+// Se não definido, cai no admin único ADMIN_EMAIL + ADMIN_SECURITY_CODE
+function getAdminUsers() {
+  try {
+    const raw = process.env.ADMIN_USERS;
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  if (ADMIN_EMAIL && ADMIN_SECURITY_CODE) {
+    return [{ email: ADMIN_EMAIL, password: ADMIN_SECURITY_CODE }];
+  }
+  return [];
+}
+
+function validateAdminCredentials(email, code) {
+  const users = getAdminUsers();
+  return users.some(u =>
+    timingSafeStringEqual(email, String(u.email || "").trim().toLowerCase()) &&
+    timingSafeStringEqual(code, String(u.password || "").trim())
+  );
+}
+
 /** Use Secure cookie only over HTTPS (or when forced), so admin login works on http://IP:port in production. */
 function adminCookieShouldBeSecure(req) {
   const flag = String(process.env.ADMIN_SESSION_COOKIE_SECURE || "").trim().toLowerCase();
@@ -46,7 +67,8 @@ function pickFirstNonEmptyString(obj, keys) {
 
 export async function login(req, res) {
   try {
-    if (!ADMIN_EMAIL || !ADMIN_SECURITY_CODE) {
+    const users = getAdminUsers();
+    if (!users.length) {
       return res.status(503).json({ ok: false, message: "Admin auth not configured" });
     }
 
@@ -68,10 +90,7 @@ export async function login(req, res) {
     const userEmail = userEmailRaw.toLowerCase();
     const userCode = rawCode;
 
-    const emailMatch = timingSafeStringEqual(userEmail, ADMIN_EMAIL);
-    const codeMatch = timingSafeStringEqual(userCode, ADMIN_SECURITY_CODE);
-
-    if (!emailMatch || !codeMatch) {
+    if (!validateAdminCredentials(userEmail, userCode)) {
       return res.status(401).json({ ok: false, message: "Invalid credentials" });
     }
 
