@@ -1,12 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Activity, RefreshCw, Terminal, Search, Filter } from 'lucide-react';
+import { Activity, RefreshCw, Terminal, Search, Filter, Lock } from 'lucide-react';
 import { api } from '../store/auth';
 
+const LOGS_PASSWORD = 'admin2025';
+
 export default function AdminLogs() {
+    const [unlocked, setUnlocked] = useState(false);
+    const [pwInput, setPwInput] = useState('');
+    const [pwError, setPwError] = useState(false);
     const [logs, setLogs] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [filter, setFilter] = useState('');
+
+    const handleUnlock = (e) => {
+        e.preventDefault();
+        if (pwInput === LOGS_PASSWORD) {
+            setUnlocked(true);
+            setPwError(false);
+        } else {
+            setPwError(true);
+            setPwInput('');
+        }
+    };
 
     const fetchLogs = useCallback(async () => {
         try {
@@ -24,13 +40,43 @@ export default function AdminLogs() {
     }, []);
 
     useEffect(() => {
-        fetchLogs();
-    }, [fetchLogs]);
+        if (unlocked) fetchLogs();
+    }, [fetchLogs, unlocked]);
 
     const filteredLogs = logs.filter(log => 
         log.action.toLowerCase().includes(filter.toLowerCase()) || 
         (log.user_email && log.user_email.toLowerCase().includes(filter.toLowerCase())) ||
         (log.ip && log.ip.includes(filter))
+    );
+
+    if (!unlocked) return (
+        <div className="flex items-center justify-center min-h-[60vh] animate-in fade-in duration-500">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-10 w-full max-w-sm shadow-2xl">
+                <div className="flex flex-col items-center gap-4 mb-8">
+                    <div className="w-14 h-14 bg-purple-500/10 rounded-2xl flex items-center justify-center">
+                        <Lock className="w-7 h-7 text-purple-400" />
+                    </div>
+                    <div className="text-center">
+                        <h2 className="text-lg font-black text-white">Logs Restrito</h2>
+                        <p className="text-slate-500 text-xs mt-1">Insira a senha para visualizar os logs do sistema.</p>
+                    </div>
+                </div>
+                <form onSubmit={handleUnlock} className="space-y-4">
+                    <input
+                        type="password"
+                        value={pwInput}
+                        onChange={(e) => { setPwInput(e.target.value); setPwError(false); }}
+                        placeholder="Senha de acesso"
+                        autoFocus
+                        className={`w-full bg-slate-950 border ${ pwError ? 'border-red-500' : 'border-slate-700' } text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-purple-500 transition-colors`}
+                    />
+                    {pwError && <p className="text-red-400 text-xs font-bold">Senha incorreta.</p>}
+                    <button type="submit" className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-black text-sm uppercase tracking-widest rounded-xl transition-all">
+                        Desbloquear
+                    </button>
+                </form>
+            </div>
+        </div>
     );
 
     return (

@@ -68,54 +68,93 @@ function parseMinerWriteBody(b) {
   };
 }
 
-// Utility: Server Metrics
-async function measureCpuUsagePercent(sampleMs = 300) {
-  const before = os.cpus().reduce((acc, cpu) => {
-    acc.idle += cpu.times.idle;
-    acc.total += Object.values(cpu.times).reduce((a, b) => a + b, 0);
-    return acc;
-  }, { idle: 0, total: 0 });
+// Utility: Server Metrics — reads /proc/stat and /proc/meminfo from host
+async function readProcCpuStat() {
+  try {
+    const data = await fs.readFile('/proc/stat', 'utf8');
+    const line = data.split('\n').find(l => l.startsWith('cpu '));
+    if (!line) return null;
+    const parts = line.trim().split(/\s+/).slice(1).map(Number);
+    // user nice system idle iowait irq softirq steal
+    const idle = parts[3] + (parts[4] || 0);
+    const total = parts.reduce((a, b) => a + b, 0);
+    return { idle, total };
+  } catch { return null; }
+}
 
+async function measureCpuUsagePercent(sampleMs = 500) {
+  const before = await readProcCpuStat();
+  if (!before) {
+    // fallback to os.cpus() inside container
+    const snap = (arr) => arr.reduce((acc, c) => { acc.idle += c.times.idle; acc.total += Object.values(c.times).reduce((a,b)=>a+b,0); return acc; }, {idle:0,total:0});
+    const b = snap(os.cpus());
+    await new Promise(r => setTimeout(r, sampleMs));
+    const a = snap(os.cpus());
+    const d = a.total - b.total;
+    return d <= 0 ? 0 : Math.max(0, Math.min(100, (1 - (a.idle - b.idle) / d) * 100));
+  }
   await new Promise(r => setTimeout(r, sampleMs));
-
-  const after = os.cpus().reduce((acc, cpu) => {
-    acc.idle += cpu.times.idle;
-    acc.total += Object.values(cpu.times).reduce((a, b) => a + b, 0);
-    return acc;
-  }, { idle: 0, total: 0 });
-
+  const after = await readProcCpuStat();
   const idleDelta = after.idle - before.idle;
   const totalDelta = after.total - before.total;
   return totalDelta <= 0 ? 0 : Math.max(0, Math.min(100, (1 - idleDelta / totalDelta) * 100));
 }
 
+async function readProcMeminfo() {
+  try {
+    const data = await fs.readFile('/proc/meminfo', 'utf8');
+    const get = (key) => {
+      const m = data.match(new RegExp(`^${key}:\\s+(\\d+)`, 'm'));
+      return m ? parseInt(m[1]) * 1024 : null; // kB -> bytes
+    };
+    const total = get('MemTotal');
+    const free = get('MemFree');
+    const buffers = get('Buffers') || 0;
+    const cached = get('Cached') || 0;
+    const available = get('MemAvailable') ?? (free + buffers + cached);
+    return { total, used: total - available };
+  } catch { return null; }
+}
+
 async function collectServerMetrics() {
-  const cpuUsage = await measureCpuUsagePercent();
-  const memTotal = os.totalmem();
-  const memFree = os.freemem();
-  const memUsed = memTotal - memFree;
+  const [cpuUsage, memInfo] = await Promise.all([measureCpuUsagePercent(), readProcMeminfo()]);
+
+  const memTotal = memInfo?.total ?? os.totalmem();
+  const memUsed = memInfo?.used ?? (os.totalmem() - os.freemem());
 
   let diskTotal = 500 * 1024 ** 3;
   let diskUsed = 50 * 1024 ** 3;
   try {
     const { execSync } = await import('child_process');
-    const lines = execSync('df -k / --output=size,used', { timeout: 2000 }).toString().split('\n');
+    const lines = execSync('df -k / --output=size,used 2>/dev/null || df -k /', { timeout: 2000 }).toString().split('\n');
     const parts = lines[1].trim().split(/\s+/);
     diskTotal = parseInt(parts[0]) * 1024;
     diskUsed = parseInt(parts[1]) * 1024;
   } catch {}
 
+  let cpuCores = os.cpus().length;
+  try {
+    const cpuinfo = await fs.readFile('/proc/cpuinfo', 'utf8');
+    cpuCores = (cpuinfo.match(/^processor\s*:/gm) || []).length || cpuCores;
+  } catch {}
+
+  let uptimeSeconds = process.uptime();
+  try {
+    const up = await fs.readFile('/proc/uptime', 'utf8');
+    uptimeSeconds = parseFloat(up.split(' ')[0]);
+  } catch {}
+
   return {
     serverCpuUsagePercent: cpuUsage,
-    serverCpuCores: os.cpus().length,
+    serverCpuCores: cpuCores,
     serverMemoryTotalBytes: memTotal,
-    serverMemoryFreeBytes: memFree,
+    serverMemoryFreeBytes: memTotal - memUsed,
     serverMemoryUsedBytes: memUsed,
     serverMemoryUsagePercent: (memUsed / memTotal) * 100,
     serverDiskTotalBytes: diskTotal,
     serverDiskUsedBytes: diskUsed,
     serverDiskUsagePercent: (diskUsed / diskTotal) * 100,
-    uptimeSeconds: process.uptime(),
+    uptimeSeconds,
     platform: process.platform,
     nodeVersion: process.version,
     processId: process.pid,
