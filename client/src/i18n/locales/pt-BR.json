@@ -172,6 +172,7 @@
     "games": "Jogos",
     "calculator": "Calculadora",
     "ranking": "Ranking",
+    "power_stats": "Estatísticas e poder",
     "logout": "Sair da Conta",
     "menu_title": "Menu Principal",
     "categories": {
@@ -414,6 +415,14 @@
     "switch_polygon": "Mudar para Polygon",
     "connect_browser_wallet": "Ligar carteira do navegador",
     "milestone_bonus": "Bônus especial",
+    "milestones_title": "Marcos da sequência",
+    "milestones_sub": "As recompensas são creditadas automaticamente quando a sequência atinge cada dia — após um check-in diário confirmado.",
+    "milestone_locked": "Bloqueado",
+    "milestone_eligible": "Desbloqueado — resgata no próximo check-in",
+    "milestone_claimed": "Recebido",
+    "milestone_reward_pol": "{{value}} POL",
+    "milestone_reward_hashrate": "+{{value}} H/s · {{days}}d",
+    "milestone_reward_none": "Selo de marco",
     "subtitle_free": "A sequência e o histórico ficam na tua conta no servidor. Um check-in por dia (calendário America/São Paulo).",
     "claim_today": "Registar check-in de hoje",
     "claim_success": "Check-in de hoje registado!",
@@ -447,6 +456,119 @@
       "streak_reset_warning": "Faltar um dia irá resetar sua sequência para 0"
     }
   },
+  "powerStats": {
+    "title": "Estatísticas e poder",
+    "subtitle": "Veja cada fonte do teu hashrate, o que é permanente vs temporário e quando os bónus expiram — para uma queda de poder nunca parecer inexplicável.",
+    "refresh": "Atualizar",
+    "export_csv": "Exportar CSV",
+    "load_error": "Não foi possível carregar as estatísticas. Tenta de novo.",
+    "tabs_label": "Secções do painel de poder",
+    "tab": {
+      "overview": "Visão geral",
+      "machines": "Máquinas",
+      "temporary": "Temporário",
+      "network": "Rede",
+      "history": "Histórico"
+    },
+    "total_power": "Poder total",
+    "total_tooltip": "Soma das máquinas no rack com todos os boosts temporários ativos.",
+    "permanent": "Permanente (máquinas)",
+    "permanent_short": "perm.",
+    "permanent_tooltip": "Hashrate das máquinas instaladas no rack (enquanto ativas).",
+    "temporary": "Boosts temporários",
+    "temporary_short": "temp.",
+    "temporary_tooltip": "YouTube, minijogos, bónus de check-in, GPU Auto Mining — cada linha expira.",
+    "mix": "Permanente vs temporário",
+    "mix_tooltip": "Verde = máquinas. Âmbar = boosts por tempo limitado.",
+    "next_expirations": "Próximas expirações",
+    "no_active_temporary": "Sem boosts temporários ativos neste momento.",
+    "expired": "Expirado",
+    "hashrate": "Hashrate",
+    "projections_title": "Projeção simples",
+    "projection_permanent": "A linha de base permanente mantém-se perto de {{hr}} H/s enquanto as máquinas estiverem ativas.",
+    "projection_temporary": "A camada temporária é {{hr}} H/s até às horas de expiração de cada uma.",
+    "projection_hint_check_expiry": "Repara nos contadores — quando o poder temporário expira, o total desce só essa fatia.",
+    "projection_hint_machines": "Comprar ou ativar mais máquinas aumenta a parte permanente (verde).",
+    "projection_hint_minigames": "Minijogos e check-in diário acrescentam boosts âmbar com data de expiração clara.",
+    "machines": {
+      "summary": "{{active}} ativas · {{inactive}} inativas (vista rack)"
+    },
+    "col": {
+      "machine": "Máquina",
+      "hashrate": "Hashrate",
+      "status": "Estado",
+      "room": "Sala / rack"
+    },
+    "active": "Ativa",
+    "inactive": "Inativa",
+    "room_rack": "Sala {{room}} · posição {{pos}}",
+    "temporary_detail": "Todas as fontes temporárias",
+    "youtube": {
+      "title": "Recompensas YouTube",
+      "history": "Histórico recente"
+    },
+    "games": {
+      "title": "Minijogos e bónus",
+      "minigames": "Minijogos",
+      "checkin": "Bónus check-in (poder de jogo)"
+    },
+    "auto_mining": {
+      "title": "GPU Auto Mining"
+    },
+    "checkin": {
+      "title": "Check-in diário",
+      "streak": "Sequência atual: {{n}} dias",
+      "bonus_note": "Hashrate de marcos de sequência aparece como poder de jogo temporário até expirar.",
+      "next_milestone": "Aos {{days}} dias: +{{hr}} H/s por {{daysValid}}d (se configurado)"
+    },
+    "other": {
+      "title": "Indicações e eventos",
+      "note": "Hashrate de referral ou staking não existe como bucket separado nesta versão. Só aparecem linhas reais da tua conta."
+    },
+    "network": {
+      "title": "O teu rank",
+      "rank_label": "Posição por hashrate total (todas as fontes)",
+      "active_users": "Utilizadores ativos nas últimas 24h (heartbeat ou login): {{n}}",
+      "blk_pool": "Último ciclo de recompensa BLK",
+      "pool_total": "Total do pool",
+      "miners_in_cycle": "Participantes nesse ciclo: {{n}}",
+      "your_share": "A tua parte desse snapshot do pool: {{pct}}%",
+      "no_cycle": "Ainda não há ciclo BLK concluído.",
+      "blk_paused": "Distribuição do ciclo BLK está em pausa."
+    },
+    "payout": {
+      "title": "Modo de pagamento (não divide hashrate)",
+      "pol": "Mineração simulada POL",
+      "pol_note": "O teu hashrate ganha recompensas estilo POL no fluxo principal de mineração.",
+      "blk": "Ciclos pool BLK",
+      "blk_note": "Quando ativo, utilizadores elegíveis partilham ciclos BLK com o mesmo snapshot de hashrate total."
+    },
+    "analytics": {
+      "title": "Análise dos logs de mineração (aproximado)",
+      "peak_share": "Pico de share % no bloco",
+      "avg_share": "Média de share %",
+      "samples": "Linhas de log (período)",
+      "disclaimer": "Valores vêm dos logs de recompensa (parte do bloco simulado), não de um histórico perfeito de H/s."
+    },
+    "charts": {
+      "region": "Gráficos de poder",
+      "share_by_source": "Parte por fonte",
+      "permanent_vs_temporary": "Permanente vs temporário",
+      "mining_share_history": "Histórico de share no bloco (30 dias)",
+      "mining_share_note": "Cada ponto é a média do teu share% registado nesse dia UTC.",
+      "share_percent": "Share %",
+      "blk_pool_history": "Total do pool BLK por ciclo",
+      "blk_pool_note": "Mostra snapshots recentes do pool (hashrate agregado), não a tua curva pessoal.",
+      "no_data": "Ainda não há dados para o gráfico."
+    },
+    "source": {
+      "machines": "Máquinas",
+      "games": "Minijogos",
+      "checkin_bonus": "Bónus check-in",
+      "youtube": "YouTube",
+      "auto_mining": "Auto Mining"
+    }
+  },
   "ptc": {
     "title": "Pago por Clique",
     "subtitle": "Ganhe POL visitando sites de nossos parceiros por alguns segundos.",
@@ -464,8 +586,32 @@
     "watching": "Assistindo...",
     "claim": "Resgatar Prêmio",
     "min_time": "Tempo necessário",
-    "no_videos": "Nenhum vídeo disponível no momento."
-    },
+    "no_videos": "Nenhum vídeo disponível no momento.",
+    "url_placeholder": "Cole a URL do vídeo do YouTube…",
+    "load_video": "Carregar",
+    "clear_url_aria": "Limpar URL",
+    "clear_url_tooltip": "Limpar o campo de URL",
+    "invalid_url": "URL do YouTube inválida ou formato não suportado.",
+    "video_loaded": "Vídeo carregado! Ganhos iniciam ao apertar play.",
+    "claim_applied": "+{{reward}} aplicado!",
+    "claim_failed": "Falha no resgate.",
+    "protocol_active": "Protocolo de prova de visualização ativo",
+    "waiting_placeholder": "Aguardando vídeo do YouTube…",
+    "open_on_youtube": "Abrir no YouTube",
+    "embed_hint_before": "Se aparecer Erro 153, o autor bloqueou o embed. Clique em",
+    "embed_hint_after": "para assistir lá e ganhar normalmente.",
+    "next_claim": "Próximo ganho em {{seconds}}s",
+    "tracker_title": "Painel de recompensas",
+    "tracker_next": "Próximo resgate em",
+    "tracker_per_minute": "Resgate por minuto",
+    "tracker_duration": "Duração por resgate",
+    "tracker_bonus": "Bônus YouTube ativo",
+    "stats_claims24h": "Resgates (24h)",
+    "stats_hash24h": "Hash concedido (24h)",
+    "stats_daily_progress": "Progresso do limite diário",
+    "stats_claims_all": "Resgates (total)",
+    "stats_hash_all": "Hash concedido (total)"
+  },
   "offers": {
     "badge": "Tempo limitado",
     "title": "Ofertas populares",
@@ -539,6 +685,18 @@
     "notes_reward": "{{reward}} POL por bloco · a cada {{interval}} min",
     "notes_blocks": "{{blocks}} blocos/dia · ganhos proporcionais ao hash",
     "notes_estimate": "Estimativa não considera variações de rede"
+  },
+  "minerGames": {
+    "temporary_power_title": "Poder temporário dos jogos",
+    "temporary_power_tooltip": "Hash rate ganho nos minigames da Arena (Memory Sync, Power Match). Expira após o tempo configurado e não substitui máquinas no rack.",
+    "permanent_power_label": "Permanente (rack)",
+    "no_active_bonus": "Sem bônus ativo dos jogos",
+    "breakdown_show": "Ver detalhes por jogo",
+    "breakdown_hide": "Ocultar detalhes",
+    "loading_power": "Carregando…",
+    "power_error": "Não foi possível carregar o poder dos jogos.",
+    "retry": "Tentar de novo",
+    "sync_hint": "Atualiza ao terminar um jogo ou quando os bônus expiram."
   },
   "pages": {
     "dashboard": "Dashboard Central",

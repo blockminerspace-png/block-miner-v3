@@ -91,6 +91,7 @@ model User {
   userRacks              UserRack[]
   broadcastViews         BroadcastMessageView[]
   blkRewardLogs          BlkRewardLog[]
+  checkinStreakRewards   UserCheckinStreakReward[]
 
   @@map("users")
 }
@@ -482,6 +483,40 @@ model DailyCheckin {
 
   @@unique([userId, checkinDate])
   @@map("daily_checkins")
+}
+
+model CheckinStreakMilestone {
+  id            Int      @id @default(autoincrement())
+  dayThreshold  Int      @map("day_threshold")
+  rewardType    String   @map("reward_type")
+  rewardValue   Decimal  @default(0) @map("reward_value") @db.Decimal(20, 8)
+  validityDays  Int      @default(7) @map("validity_days")
+  displayTitle  String?  @map("display_title")
+  description   String?  @db.Text
+  active        Boolean  @default(true)
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  claims UserCheckinStreakReward[]
+
+  @@unique([dayThreshold])
+  @@map("checkin_streak_milestones")
+}
+
+model UserCheckinStreakReward {
+  id                 Int      @id @default(autoincrement())
+  userId             Int      @map("user_id")
+  milestoneId        Int      @map("milestone_id")
+  streakWhenClaimed  Int     @map("streak_when_claimed")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  milestone CheckinStreakMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, milestoneId])
+  @@index([userId])
+  @@map("user_checkin_streak_rewards")
 }
 
 model UserPowerGame {

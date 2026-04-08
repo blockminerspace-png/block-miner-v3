@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { Youtube, Zap, Clock, TrendingUp, AlertCircle, CheckCircle2, History, BarChart3, ShieldCheck } from 'lucide-react';
+import { Youtube, Zap, Clock, TrendingUp, AlertCircle, History, BarChart3, ShieldCheck, X } from 'lucide-react';
 import { api } from '../store/auth';
 import { formatHashrate } from '../utils/machine';
 import { validateTrustedEvent, generateSecurityPayload } from '../utils/security';
@@ -21,7 +21,44 @@ export default function YouTubeWatch() {
     const playerDivRef = useRef(null);
     const ytReadyRef = useRef(false);
     const cycleStartRef = useRef(null);
+    const urlInputRef = useRef(null);
+    const urlComposingRef = useRef(false);
     const [playerResetKey, setPlayerResetKey] = useState(0);
+
+    /**
+     * Selects the full URL when the field has text (focus, click, Tab). Skipped during IME composition.
+     */
+    const selectAllUrl = useCallback(() => {
+        const el = urlInputRef.current;
+        if (!el || urlComposingRef.current) return;
+        const len = el.value.length;
+        if (len === 0) return;
+        requestAnimationFrame(() => {
+            el.setSelectionRange(0, len);
+        });
+    }, []);
+
+    /**
+     * Clears the URL, stops the player, and returns focus to the input for immediate typing.
+     */
+    const handleClearUrl = useCallback((e) => {
+        if (!validateTrustedEvent(e)) return;
+        setUrl('');
+        setIsRunning(false);
+        if (playerRef.current) {
+            try {
+                playerRef.current.destroy();
+            } catch (_) {
+                /* ignore */
+            }
+            playerRef.current = null;
+        }
+        setVideoId(null);
+        setPlayerResetKey((k) => k + 1);
+        requestAnimationFrame(() => {
+            urlInputRef.current?.focus();
+        });
+    }, []);
 
     // Carrega a YouTube IFrame API uma vez
     useEffect(() => {
@@ -116,7 +153,7 @@ export default function YouTubeWatch() {
         if (!validateTrustedEvent(e)) return;
         const id = extractVideoId(url);
         if (!id) {
-            toast.error('URL do YouTube inválida ou formato não suportado.');
+            toast.error(t('youtube.invalid_url'));
             return;
         }
         setIsRunning(false);
@@ -127,7 +164,7 @@ export default function YouTubeWatch() {
         }
         setVideoId(id);
         setPlayerResetKey(k => k + 1);
-        toast.success('Vídeo carregado! Ganhos iniciam ao apertar play.');
+        toast.success(t('youtube.video_loaded'));
     };
 
     // Inicializa o player YT quando videoId ou playerResetKey muda
@@ -176,17 +213,21 @@ export default function YouTubeWatch() {
         try {
             const res = await api.post('/youtube/claim', { videoId });
             if (res.data.ok) {
-                toast.success(`+${formatHashrate(Number(res.data.rewardGh) || 0)} aplicado!`);
+                toast.success(
+                    t('youtube.claim_applied', {
+                        reward: formatHashrate(Number(res.data.rewardGh) || 0),
+                    })
+                );
                 fetchStatus();
                 fetchUserStats();
             }
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Falha no resgate.');
+            toast.error(err.response?.data?.message || t('youtube.claim_failed'));
             setIsRunning(false);
         } finally {
             isClaimingRef.current = false;
         }
-    }, [videoId, fetchStatus, fetchUserStats]);
+    }, [videoId, fetchStatus, fetchUserStats, t]);
 
     // Heartbeat — roda mesmo com a aba em segundo plano para acumular saldo no servidor
     useEffect(() => {
@@ -236,7 +277,7 @@ export default function YouTubeWatch() {
                 </div>
                 <div className="bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800 flex items-center gap-2 shadow-glow-sm">
                     <ShieldCheck className="w-4 h-4 text-primary" />
-                    <span className="text-primary font-black text-[10px] uppercase tracking-widest">Protocolo de Prova de Visualização Ativo</span>
+                    <span className="text-primary font-black text-[10px] uppercase tracking-widest">{t('youtube.protocol_active')}</span>
                 </div>
             </div>
 
@@ -247,19 +288,51 @@ export default function YouTubeWatch() {
                         <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/5 rounded-bl-[120px] -mr-20 -mt-20 group-hover:bg-red-500/10 transition-colors" />
                         
                         <div className="flex flex-col sm:flex-row gap-3 mb-6 sm:mb-8 relative z-10">
-                            <input
-                                type="text"
-                                value={url}
-                                onChange={(e) => setUrl(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') handleLoadVideo(e); }}
-                                placeholder="Cole a URL do vídeo do YouTube..."
-                                className="flex-1 bg-gray-900/50 border border-gray-800 rounded-2xl py-3 sm:py-4 px-4 sm:px-6 text-gray-200 text-sm focus:outline-none focus:border-primary/50 transition-all shadow-inner"
-                            />
+                            <div className="relative flex-1 min-w-0">
+                                <input
+                                    ref={urlInputRef}
+                                    type="text"
+                                    value={url}
+                                    inputMode="url"
+                                    autoComplete="off"
+                                    spellCheck={false}
+                                    aria-label={t('youtube.url_placeholder')}
+                                    onChange={(e) => setUrl(e.target.value)}
+                                    onFocus={selectAllUrl}
+                                    onClick={selectAllUrl}
+                                    onCompositionStart={() => {
+                                        urlComposingRef.current = true;
+                                    }}
+                                    onCompositionEnd={() => {
+                                        urlComposingRef.current = false;
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleLoadVideo(e);
+                                    }}
+                                    placeholder={t('youtube.url_placeholder')}
+                                    className="w-full bg-gray-900/50 border border-gray-800 rounded-2xl py-3 sm:py-4 pl-4 sm:pl-6 pr-12 sm:pr-14 text-gray-200 text-sm focus:outline-none focus:border-primary/50 transition-all shadow-inner"
+                                />
+                                <button
+                                    type="button"
+                                    title={t('youtube.clear_url_tooltip')}
+                                    aria-label={t('youtube.clear_url_aria')}
+                                    aria-hidden={url.length === 0}
+                                    tabIndex={url.length > 0 ? 0 : -1}
+                                    disabled={url.length === 0}
+                                    onClick={handleClearUrl}
+                                    className={`absolute right-1.5 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 touch-manipulation items-center justify-center rounded-xl border border-gray-700/60 bg-gray-800/90 text-gray-400 shadow-sm transition-all duration-200 hover:border-primary/40 hover:bg-gray-800 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:scale-95 disabled:pointer-events-none sm:right-2 sm:h-9 sm:w-9 ${
+                                        url.length > 0 ? 'opacity-100 scale-100' : 'pointer-events-none opacity-0 scale-95'
+                                    }`}
+                                >
+                                    <X className="h-4 w-4 shrink-0" strokeWidth={2.5} aria-hidden />
+                                </button>
+                            </div>
                             <button
+                                type="button"
                                 onClick={handleLoadVideo}
                                 className="shrink-0 px-6 sm:px-8 py-3 sm:py-4 bg-primary hover:bg-primary-hover text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all italic shadow-lg shadow-primary/20"
                             >
-                                Carregar
+                                {t('youtube.load_video')}
                             </button>
                         </div>
 
@@ -268,7 +341,7 @@ export default function YouTubeWatch() {
                             {!videoId && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600">
                                     <Youtube className="w-20 h-20 mb-4 opacity-20" />
-                                    <p className="font-bold uppercase tracking-widest text-[10px]">Aguardando vídeo do YouTube...</p>
+                                    <p className="font-bold uppercase tracking-widest text-[10px]">{t('youtube.waiting_placeholder')}</p>
                                 </div>
                             )}
                             {videoId && (
@@ -278,7 +351,7 @@ export default function YouTubeWatch() {
                                     rel="noopener noreferrer"
                                     className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 bg-black/70 hover:bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl border border-white/10 transition-all backdrop-blur-sm"
                                 >
-                                    <Youtube className="w-3 h-3" /> Abrir no YouTube
+                                    <Youtube className="w-3 h-3" /> {t('youtube.open_on_youtube')}
                                 </a>
                             )}
                         </div>
@@ -288,13 +361,19 @@ export default function YouTubeWatch() {
                                 {isRunning && (
                                     <div className="flex items-center gap-3 px-6 py-4 bg-gray-800/50 rounded-2xl border border-gray-700/50 shadow-inner">
                                         <Clock className="w-4 h-4 text-primary animate-pulse" />
-                                        <span className="text-sm font-bold text-white uppercase italic tracking-tighter">Próximo Ganho em {countdown}s</span>
+                                        <span className="text-sm font-bold text-white uppercase italic tracking-tighter">
+                                            {t('youtube.next_claim', { seconds: countdown })}
+                                        </span>
                                     </div>
                                 )}
                             </div>
                             <div className="text-[10px] text-gray-500 italic font-medium max-w-[220px] text-right flex items-start gap-1">
                                     <AlertCircle className="w-3 h-3 mt-0.5 shrink-0 text-amber-500/60" />
-                                    <span>Se aparecer Erro 153, o autor bloqueou o embed. Clique em <strong className="text-white">Abrir no YouTube</strong> para assistir lá e ganhar normalmente.</span>
+                                    <span>
+                                        {t('youtube.embed_hint_before')}{' '}
+                                        <strong className="text-white">{t('youtube.open_on_youtube')}</strong>{' '}
+                                        {t('youtube.embed_hint_after')}
+                                    </span>
                                 </div>
                         </div>
                     </div>
@@ -306,32 +385,32 @@ export default function YouTubeWatch() {
                         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-[100px] -mr-10 -mt-10" />
                         
                         <h3 className="text-sm font-black text-white uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
-                            <BarChart3 className="w-4 h-4 text-primary" /> Reward Tracker
+                            <BarChart3 className="w-4 h-4 text-primary" /> {t('youtube.tracker_title')}
                         </h3>
                         
                         <div className="space-y-6 relative z-10">
-                            <TrackerItem label="Next claim in" value={isRunning ? `${countdown}s` : '--'} icon={Clock} color="primary" />
-                            <TrackerItem label="Claim per minute" value={formatHashrate(Number(status?.rewardGh || 3))} icon={Zap} color="amber" />
-                            <TrackerItem label="Duration per claim" value={`${Number(status?.durationMin || 1440)} min`} icon={History} color="blue" />
+                            <TrackerItem label={t('youtube.tracker_next')} value={isRunning ? `${countdown}s` : '--'} icon={Clock} color="primary" />
+                            <TrackerItem label={t('youtube.tracker_per_minute')} value={formatHashrate(Number(status?.rewardGh || 3))} icon={Zap} color="amber" />
+                            <TrackerItem label={t('youtube.tracker_duration')} value={`${Number(status?.durationMin || 1440)} min`} icon={History} color="blue" />
                             <div className="h-[1px] bg-gray-800 w-full my-2" />
-                            <TrackerItem label="Active YouTube bonus" value={formatHashrate(status?.activeHashRate || 0)} icon={TrendingUp} color="emerald" />
+                            <TrackerItem label={t('youtube.tracker_bonus')} value={formatHashrate(status?.activeHashRate || 0)} icon={TrendingUp} color="emerald" />
                         </div>
                     </div>
 
                     <div className="bg-gray-900 border border-gray-800 rounded-2xl sm:rounded-[2.5rem] p-4 sm:p-8 space-y-6 shadow-2xl">
                         <div className="space-y-4">
                             <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
-                                <span className="text-slate-500">Claims (24h)</span>
+                                <span className="text-slate-500">{t('youtube.stats_claims24h')}</span>
                                 <span className="text-white">{stats?.claims24h || 0}</span>
                             </div>
                             <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
-                                <span className="text-slate-500">Hash granted (24h)</span>
+                                <span className="text-slate-500">{t('youtube.stats_hash24h')}</span>
                                 <span className="text-emerald-400">{formatHashrate(Number(stats?.hashGranted24h || 0))}</span>
                             </div>
                             
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-[9px] font-bold text-gray-600 uppercase">Daily Limit Progress</span>
+                                    <span className="text-[9px] font-bold text-gray-600 uppercase">{t('youtube.stats_daily_progress')}</span>
                                     <span className="text-[9px] font-bold text-gray-400">{dailyProgress.toFixed(1)}%</span>
                                 </div>
                                 <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden border border-white/5 shadow-inner">
@@ -347,11 +426,11 @@ export default function YouTubeWatch() {
 
                         <div className="space-y-4">
                             <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
-                                <span className="text-slate-500">Claims (all time)</span>
+                                <span className="text-slate-500">{t('youtube.stats_claims_all')}</span>
                                 <span className="text-white">{stats?.claimsTotal || 0}</span>
                             </div>
                             <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
-                                <span className="text-slate-500">Hash granted (all time)</span>
+                                <span className="text-slate-500">{t('youtube.stats_hash_all')}</span>
                                 <span className="text-primary">{formatHashrate(Number(stats?.hashGrantedTotal || 0))}</span>
                             </div>
                         </div>

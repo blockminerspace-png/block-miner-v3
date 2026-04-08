@@ -15,6 +15,7 @@ import Wallet from './pages/Wallet';
 import Faucet from './pages/Faucet';
 import Shortlinks from './pages/Shortlinks';
 import Checkin from './pages/Checkin';
+import PowerStatistics from './pages/PowerStatistics';
 import PopularOffers from './pages/PopularOffers';
 import YouTubeWatch from './pages/YouTubeWatch';
 import Ranking from './pages/Ranking';
@@ -48,6 +49,7 @@ import AdminCreators from './pages/AdminCreators';
 import AdminTransparency from './pages/AdminTransparency';
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminBroadcast from './pages/AdminBroadcast';
+import AdminCheckinMilestones from './pages/AdminCheckinMilestones';
 import BroadcastPopup from './components/BroadcastPopup';
 import Transparency from './pages/Transparency';
 import TransparencyErrorBoundary from './components/TransparencyErrorBoundary';
@@ -133,6 +135,7 @@ function App() {
 
         <Route element={<ProtectedLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/power-stats" element={<PowerStatistics />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/offers" element={<PopularOffers />} />
           <Route path="/inventory" element={<Inventory />} />
@@ -172,6 +175,7 @@ function App() {
           <Route path="/admin/transparency" element={<AdminTransparency />} />
           <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="/admin/broadcast" element={<AdminBroadcast />} />
+          <Route path="/admin/checkin-milestones" element={<AdminCheckinMilestones />} />
         </Route>
       </Routes>
     </BrowserRouter>

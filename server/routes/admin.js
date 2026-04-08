@@ -13,6 +13,7 @@ import { createRateLimiter } from "../middleware/rateLimit.js";
 import * as walletModel from "../models/walletModel.js";
 import * as blkWalletController from "../controllers/blkWalletController.js";
 import * as miningController from "../controllers/miningController.js";
+import * as adminCheckinMilestoneController from "../controllers/adminCheckinMilestoneController.js";
 import prisma from "../src/db/prisma.js";
 import path from "path";
 import fs from "fs/promises";
@@ -274,6 +275,12 @@ adminRouter.get("/banners", bannerController.adminList);
 adminRouter.post("/banners", bannerController.adminCreate);
 adminRouter.put("/banners/:id", bannerController.adminUpdate);
 adminRouter.delete("/banners/:id", bannerController.adminDelete);
+
+// Check-in streak milestones
+adminRouter.get("/checkin-milestones", adminCheckinMilestoneController.listCheckinMilestones);
+adminRouter.post("/checkin-milestones", adminCheckinMilestoneController.createCheckinMilestone);
+adminRouter.put("/checkin-milestones/:id", adminCheckinMilestoneController.updateCheckinMilestone);
+adminRouter.delete("/checkin-milestones/:id", adminCheckinMilestoneController.deleteCheckinMilestone);
 
 // Criadores de Conteúdo
 adminRouter.get("/creators", creatorController.adminList);

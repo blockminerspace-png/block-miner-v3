@@ -1,6 +1,7 @@
 import express from "express";
 import prisma from "../src/db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { buildRankingRows, rankingUserSelect } from "../services/networkHashrateService.js";
 
 export const rankingRouter = express.Router();
 
@@ -8,51 +9,12 @@ rankingRouter.get("/", requireAuth, async (req, res) => {
   try {
     const now = new Date();
 
-    // Fetch users with their active power sources
     const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        username: true,
-        name: true,
-        isCreator: true,
-        youtubeUrl: true,
-        miners: {
-          where: { isActive: true },
-          select: { hashRate: true }
-        },
-        gamePowers: {
-          where: { expiresAt: { gt: now } },
-          select: { hashRate: true }
-        },
-        ytPowers: {
-          where: { expiresAt: { gt: now } },
-          select: { hashRate: true }
-        }
-      }
+      where: { isBanned: false },
+      select: rankingUserSelect(now)
     });
 
-    // Calculate aggregated hashrates for each user
-    const ranking = users.map(user => {
-      const baseHashRate = user.miners.reduce((sum, m) => sum + (m.hashRate || 0), 0);
-      const gameHashRate = user.gamePowers.reduce((sum, g) => sum + (g.hashRate || 0), 0) +
-        user.ytPowers.reduce((sum, y) => sum + (y.hashRate || 0), 0);
-      const totalHashRate = baseHashRate + gameHashRate;
-
-      return {
-        id: user.id,
-        username: user.username || "Miner",
-        name: user.name,
-        isCreator: user.isCreator,
-        youtubeUrl: user.youtubeUrl,
-        totalHashRate,
-        baseHashRate,
-        gameHashRate
-      };
-    });
-
-    // Sort by total hashrate descending and assign rank
-    const sortedRanking = ranking
-      .sort((a, b) => b.totalHashRate - a.totalHashRate)
+    const sortedRanking = buildRankingRows(users)
       .slice(0, 50)
       .map((entry, index) => ({
         ...entry,
@@ -101,6 +63,10 @@ rankingRouter.get("/room/:username", requireAuth, async (req, res) => {
           where: { expiresAt: { gt: now } },
           select: { hashRate: true }
         },
+        gpuAccess: {
+          where: { isClaimed: true, expiresAt: { gt: now } },
+          select: { gpuHashRate: true }
+        },
         rackConfigs: {
           select: {
             rackIndex: true,
@@ -128,8 +94,10 @@ rankingRouter.get("/room/:username", requireAuth, async (req, res) => {
       minerName: m.miner?.name || "Miner"
     }));
 
-    const gamePower = targetUser.gamePowers.reduce((sum, p) => sum + (p.hashRate || 0), 0) +
-                      targetUser.ytPowers.reduce((sum, p) => sum + (p.hashRate || 0), 0);
+    const gamePower =
+      targetUser.gamePowers.reduce((sum, p) => sum + (p.hashRate || 0), 0) +
+      targetUser.ytPowers.reduce((sum, p) => sum + (p.hashRate || 0), 0) +
+      (targetUser.gpuAccess || []).reduce((sum, p) => sum + (p.gpuHashRate || 0), 0);
 
     const racks = {};
     targetUser.rackConfigs.forEach(config => {

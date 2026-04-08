@@ -1,7 +1,12 @@
 import crypto from "crypto";
 import prisma from "../src/db/prisma.js";
-import { getBrazilCheckinDateKey, addDaysToBrazilDateKey } from "../utils/checkinDate.js";
+import { getBrazilCheckinDateKey } from "../utils/checkinDate.js";
+import { computeCheckinStreak } from "../utils/checkinStreak.js";
 import { assertValidTxHash, evaluateCheckinTx, normalizeAddr, parseCheckinAmountWei } from "../services/checkinChain.js";
+import {
+  applyStreakMilestoneRewards,
+  buildMilestoneStatusForUser
+} from "../services/checkinMilestoneService.js";
 
 const POLYGON_CHAIN_ID = Number(process.env.POLYGON_CHAIN_ID || 137);
 const ZERO = "0x0000000000000000000000000000000000000000";
@@ -31,26 +36,6 @@ async function getTodayRow(userId) {
   return prisma.dailyCheckin.findUnique({
     where: { userId_checkinDate: { userId, checkinDate: today } }
   });
-}
-
-async function computeStreak(userId) {
-  const rows = await prisma.dailyCheckin.findMany({
-    where: { userId, status: "confirmed" },
-    select: { checkinDate: true }
-  });
-  const dates = new Set(rows.map((r) => r.checkinDate));
-  const today = getBrazilCheckinDateKey();
-  let cursor = today;
-  if (!dates.has(today)) {
-    cursor = addDaysToBrazilDateKey(today, -1);
-    if (!dates.has(cursor)) return 0;
-  }
-  let streak = 0;
-  while (dates.has(cursor)) {
-    streak += 1;
-    cursor = addDaysToBrazilDateKey(cursor, -1);
-  }
-  return streak;
 }
 
 async function loadRecentHistory(userId, take = 21) {
@@ -95,7 +80,7 @@ export async function tryFinalizeCheckinRow(row) {
   }
 
   if (ev.state === "confirmed") {
-    return prisma.dailyCheckin.update({
+    const updated = await prisma.dailyCheckin.update({
       where: { id: row.id },
       data: {
         status: "confirmed",
@@ -104,6 +89,8 @@ export async function tryFinalizeCheckinRow(row) {
         chainId: POLYGON_CHAIN_ID
       }
     });
+    applyStreakMilestoneRewards(updated.userId).catch(() => {});
+    return updated;
   }
 
   if (ev.state === "failed") {
@@ -151,10 +138,11 @@ export async function getStatus(req, res) {
     }
 
     const row = await getTodayRow(userId);
-    const [streak, recentCheckins, totalConfirmed] = await Promise.all([
-      computeStreak(userId),
+    const streak = await computeCheckinStreak(userId);
+    const [recentCheckins, totalConfirmed, milestones] = await Promise.all([
       loadRecentHistory(userId, 21),
-      prisma.dailyCheckin.count({ where: { userId, status: "confirmed" } })
+      prisma.dailyCheckin.count({ where: { userId, status: "confirmed" } }),
+      buildMilestoneStatusForUser(userId, streak)
     ]);
 
     const pay = paymentCheckinEnabled();
@@ -175,7 +163,8 @@ export async function getStatus(req, res) {
       checkinReceiver: pay ? getReceiver() : null,
       checkinAmountWei: pay ? minWei.toString() : "0",
       chainId: POLYGON_CHAIN_ID,
-      rpcConfigured: pay && Boolean(process.env.AETHER_RPC_URL?.trim() || process.env.POLYGON_RPC_URL?.trim())
+      rpcConfigured: pay && Boolean(process.env.AETHER_RPC_URL?.trim() || process.env.POLYGON_RPC_URL?.trim()),
+      milestones
     });
   } catch (e) {
     console.error("Checkin getStatus:", e);
@@ -198,7 +187,7 @@ export async function claimCheckin(req, res) {
     });
 
     if (existing?.status === "confirmed") {
-      const streak = await computeStreak(userId);
+      const streak = await computeCheckinStreak(userId);
       const recentCheckins = await loadRecentHistory(userId, 21);
       return res.json({
         ok: true,
@@ -229,7 +218,9 @@ export async function claimCheckin(req, res) {
       }
     });
 
-    const streak = await computeStreak(userId);
+    await applyStreakMilestoneRewards(userId);
+
+    const streak = await computeCheckinStreak(userId);
     const recentCheckins = await loadRecentHistory(userId, 21);
 
     return res.json({
@@ -357,6 +348,8 @@ export async function confirmCheckin(req, res) {
       }
     });
 
+    await applyStreakMilestoneRewards(req.user.id);
+
     return res.json({ ok: true, status: "confirmed", txHash: updated.txHash });
   } catch (error) {
     console.error("Checkin error:", error);
@@ -419,10 +412,11 @@ export async function checkinWallet(req, res) {
     const finalized = await tryFinalizeCheckinRow({ ...row, user });
 
     if (finalized.status === "confirmed") {
+      const streak = await computeCheckinStreak(userId);
       return res.json({
         ok: true,
         message: "Check-in confirmed via wallet.",
-        streak: finalized.streak,
+        streak,
         txHash: finalized.txHash
       });
     } else {
@@ -471,16 +465,13 @@ export async function checkinBalance(req, res) {
         data: { polBalance: { decrement: amount } }
       });
 
-      const streak = await computeStreak(userId);
-
       const row = await tx.dailyCheckin.upsert({
         where: { userId_checkinDate: { userId, checkinDate: today } },
         update: {
           status: "confirmed",
           confirmedAt: new Date(),
           paymentMethod: "balance",
-          amount,
-          streak
+          amount
         },
         create: {
           userId,
@@ -489,20 +480,22 @@ export async function checkinBalance(req, res) {
           status: "confirmed",
           confirmedAt: new Date(),
           paymentMethod: "balance",
-          amount,
-          streak
+          amount
         }
       });
 
       return row;
     });
 
+    await applyStreakMilestoneRewards(userId);
+    const streak = await computeCheckinStreak(userId);
+
     // Audit log
     await prisma.auditLog.create({
       data: {
         userId,
         action: "daily_checkin_balance",
-        details: { amount, streak: result.streak },
+        details: { amount, streak },
         ipHash: req.ipHash || "",
         userAgent: req.get("User-Agent") || ""
       }
@@ -511,7 +504,7 @@ export async function checkinBalance(req, res) {
     res.json({
       ok: true,
       message: "Check-in confirmed via balance.",
-      streak: result.streak,
+      streak,
       txHash: result.txHash
     });
   } catch (e) {

@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
-import { useAuthStore } from '../store/auth';
-import { Brain, LayoutGrid, Trophy, Clock, Zap, RotateCcw, Play, Fingerprint, MousePointer2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useAuthStore, api } from '../store/auth';
+import { formatHashrate } from '../utils/machine';
+import { Brain, LayoutGrid, Trophy, Clock, Zap, RotateCcw, Play, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 const SOCKET_URL = '/';
@@ -31,6 +33,7 @@ const ICON_IMAGES = {};
 Object.entries(CRYPTO_ICONS).forEach(([k, v]) => { const img = new Image(); img.src = v; ICON_IMAGES[k] = img; });
 
 export default function Games() {
+  const { t } = useTranslation();
   const { token } = useAuthStore();
   const [socket, setSocket] = useState(null);
   const [activeGame, setActiveGame] = useState(null);
@@ -56,6 +59,62 @@ export default function Games() {
   const processingClearRef = useRef(false);
   const gameStateRef = useRef(null);
   const cardFlipAnims = useRef(new Map()); // Map<cardId, {startTime, duration, opening}>
+
+  /** Non-expired minigame hash powers from the server (read-only API). */
+  const [totalGamePower, setTotalGamePower] = useState(0);
+  const [machinePower, setMachinePower] = useState(0);
+  const [powerBreakdown, setPowerBreakdown] = useState([]);
+  const [powerLoading, setPowerLoading] = useState(true);
+  const [powerError, setPowerError] = useState(null);
+  const [showPowerBreakdown, setShowPowerBreakdown] = useState(false);
+  const [powerFlash, setPowerFlash] = useState(false);
+  const prevGamePowerRef = useRef(null);
+
+  const fetchActiveGamePowers = useCallback(async (options = {}) => {
+    const silent = Boolean(options.silent);
+    try {
+      if (!silent) setPowerLoading(true);
+      setPowerError(null);
+      const res = await api.get('/games/active-powers');
+      if (res.data?.ok) {
+        setTotalGamePower(Number(res.data.totalHashRate) || 0);
+        setMachinePower(Number(res.data.machineHashRate) || 0);
+        setPowerBreakdown(Array.isArray(res.data.breakdown) ? res.data.breakdown : []);
+      } else {
+        setPowerError('load_failed');
+      }
+    } catch {
+      setPowerError('load_failed');
+    } finally {
+      if (!silent) setPowerLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchActiveGamePowers({ silent: false });
+  }, [fetchActiveGamePowers]);
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'visible') void fetchActiveGamePowers({ silent: true });
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [fetchActiveGamePowers]);
+
+  useEffect(() => {
+    const id = setInterval(() => void fetchActiveGamePowers({ silent: true }), 50000);
+    return () => clearInterval(id);
+  }, [fetchActiveGamePowers]);
+
+  useEffect(() => {
+    if (prevGamePowerRef.current !== null && prevGamePowerRef.current !== totalGamePower) {
+      setPowerFlash(true);
+      const timer = setTimeout(() => setPowerFlash(false), 700);
+      return () => clearTimeout(timer);
+    }
+    prevGamePowerRef.current = totalGamePower;
+  }, [totalGamePower]);
 
   useEffect(() => {
     const newSocket = io(SOCKET_URL, { auth: { token }, withCredentials: true });
@@ -136,12 +195,13 @@ export default function Games() {
       if (data.success) {
         setRewardMessage(data.reward);
         toast.success(data.reward);
+        void fetchActiveGamePowers({ silent: true });
       } else toast.error(data.message);
     });
 
     setSocket(newSocket);
     return () => newSocket.disconnect();
-  }, [token]);
+  }, [token, fetchActiveGamePowers]);
 
   useEffect(() => {
     if (!gameTimerKey || isGameOver) return;
@@ -502,8 +562,20 @@ export default function Games() {
 
       {/* Fluxo normal da página */}
       <div className="space-y-8 animate-in fade-in duration-1000" style={{ direction: 'ltr' }}>
-        <div className="flex justify-between items-center bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 shadow-xl">
-          <h1 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">Miner<span className="text-primary">Games</span></h1>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:justify-between bg-slate-900/50 p-6 rounded-[2rem] border border-slate-800 shadow-xl">
+          <h1 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none shrink-0">Miner<span className="text-primary">Games</span></h1>
+          <TemporaryPowerSummary
+            t={t}
+            totalGamePower={totalGamePower}
+            machinePower={machinePower}
+            breakdown={powerBreakdown}
+            loading={powerLoading}
+            errorKey={powerError}
+            flash={powerFlash}
+            showBreakdown={showPowerBreakdown}
+            onToggleBreakdown={() => setShowPowerBreakdown((v) => !v)}
+            onRetry={() => void fetchActiveGamePowers({ silent: false })}
+          />
         </div>
 
         {!activeGame ? (
@@ -539,6 +611,97 @@ export default function Games() {
         )}
       </div>
     </>
+  );
+}
+
+/**
+ * Header summary of non-expired minigame hash power vs active rack machines (read-only API).
+ */
+function TemporaryPowerSummary({
+  t,
+  totalGamePower,
+  machinePower,
+  breakdown,
+  loading,
+  errorKey,
+  flash,
+  showBreakdown,
+  onToggleBreakdown,
+  onRetry,
+}) {
+  const tooltip = t('minerGames.temporary_power_tooltip');
+  return (
+    <div
+      className={`min-w-0 flex-1 overflow-hidden rounded-2xl border border-amber-500/35 bg-gradient-to-br from-amber-500/15 via-amber-600/5 to-slate-900/40 px-4 py-3 shadow-lg transition-all duration-300 sm:max-w-md lg:max-w-lg ${flash ? 'ring-2 ring-amber-400/70 sm:scale-[1.01]' : ''}`}
+      title={tooltip}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-400/25 bg-amber-500/25 text-amber-300 shadow-inner"
+          aria-hidden
+        >
+          <Zap className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-amber-200/90">{t('minerGames.temporary_power_title')}</p>
+          {errorKey ? (
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-red-400">{t('minerGames.power_error')}</span>
+              <button
+                type="button"
+                onClick={onRetry}
+                className="touch-manipulation text-xs font-bold uppercase tracking-wider text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded px-1"
+              >
+                {t('minerGames.retry')}
+              </button>
+            </div>
+          ) : (
+            <>
+              <p
+                className="mt-0.5 text-xl font-black tabular-nums tracking-tight text-white sm:text-2xl"
+                aria-live="polite"
+                aria-label={`${t('minerGames.temporary_power_title')}: ${loading ? t('minerGames.loading_power') : formatHashrate(totalGamePower)}`}
+              >
+                {loading ? t('minerGames.loading_power') : formatHashrate(totalGamePower)}
+              </p>
+              {!loading && totalGamePower <= 0 && (
+                <p className="text-[10px] font-medium text-slate-500">{t('minerGames.no_active_bonus')}</p>
+              )}
+              <p className="mt-1 text-[10px] text-slate-500">
+                <span className="font-bold text-violet-300/90">{t('minerGames.permanent_power_label')}:</span>{' '}
+                {loading ? '—' : formatHashrate(machinePower)}
+              </p>
+              <p className="mt-0.5 text-[9px] leading-snug text-slate-600">{t('minerGames.sync_hint')}</p>
+            </>
+          )}
+        </div>
+      </div>
+
+      {!errorKey && breakdown.length > 0 && (
+        <div className="mt-2 border-t border-amber-500/15 pt-2">
+          <button
+            type="button"
+            onClick={onToggleBreakdown}
+            className="flex w-full touch-manipulation items-center justify-between gap-2 rounded-lg px-1 py-1.5 text-left text-[10px] font-black uppercase tracking-widest text-amber-200/80 transition-colors hover:bg-amber-500/10 hover:text-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50"
+            aria-expanded={showBreakdown}
+            aria-controls="game-power-breakdown"
+          >
+            {showBreakdown ? t('minerGames.breakdown_hide') : t('minerGames.breakdown_show')}
+            {showBreakdown ? <ChevronUp className="h-4 w-4 shrink-0" aria-hidden /> : <ChevronDown className="h-4 w-4 shrink-0" aria-hidden />}
+          </button>
+          {showBreakdown && (
+            <ul id="game-power-breakdown" className="mt-1 space-y-1.5 pl-1">
+              {breakdown.map((row) => (
+                <li key={`${row.gameId}-${row.slug}`} className="flex items-center justify-between gap-3 text-[11px] text-slate-300">
+                  <span className="truncate font-semibold">{row.name || row.slug || '—'}</span>
+                  <span className="shrink-0 font-black tabular-nums text-amber-200">{formatHashrate(Number(row.hashRate) || 0)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

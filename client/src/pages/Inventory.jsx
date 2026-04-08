@@ -92,7 +92,7 @@ function RackDismantleModal({ open, onClose, onConfirm, displayRackNumber, loadi
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="bg-surface border border-gray-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300"
+        className="bg-surface border border-gray-800 rounded-[2rem] w-full max-w-[min(100vw-2rem,30rem)] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="px-4 pt-6 pb-4 sm:px-8 sm:pt-8 sm:pb-6 flex items-center justify-between border-b border-gray-800/50">
@@ -171,7 +171,7 @@ function SlotModal({ slot, inventory, onInstall, onRemove, onClose }) {
   const descriptor = machine ? getMachineDescriptor(machine) : null;
   return createPortal(
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-surface border border-gray-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+      <div className="bg-surface border border-gray-800 rounded-[2rem] w-full max-w-[min(100vw-2rem,30rem)] max-h-[calc(100vh-2rem)] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
         <div className="px-4 pt-6 pb-4 sm:px-8 sm:pt-8 sm:pb-6 flex items-center justify-between border-b border-gray-800/50">
           <div>
             <h3 className="text-xl font-bold text-white">{machine ? t("inventory.modal.details_title") : t("inventory.modal.install_title")}</h3>
@@ -181,7 +181,7 @@ function SlotModal({ slot, inventory, onInstall, onRemove, onClose }) {
             <Plus className="w-6 h-6 rotate-45" />
           </button>
         </div>
-        <div className="p-4 sm:p-8">
+        <div className="p-4 sm:p-8 max-h-[calc(100vh-18rem)] overflow-y-auto">
           {machine ? (
             <div className="space-y-6">
               <div className="flex items-center gap-6 p-4 bg-gray-800/20 rounded-2xl border border-gray-800/50">
@@ -281,7 +281,7 @@ function RackCard({ rackNumber, slots, onSlotClick, onSlotDrop, onDismantleRack,
           </button>
         )}
       </div>
-      <div className="p-2.5 sm:p-4 grid grid-cols-4 gap-2 sm:gap-3">
+      <div className="p-2.5 sm:p-4 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {(() => {
           const rendered = [];
           let i = 0;

@@ -2,7 +2,7 @@ import 'dotenv/config';
 import pg from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
+const { PrismaClient, Prisma } = pkg;
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -148,6 +148,55 @@ async function main() {
   if (legacyBoth.count > 0) {
     console.log(`Seed: mining mode 'both' -> 'pol' for ${legacyBoth.count} user(s)`);
   }
+
+  const defaultMilestones = [
+    {
+      dayThreshold: 7,
+      rewardType: 'pol',
+      rewardValue: new Prisma.Decimal('0.05'),
+      validityDays: 7,
+      displayTitle: 'Week warrior',
+      description: 'Small POL bonus for 7-day streak',
+      active: true,
+      sortOrder: 10
+    },
+    {
+      dayThreshold: 15,
+      rewardType: 'hashrate',
+      rewardValue: new Prisma.Decimal('75'),
+      validityDays: 7,
+      displayTitle: 'Two weeks strong',
+      description: 'Temporary hashrate boost',
+      active: true,
+      sortOrder: 20
+    },
+    {
+      dayThreshold: 30,
+      rewardType: 'pol',
+      rewardValue: new Prisma.Decimal('0.25'),
+      validityDays: 7,
+      displayTitle: 'Monthly legend',
+      description: 'Larger POL bonus',
+      active: true,
+      sortOrder: 30
+    }
+  ];
+  for (const m of defaultMilestones) {
+    await prisma.checkinStreakMilestone.upsert({
+      where: { dayThreshold: m.dayThreshold },
+      create: m,
+      update: {
+        rewardType: m.rewardType,
+        rewardValue: m.rewardValue,
+        validityDays: m.validityDays,
+        displayTitle: m.displayTitle,
+        description: m.description,
+        active: m.active,
+        sortOrder: m.sortOrder
+      }
+    });
+  }
+  console.log('Seed: check-in streak milestones OK');
 
   console.log('Seed: All data seeded successfully!');
 }

@@ -24,6 +24,7 @@ import {
   Calculator,
   Eye,
   BookOpen,
+  BarChart3,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { useGameStore } from '../store/game';
@@ -56,6 +57,7 @@ export default function Sidebar() {
       title: t('sidebar.categories.main', 'Principal'),
       items: [
         { icon: LayoutDashboard, label: t('sidebar.dashboard'), path: '/dashboard' },
+        { icon: BarChart3, label: t('sidebar.power_stats'), path: '/power-stats' },
         { icon: Cpu, label: t('sidebar.machines'), path: '/inventory' },
         { icon: ShoppingCart, label: t('sidebar.shop'), path: '/shop' },
         { icon: Tag, label: t('sidebar.offers', 'Ofertas'), path: '/offers' },

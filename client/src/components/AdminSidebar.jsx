@@ -16,7 +16,8 @@ import {
     Youtube,
     Eye,
     TrendingUp,
-    Bell
+    Bell,
+    CalendarRange
 } from 'lucide-react';
 
 const adminMenuItems = [
@@ -27,6 +28,7 @@ const adminMenuItems = [
   { icon: Wallet, label: 'Financeiro', path: '/admin/finance' },
   { icon: MessageSquare, label: 'Suporte', path: '/admin/support' },
   { icon: Megaphone, label: 'Banners', path: '/admin/banners' },
+  { icon: CalendarRange, label: 'Check-in marcos', path: '/admin/checkin-milestones' },
   { icon: Youtube, label: 'Criadores', path: '/admin/creators' },
   { icon: Eye, label: 'Transparência', path: '/admin/transparency' },
   { icon: Ticket, label: 'Dep. Tickets', path: '/admin/deposit-tickets' },

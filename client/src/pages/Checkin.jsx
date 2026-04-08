@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { Calendar, CheckCircle2, Star, Trophy, Zap, Loader2, History, Coins } from 'lucide-react';
+import { Calendar, CheckCircle2, Trophy, Zap, Loader2, History, Coins, Gift, Lock } from 'lucide-react';
 import { api } from '../store/auth';
 import { useWallet } from '../hooks/useWallet';
 import { getBrowserEthereumProvider } from '../utils/walletProvider.js';
@@ -36,6 +36,20 @@ function formatPolFromWei(weiStr) {
 function mergeStatus(prev, incoming) {
     if (!incoming) return prev;
     return { ...prev, ...incoming };
+}
+
+function formatMilestoneReward(m, t) {
+    const rt = String(m.rewardType || '').toLowerCase();
+    if (rt === 'pol' && Number(m.rewardValue) > 0) {
+        return t('checkin.milestone_reward_pol', { value: String(m.rewardValue) });
+    }
+    if (rt === 'hashrate' && Number(m.rewardValue) > 0) {
+        return t('checkin.milestone_reward_hashrate', {
+            value: String(m.rewardValue),
+            days: m.validityDays ?? 7
+        });
+    }
+    return t('checkin.milestone_reward_none');
 }
 
 export default function Checkin() {
@@ -321,6 +335,7 @@ export default function Checkin() {
     const streak = status.streak ?? 0;
     const totalConfirmed = status.totalConfirmed ?? 0;
     const recentCheckins = status.recentCheckins || [];
+    const milestones = Array.isArray(status.milestones) ? status.milestones : [];
     const paymentMode = Boolean(status.paymentRequired && status.checkinReceiver);
     const amountLabel = formatPolFromWei(status.checkinAmountWei || '0');
     const explorerTx = status.txHash ? `https://polygonscan.com/tx/${status.txHash}` : null;
@@ -527,31 +542,64 @@ export default function Checkin() {
                 {paymentMode ? t('checkin.server_note') : t('checkin.server_note_free')}
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[7, 15, 30].map((milestone) => (
-                    <div
-                        key={milestone}
-                        className={`bg-gray-800/30 border rounded-2xl p-6 flex items-center gap-4 ${
-                            streak >= milestone ? 'border-amber-500/30 opacity-100' : 'border-gray-800 opacity-50'
-                        }`}
-                    >
-                        <div
-                            className={`p-3 rounded-xl ${
-                                streak >= milestone ? 'bg-amber-500/10 text-amber-500' : 'bg-gray-900 text-gray-600'
-                            }`}
-                        >
-                            <Star className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                {milestone} {t('checkin.days').toUpperCase()}
-                            </p>
-                            <p className="text-sm font-bold text-white">{t('checkin.milestone_bonus')}</p>
-                        </div>
-                        {streak >= milestone && <CheckCircle2 className="ml-auto w-5 h-5 text-emerald-500" />}
+            {milestones.length > 0 && (
+                <div className="space-y-4">
+                    <div className="text-center space-y-1">
+                        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-[0.2em]">{t('checkin.milestones_title')}</h3>
+                        <p className="text-xs text-slate-600 max-w-xl mx-auto">{t('checkin.milestones_sub')}</p>
                     </div>
-                ))}
-            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {milestones.map((m) => {
+                            const title =
+                                (m.displayTitle && String(m.displayTitle).trim()) ||
+                                `${m.dayThreshold} ${t('checkin.days')}`;
+                            const state = m.state || 'locked';
+                            const border =
+                                state === 'claimed'
+                                    ? 'border-emerald-500/35'
+                                    : state === 'eligible'
+                                      ? 'border-amber-500/40 ring-1 ring-amber-500/20'
+                                      : 'border-gray-800 opacity-80';
+                            const iconBg =
+                                state === 'claimed'
+                                    ? 'bg-emerald-500/15 text-emerald-400'
+                                    : state === 'eligible'
+                                      ? 'bg-amber-500/15 text-amber-400'
+                                      : 'bg-slate-900 text-slate-600';
+                            return (
+                                <div
+                                    key={m.id}
+                                    className={`bg-gray-800/30 border rounded-2xl p-5 flex items-start gap-4 ${border}`}
+                                >
+                                    <div className={`p-3 rounded-xl shrink-0 ${iconBg}`}>
+                                        {state === 'locked' ? <Lock className="w-5 h-5" /> : <Gift className="w-5 h-5" />}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                            {m.dayThreshold} {t('checkin.days').toUpperCase()}
+                                        </p>
+                                        <p className="text-sm font-bold text-white truncate">{title}</p>
+                                        <p className="text-xs text-slate-400 mt-1">{formatMilestoneReward(m, t)}</p>
+                                        {m.description ? (
+                                            <p className="text-[11px] text-slate-600 mt-1 line-clamp-2">{m.description}</p>
+                                        ) : null}
+                                        <p className="text-[10px] font-bold uppercase tracking-wider mt-2 text-slate-500">
+                                            {state === 'claimed'
+                                                ? t('checkin.milestone_claimed')
+                                                : state === 'eligible'
+                                                  ? t('checkin.milestone_eligible')
+                                                  : t('checkin.milestone_locked')}
+                                        </p>
+                                    </div>
+                                    {state === 'claimed' && (
+                                        <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-1" />
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
