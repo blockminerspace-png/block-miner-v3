@@ -1,4 +1,4 @@
-﻿import test from "node:test";
+import test from "node:test";
 import assert from "node:assert/strict";
 
 // VariÃ¡veis de ambiente â€” precisam ser definidas ANTES dos imports
@@ -238,10 +238,15 @@ test("uninstallMiner remove mÃ¡quina do rack e devolve ao inventÃ¡rio", asyn
   const origGpuPower = prisma.autoMiningGpu?.findMany;
 
   const mockMiner = { id: 55, minerId: 3, level: 1, hashRate: 500, slotSize: 1, imageUrl: null };
-  prisma.userRack.findFirst = async () => ({ id: 10, userId: 1, userMiner: mockMiner });
+  prisma.userRack.findFirst = async () => ({
+    id: 10,
+    userId: 1,
+    roomId: 1,
+    userMiner: mockMiner,
+  });
   prisma.$transaction = async (fn) => {
     const fakeTx = {
-      userRack: { update: async () => {} },
+      userRack: { update: async () => {}, updateMany: async () => ({ count: 0 }) },
       userInventory: { create: async () => {} },
       userMiner: { delete: async () => {} },
     };

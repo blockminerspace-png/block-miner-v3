@@ -4,6 +4,7 @@ import * as minersModel from "../models/minersModel.js";
 import { getOrCreateMinerProfile, syncUserBaseHashRate } from "../models/minerProfileModel.js";
 import { getMiningEngine } from "../src/miningEngineInstance.js";
 import prisma from '../src/db/prisma.js';
+import { releaseUserMinerFromRacksTx } from "../utils/rackMinerRelease.js";
 
 const DEFAULT_MINER_IMAGE_URL = "/machines/reward1.png";
 
@@ -44,6 +45,7 @@ export async function removeMachine(req, res) {
 
     const now = new Date();
     await prisma.$transaction(async (tx) => {
+      await releaseUserMinerFromRacksTx(tx, req.user.id, machineId);
       await tx.userInventory.create({
         data: {
           userId: req.user.id,
@@ -103,6 +105,7 @@ export async function moveMachine(req, res) {
       // 1. Send existing overlapping machines to inventory
       if (existingMachines.length > 0) {
         for (const m of existingMachines) {
+          await releaseUserMinerFromRacksTx(tx, req.user.id, m.id);
           await tx.userInventory.create({
             data: {
               userId: req.user.id,
@@ -130,6 +133,7 @@ export async function moveMachine(req, res) {
           include: { miner: true }
         });
         if (prevMachine && prevMachine.slotSize === 2) {
+          await releaseUserMinerFromRacksTx(tx, req.user.id, prevMachine.id);
           await tx.userInventory.create({
             data: {
               userId: req.user.id,

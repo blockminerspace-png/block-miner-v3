@@ -20,6 +20,7 @@
     "format:write": "prettier --write .",
     "backup": "node scripts/backup.js",
     "fix:miner-images": "node scripts/fixDuplicateMinerImageUrls.js",
+    "repair:orphaned-racks": "node scripts/repair-orphaned-racks.js",
     "install-hooks": "git config core.hooksPath .githooks || true"
   },
   "keywords": [],

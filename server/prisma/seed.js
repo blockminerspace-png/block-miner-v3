@@ -72,25 +72,32 @@ async function main() {
 
   console.log('Seed: Start seeding miners...');
   for (const minerData of miners) {
-    // update só atualiza campos técnicos (hashRate, slotSize, imageUrl)
-    // NÃO sobrescreve showInShop, isActive, price — gerenciados pelo admin
     const { showInShop: _s, isActive: _a, price: _p, ...technicalFields } = minerData;
-    await prisma.miner.upsert({
-      where: { slug: minerData.slug },
-      update: technicalFields,
-      create: minerData,
-    });
+    const isFaucetMiner = minerData.slug === "faucet-micro-miner";
+    const existing = await prisma.miner.findUnique({ where: { slug: minerData.slug } });
+    if (!existing) {
+      await prisma.miner.create({ data: minerData });
+    } else if (!isFaucetMiner) {
+      // Faucet miner: nunca sobrescrever imageUrl/baseHashRate no seed (persistência / admin)
+      await prisma.miner.update({
+        where: { slug: minerData.slug },
+        data: technicalFields,
+      });
+    }
   }
 
-  // 2. Seed Faucet Reward
-  const faucetMiner = await prisma.miner.findUnique({ where: { slug: 'faucet-micro-miner' } });
+  // 2. Seed Faucet Reward (cria só se não existir — não reseta cooldown ativo no banco)
+  const faucetMiner = await prisma.miner.findUnique({ where: { slug: "faucet-micro-miner" } });
   if (faucetMiner) {
-    await prisma.faucetReward.upsert({
-      where: { minerId: faucetMiner.id },
-      update: { isActive: true, cooldownMs: 3600000 },
-      create: { minerId: faucetMiner.id, isActive: true, cooldownMs: 3600000 }
-    });
-    console.log('Seed: Faucet reward configured!');
+    const fr = await prisma.faucetReward.findUnique({ where: { minerId: faucetMiner.id } });
+    if (!fr) {
+      await prisma.faucetReward.create({
+        data: { minerId: faucetMiner.id, isActive: true, cooldownMs: 3600000 },
+      });
+      console.log("Seed: Faucet reward created!");
+    } else {
+      console.log("Seed: Faucet reward already present, skipping.");
+    }
   }
 
   // 3. Seed Auto Mining Reward

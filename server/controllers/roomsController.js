@@ -316,7 +316,7 @@ export async function uninstallMiner(req, res) {
 
     const rack = await prisma.userRack.findFirst({
       where: { id: rackId, userId },
-      include: { userMiner: true },
+      include: { userMiner: { include: { miner: true } } },
     });
     if (!rack) {
       logger.warn("uninstallMiner: rack not found", { userId, rackId });
@@ -328,6 +328,8 @@ export async function uninstallMiner(req, res) {
     }
 
     const miner = rack.userMiner;
+    const minerName =
+      miner.miner?.name || (!miner.minerId ? "Máquina custom" : "Máquina");
 
     await prisma.$transaction(async (tx) => {
       await tx.userRack.update({
@@ -345,11 +347,11 @@ export async function uninstallMiner(req, res) {
         data: {
           userId,
           minerId: miner.minerId,
-          minerName: "Máquina", // fallback; enriquecemos abaixo
+          minerName,
           level: miner.level,
           hashRate: miner.hashRate,
           slotSize: miner.slotSize,
-          imageUrl: miner.imageUrl,
+          imageUrl: miner.imageUrl ?? miner.miner?.imageUrl ?? null,
           acquiredAt: new Date(),
         },
       });
@@ -363,7 +365,12 @@ export async function uninstallMiner(req, res) {
       await engine.reloadMinerProfile(userId);
     }
 
-    logger.info("uninstallMiner: success", { userId, rackId, minerId: miner.minerId });
+    logger.info("uninstallMiner: success", {
+      userId,
+      rackId,
+      minerId: miner.minerId,
+      returnedMinerName: minerName,
+    });
     return res.json({ ok: true, message: "Máquina removida do rack com sucesso!" });
   } catch (err) {
     logger.error("uninstallMiner error", { err: err.message });

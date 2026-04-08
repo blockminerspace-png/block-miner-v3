@@ -7,6 +7,7 @@ import * as bannerController from "../controllers/bannerController.js";
 import * as creatorController from "../controllers/creatorController.js";
 import * as transparencyController from "../controllers/transparencyController.js";
 import { adminOfferEventsRouter } from "./admin-offer-events.js";
+import { adminLogsRouter } from "./admin-logs.js";
 import { requireAdminAuth } from "../middleware/adminAuth.js";
 import { createRateLimiter } from "../middleware/rateLimit.js";
 import * as walletModel from "../models/walletModel.js";
@@ -60,6 +61,7 @@ const uploadMedia = multer({
 adminRouter.use(requireAdminAuth, adminLimiter);
 
 adminRouter.use(adminOfferEventsRouter);
+adminRouter.use("/logs", adminLogsRouter);
 
 // Upload de imagem (event/miner covers)
 adminRouter.post("/upload-image", upload.single("image"), (req, res) => {
@@ -337,6 +339,114 @@ adminRouter.get("/miners", async (req, res) => {
 adminRouter.post("/miners", adminController.createMiner);
 adminRouter.put("/miners/:id", adminController.updateMiner);
 
+// Faucet — imagem/poder vêm do registro Miner ligado ao FaucetReward (persistidos no DB)
+adminRouter.get("/faucet/config", async (req, res) => {
+  try {
+    const reward = await prisma.faucetReward.findFirst({
+      where: { isActive: true },
+      include: { miner: true },
+      orderBy: { id: "asc" },
+    });
+    if (!reward?.miner) {
+      return res.json({ ok: true, configured: false, reward: null });
+    }
+    return res.json({
+      ok: true,
+      configured: true,
+      reward: {
+        rewardId: reward.id,
+        cooldownMs: reward.cooldownMs,
+        isActive: reward.isActive,
+        miner: {
+          id: reward.miner.id,
+          slug: reward.miner.slug,
+          name: reward.miner.name,
+          baseHashRate: reward.miner.baseHashRate,
+          slotSize: reward.miner.slotSize,
+          imageUrl: reward.miner.imageUrl,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("[admin faucet/config get]", error?.message || error);
+    return res.status(500).json({ ok: false, message: "Falha ao carregar config da faucet." });
+  }
+});
+
+adminRouter.put("/faucet/config", async (req, res) => {
+  try {
+    const reward = await prisma.faucetReward.findFirst({
+      where: { isActive: true },
+      include: { miner: true },
+      orderBy: { id: "asc" },
+    });
+    if (!reward?.miner) {
+      return res.status(404).json({ ok: false, message: "Nenhuma faucet ativa configurada." });
+    }
+
+    const { baseHashRate, imageUrl, cooldownMs, name } = req.body || {};
+    const minerData = {};
+    if (name !== undefined && String(name).trim()) minerData.name = String(name).trim();
+    if (baseHashRate !== undefined) {
+      const v = Number(baseHashRate);
+      if (!Number.isFinite(v) || v < 0) {
+        return res.status(400).json({ ok: false, message: "baseHashRate inválido." });
+      }
+      minerData.baseHashRate = v;
+    }
+    if (imageUrl !== undefined) {
+      const u = String(imageUrl).trim();
+      minerData.imageUrl = u || null;
+    }
+
+    const rewardData = {};
+    if (cooldownMs !== undefined) {
+      const c = Number(cooldownMs);
+      if (!Number.isFinite(c) || c < 0) {
+        return res.status(400).json({ ok: false, message: "cooldownMs inválido." });
+      }
+      rewardData.cooldownMs = Math.floor(c);
+    }
+
+    if (!Object.keys(minerData).length && !Object.keys(rewardData).length) {
+      return res.status(400).json({ ok: false, message: "Nenhum campo para atualizar." });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      if (Object.keys(minerData).length) {
+        await tx.miner.update({ where: { id: reward.miner.id }, data: minerData });
+      }
+      if (Object.keys(rewardData).length) {
+        await tx.faucetReward.update({ where: { id: reward.id }, data: rewardData });
+      }
+    });
+
+    const fresh = await prisma.faucetReward.findUnique({
+      where: { id: reward.id },
+      include: { miner: true },
+    });
+    return res.json({
+      ok: true,
+      reward: {
+        rewardId: fresh.id,
+        cooldownMs: fresh.cooldownMs,
+        isActive: fresh.isActive,
+        miner: {
+          id: fresh.miner.id,
+          slug: fresh.miner.slug,
+          name: fresh.miner.name,
+          baseHashRate: fresh.miner.baseHashRate,
+          slotSize: fresh.miner.slotSize,
+          imageUrl: fresh.miner.imageUrl,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("[admin faucet/config put]", error?.message || error);
+    return res.status(500).json({ ok: false, message: "Falha ao atualizar config da faucet." });
+  }
+});
+
 // Withdrawals
 adminRouter.get("/withdrawals/pending", adminController.listPendingWithdrawals);
 adminRouter.post("/withdrawals/:withdrawalId/approve", adminController.approveWithdrawal);
@@ -392,7 +502,8 @@ adminRouter.get("/finance/activity", async (req, res) => {
 adminRouter.get("/audit", async (req, res) => {
     try {
         const limit = Number(req.query.limit) || 10;
-        const logs = await prisma.auditLog.findMany({
+        const source = prisma.auditEvent ? prisma.auditEvent : prisma.auditLog;
+        const logs = await source.findMany({
             orderBy: { createdAt: 'desc' },
             take: limit
         });

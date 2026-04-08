@@ -6,6 +6,7 @@ import { getMiningEngine } from "../src/miningEngineInstance.js";
 import { getSlotSizeForMiner } from "../utils/minerUtils.js";
 import { createNotification } from "./notificationController.js";
 import prisma from "../src/db/prisma.js";
+import { releaseUserMinerFromRacksTx } from "../utils/rackMinerRelease.js";
 
 const DEFAULT_MINER_IMAGE_URL = "/machines/reward1.png";
 const SLOTS_PER_RACK = 8;
@@ -68,6 +69,7 @@ export async function installInventoryItem(req, res) {
     await prisma.$transaction(async (tx) => {
       if (existingMachines.length > 0) {
         for (const m of existingMachines) {
+          await releaseUserMinerFromRacksTx(tx, req.user.id, m.id);
           await tx.userInventory.create({
             data: {
               userId: req.user.id,
@@ -90,6 +92,7 @@ export async function installInventoryItem(req, res) {
           include: { miner: true }
         });
         if (prevMachine && prevMachine.slotSize === 2) {
+          await releaseUserMinerFromRacksTx(tx, req.user.id, prevMachine.id);
           await tx.userInventory.create({
             data: {
               userId: req.user.id,

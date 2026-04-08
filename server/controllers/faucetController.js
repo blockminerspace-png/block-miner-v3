@@ -12,7 +12,7 @@ async function getActiveReward() {
   const reward = await prisma.faucetReward.findFirst({
     where: { isActive: true },
     include: { miner: true },
-    orderBy: { id: 'desc' }
+    orderBy: { id: "asc" },
   });
 
   if (!reward?.miner) return null;
