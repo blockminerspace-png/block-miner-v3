@@ -1,27 +1,35 @@
 {
   "landing": {
+    "meta": {
+      "title": "Block Miner — juego de minería POL | blockminer.space",
+      "description": "Juego de minería gratis en el navegador (Polygon): construye tu granja, compra rigs, sube el hashrate y gana POL real. No es asesoramiento financiero."
+    },
     "nav": {
       "login": "Iniciar sesión",
-      "register": "Crear cuenta"
+      "register": "Crear cuenta",
+      "brand_aria": "Block Miner — inicio",
+      "language_group": "Idioma"
     },
     "hero": {
-      "badge": "Juego online — bloques siendo minados ahora",
-      "title": "Juega, Mina y",
-      "title_highlight": "Gana Cripto",
-      "title_end": "de Verdad",
-      "subtitle": "El juego de minería donde montas tu granja, compras máquinas y ganas <strong>criptomonedas reales</strong> en cada bloque.",
-      "cta_start": "Jugar Ahora — Es Gratis →",
+      "badge": "Juego en vivo — los bloques se cierran ahora",
+      "title": "Juega el",
+      "title_highlight": "juego de minería",
+      "title_end": "— gana POL de verdad",
+      "subtitle": "Construye tu granja en el juego, compra rigs, aumenta el hashrate y cobra recompensas reales en Polygon (POL). Gratis en el navegador.",
+      "cta_start": "Jugar ahora — es gratis",
       "cta_login": "Ya tengo cuenta"
     },
     "stats": {
-      "users_label": "Usuarios registrados",
+      "users_label": "Jugadores registrados",
       "users_sub": "desde el lanzamiento",
       "withdrawn_label": "POL retirados",
-      "withdrawn_sub": "transacciones on-chain",
-      "uptime_label": "En línea desde",
-      "uptime_sub": "5 de marzo de 2026",
-      "miners_label": "Mineros activos",
-      "miners_sub": "funcionando ahora"
+      "withdrawn_sub": "pagos on-chain",
+      "uptime_label": "En línea desde hace",
+      "uptime_value_one": "{{count}} día",
+      "uptime_value_other": "{{count}} días",
+      "uptime_sub": "desde el 5 de marzo de 2026",
+      "miners_label": "Rigs activos",
+      "miners_sub": "en el juego ahora"
     },
     "how": {
       "title": "¿Cómo funciona?",
@@ -34,14 +42,15 @@
       "step3_body": "Cada ~10 minutos el motor cierra un bloque y divide el fondo de recompensas proporcionalmente. Retira on-chain cuando quieras."
     },
     "features": {
-      "title": "Lo que la plataforma hace de verdad",
-      "subtitle": "Funcionalidades reales del repositorio — sin marketing vacío.",
+      "kicker": "Dentro del juego",
+      "title": "Mecánicas reales de minería",
+      "subtitle": "Hashrate, rondas de bloque y recompensas corren en el servidor — no es un marketing vacío.",
       "f1_title": "Motor de bloques en vivo",
-      "f1_body": "El tick del servidor actualiza el hashrate de la red, el progreso del bloque y la distribución al cerrar el ciclo de ~10 min.",
+      "f1_body": "Cada ~10 minutos se cierra la ronda: tu parte sigue tu hashrate frente al pool global.",
       "f2_title": "Billetera y retiros",
-      "f2_body": "Saldo interno en POL, solicitudes de retiro e integración con la red Polygon para operaciones on-chain.",
-      "f3_title": "Check-in, faucet & PTC",
-      "f3_body": "Check-in diario, faucet, shortlinks y offerwalls (ej.: ZerAds) para ganar créditos de hashrate o saldo.",
+      "f2_body": "Saldo POL en el juego y retiros on-chain en Polygon cuando quieras.",
+      "f3_title": "Check-in diario, faucet y extras",
+      "f3_body": "Check-in, faucet, shortlinks y offerwalls para subir hashrate o saldo mientras juegas.",
       "f4_title": "Tienda, ranking y eventos",
       "f4_body": "Compra mineros en la tienda, gestiona inventario, ranking global y eventos de mineros exclusivos vía panel admin.",
       "f5_title": "API segura con JWT",
@@ -51,6 +60,7 @@
     },
     "faq": {
       "title": "Preguntas frecuentes",
+      "heading": "Respuestas rápidas sobre Block Miner",
       "q1": "¿Es gratuito?",
       "a1": "Sí. Crear una cuenta y recibir recompensas de minería es completamente gratuito. Comprar mineros en la tienda usa el saldo ganado.",
       "q2": "¿Las monedas POL son reales?",
@@ -66,9 +76,18 @@
       "register": "Registrarse ahora",
       "explore": "Explorar Polygon"
     },
+    "closing": {
+      "kicker": "Empieza a minar",
+      "title": "Crea tu cuenta y mina POL hoy.",
+      "body": "El juego está en vivo: farmea, gana y retira en Polygon — sin humo.",
+      "register": "Crear cuenta gratis",
+      "login": "Ya tengo cuenta"
+    },
     "footer": {
       "rights": "Block Miner",
-      "disclaimer": "Simulación Web3 educativa. Los criptoactivos conllevan riesgo — no es asesoramiento financiero."
+      "disclaimer": "Simulación Web3 educativa. Los criptoactivos conllevan riesgo — no es asesoramiento financiero.",
+      "copyright": "© {{year}} Block Miner. Todos los derechos reservados.",
+      "tagline": "Juego de minería Web3 con economía POL en vivo."
     }
   },
   "common": {

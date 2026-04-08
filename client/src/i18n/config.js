@@ -30,8 +30,10 @@ i18n
       escapeValue: false, // react already safes from xss
     },
     detection: {
-      order: ['navigator', 'querystring', 'cookie', 'localStorage', 'htmlTag'],
-      caches: ['localStorage', 'cookie'],
+      // Sem `navigator`: primeira visita usa inglês (fallbackLng); PT/ES só após escolha guardada em localStorage ou ?lng=
+      order: ['querystring', 'localStorage', 'cookie', 'htmlTag'],
+      caches: ['localStorage'],
+      lookupQuerystring: 'lng',
     },
   });
 

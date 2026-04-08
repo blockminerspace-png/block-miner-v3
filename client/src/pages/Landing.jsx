@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -46,26 +46,55 @@ function FaqItem({ question, answer }) {
   );
 }
 
+function LanguageSwitch() {
+  const { t, i18n } = useTranslation();
+  const raw = i18n.resolvedLanguage || i18n.language || 'en';
+  const active = raw.startsWith('pt') ? 'pt-BR' : raw.startsWith('es') ? 'es' : 'en';
+  const btn = (code, label) => (
+    <button
+      key={code}
+      type="button"
+      onClick={() => void i18n.changeLanguage(code)}
+      className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors ${
+        active === code ? 'bg-white/15 text-white' : 'text-slate-500 hover:text-slate-200'
+      }`}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div
+      className="flex items-center gap-0.5 rounded-full border border-white/10 bg-slate-950/80 p-0.5"
+      role="group"
+      aria-label={t('landing.nav.language_group')}
+    >
+      {btn('en', 'EN')}
+      {btn('pt-BR', 'PT')}
+      {btn('es', 'ES')}
+    </div>
+  );
+}
+
 export default function Landing() {
-  const { t } = useTranslation();
+  const { t, i18n: i18next } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const [publicStats, setPublicStats] = useState(null);
 
   useEffect(() => {
-    document.title = 'Block Miner — Simulated POL Mining Farm | blockminer.space';
-    const metaTag = document.querySelector('meta[name="description"]') || document.createElement('meta');
-    metaTag.name = 'description';
-    metaTag.content =
-      'Build your simulated cryptocurrency mining farm on Polygon (POL). Buy rigs, earn block rewards every ~10 minutes proportional to your hashrate, withdraw on-chain. Free to play — no guaranteed returns.';
-    if (!document.querySelector('meta[name="description"]')) {
+    document.title = t('landing.meta.title');
+    let metaTag = document.querySelector('meta[name="description"]');
+    if (!metaTag) {
+      metaTag = document.createElement('meta');
+      metaTag.name = 'description';
       document.head.appendChild(metaTag);
     }
+    metaTag.content = t('landing.meta.description');
 
     fetch('/api/public-stats')
       .then((res) => res.json())
       .then((data) => data.ok && setPublicStats(data))
       .catch(() => {});
-  }, []);
+  }, [t, i18next.language]);
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
@@ -91,7 +120,7 @@ export default function Landing() {
     {
       icon: Clock,
       label: t('landing.stats.uptime_label'),
-      value: `${days} dias`,
+      value: t('landing.stats.uptime_value', { count: days }),
       sub: t('landing.stats.uptime_sub'),
       iconColor: 'bg-violet-500/15 text-violet-300',
     },
@@ -105,9 +134,9 @@ export default function Landing() {
   ];
 
   const featureCards = [
-    { icon: Zap, title: 'Motor de blocos ao vivo', body: 'O motor atualiza hashrate, progresso do bloco e distribuição do pool a cada ciclo de ~10 minutos.' },
-    { icon: Wallet, title: 'Carteira & saques', body: 'Saldo interno em POL, pedidos de saque e integração com Polygon para operações on-chain.' },
-    { icon: Gift, title: 'Check-in diário, faucet & PTC', body: 'Atividades diárias e offerwalls para ganhar créditos e aumentar seu hashrate.' },
+    { icon: Zap, titleKey: 'landing.features.f1_title', bodyKey: 'landing.features.f1_body' },
+    { icon: Wallet, titleKey: 'landing.features.f2_title', bodyKey: 'landing.features.f2_body' },
+    { icon: Gift, titleKey: 'landing.features.f3_title', bodyKey: 'landing.features.f3_body' },
   ];
 
   const howSteps = [
@@ -140,19 +169,19 @@ export default function Landing() {
 
       <header className="relative z-10 border-b border-white/10 bg-[#02070f]/95 backdrop-blur-xl sticky top-0">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
-          <Link to="/" className="flex items-center gap-3 text-white" aria-label="Block Miner">
+          <Link to="/" className="flex items-center gap-3 text-white" aria-label={t('landing.nav.brand_aria')}>
             <BrandLogo variant="header" interactive />
-            <span className="hidden text-sm font-black uppercase tracking-[0.3em] text-sky-400 sm:inline-flex">BLOCKMINER</span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <LanguageSwitch />
             <Link to="/login" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
-              Entrar
+              {t('landing.nav.login')}
             </Link>
             <Link
               to="/register"
               className="rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 hover:brightness-110 transition-all"
             >
-              Criar conta
+              {t('landing.nav.register')}
             </Link>
           </div>
         </div>
@@ -163,26 +192,28 @@ export default function Landing() {
           <div className="text-center">
             <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-slate-900/70 px-4 py-2 text-xs uppercase tracking-[0.25em] text-slate-300 shadow-[0_0_50px_rgba(15,23,42,0.25)]">
               <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              Jogo online — blocos sendo minerados agora
+              {t('landing.hero.badge')}
             </div>
             <h1 className="mt-8 text-5xl font-black leading-[0.95] text-white sm:text-6xl lg:text-7xl">
-              Jogue, Minere e <span className="text-sky-400">Ganhe Cripto</span> de Verdade
+              {t('landing.hero.title')}{' '}
+              <span className="text-sky-400">{t('landing.hero.title_highlight')}</span>{' '}
+              {t('landing.hero.title_end')}
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-              A plataforma Web3 que já está no ar: monte sua farm, compre miners e receba recompensas reais em POL — tudo direto do seu browser.
+              {t('landing.hero.subtitle')}
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
                 to="/register"
                 className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-8 py-4 text-sm font-bold text-white shadow-xl shadow-sky-500/25 transition-transform hover:-translate-y-0.5"
               >
-                Jogar Agora — É Grátis
+                {t('landing.hero.cta_start')}
               </Link>
               <Link
                 to="/login"
                 className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-8 py-4 text-sm font-semibold text-slate-100 hover:bg-white/10 transition-colors"
               >
-                Já tenho conta
+                {t('landing.hero.cta_login')}
               </Link>
             </div>
           </div>
@@ -204,17 +235,18 @@ export default function Landing() {
         <section className="border-y border-white/10 bg-[#08101c] py-20">
           <div className="mx-auto max-w-6xl px-5 sm:px-8">
             <div className="text-center mb-14">
-              <p className="text-sm uppercase tracking-[0.32em] text-sky-400">O que a plataforma faz de verdade</p>
-              <h2 className="mt-4 text-4xl font-black text-white">Funcionalidades reais, sem marketing vazio.</h2>
+              <p className="text-sm uppercase tracking-[0.32em] text-sky-400">{t('landing.features.kicker')}</p>
+              <h2 className="mt-4 text-4xl font-black text-white">{t('landing.features.title')}</h2>
+              <p className="mt-3 text-slate-400 max-w-2xl mx-auto">{t('landing.features.subtitle')}</p>
             </div>
             <div className="grid gap-6 md:grid-cols-3">
               {featureCards.map((card) => (
-                <div key={card.title} className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-8 shadow-xl shadow-slate-950/25">
+                <div key={card.titleKey} className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-8 shadow-xl shadow-slate-950/25">
                   <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-900/90 text-sky-400">
                     <card.icon className="h-6 w-6" aria-hidden />
                   </div>
-                  <h3 className="mt-6 text-xl font-semibold text-white">{card.title}</h3>
-                  <p className="mt-4 text-sm leading-relaxed text-slate-400">{card.body}</p>
+                  <h3 className="mt-6 text-xl font-semibold text-white">{t(card.titleKey)}</h3>
+                  <p className="mt-4 text-sm leading-relaxed text-slate-400">{t(card.bodyKey)}</p>
                 </div>
               ))}
             </div>
@@ -223,8 +255,8 @@ export default function Landing() {
 
         <section className="mx-auto max-w-6xl px-5 sm:px-8 py-20">
           <div className="text-center mb-14">
-            <p className="text-sm uppercase tracking-[0.32em] text-sky-400">Como funciona</p>
-            <h2 className="mt-4 text-4xl font-black text-white">Três passos para sua primeira recompensa em POL.</h2>
+            <p className="text-sm uppercase tracking-[0.32em] text-sky-400">{t('landing.how.title')}</p>
+            <h2 className="mt-4 text-4xl font-black text-white">{t('landing.how.subtitle')}</h2>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             {howSteps.map(({ icon: StepIcon, titleKey, bodyKey }) => (
@@ -242,8 +274,8 @@ export default function Landing() {
         <section className="border-t border-white/10 bg-[#08101c] py-20">
           <div className="mx-auto max-w-6xl px-5 sm:px-8">
             <div className="text-center mb-12">
-              <p className="text-sm uppercase tracking-[0.32em] text-sky-400">Perguntas frequentes</p>
-              <h2 className="mt-4 text-4xl font-black text-white">Dúvidas rápidas sobre o BlockMiner</h2>
+              <p className="text-sm uppercase tracking-[0.32em] text-sky-400">{t('landing.faq.title')}</p>
+              <h2 className="mt-4 text-4xl font-black text-white">{t('landing.faq.heading')}</h2>
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
               {faqItems.map(({ qKey, aKey }) => (
@@ -257,24 +289,22 @@ export default function Landing() {
           <div className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-10 shadow-2xl shadow-slate-950/30">
             <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-center">
               <div>
-                <p className="text-sm uppercase tracking-[0.32em] text-sky-400">Pronto para começar?</p>
-                <h2 className="mt-4 text-4xl font-black text-white">Crie sua conta e comece a minerar POL agora mesmo.</h2>
-                <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-400">
-                  Plataforma já ativa com recursos reais, extraindo valor na Polygon sem promessas vazias.
-                </p>
+                <p className="text-sm uppercase tracking-[0.32em] text-sky-400">{t('landing.closing.kicker')}</p>
+                <h2 className="mt-4 text-4xl font-black text-white">{t('landing.closing.title')}</h2>
+                <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-400">{t('landing.closing.body')}</p>
               </div>
               <div className="flex flex-col gap-4">
                 <Link
                   to="/register"
                   className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 hover:brightness-110 transition-all"
                 >
-                  Criar conta gratuitamente
+                  {t('landing.closing.register')}
                 </Link>
                 <Link
                   to="/login"
                   className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-8 py-4 text-sm font-semibold text-slate-100 hover:bg-white/10 transition-colors"
                 >
-                  Já tenho conta
+                  {t('landing.closing.login')}
                 </Link>
               </div>
             </div>
@@ -284,8 +314,8 @@ export default function Landing() {
 
       <footer className="border-t border-white/10 bg-[#02070f] py-10 px-5 sm:px-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} BlockMiner. Todos os direitos reservados.</p>
-          <p className="max-w-md">Jogo de mineração Web3 com recursos reais e economia de tokens POL integrada.</p>
+          <p>{t('landing.footer.copyright', { year: new Date().getFullYear() })}</p>
+          <p className="max-w-md">{t('landing.footer.tagline')}</p>
         </div>
       </footer>
     </div>
