@@ -7,6 +7,7 @@ import * as bannerController from "../controllers/bannerController.js";
 import * as creatorController from "../controllers/creatorController.js";
 import * as transparencyController from "../controllers/transparencyController.js";
 import { adminOfferEventsRouter } from "./admin-offer-events.js";
+import { adminLogsRouter } from "./admin-logs.js";
 import { requireAdminAuth } from "../middleware/adminAuth.js";
 import { createRateLimiter } from "../middleware/rateLimit.js";
 import * as walletModel from "../models/walletModel.js";
@@ -60,6 +61,7 @@ const uploadMedia = multer({
 adminRouter.use(requireAdminAuth, adminLimiter);
 
 adminRouter.use(adminOfferEventsRouter);
+adminRouter.use("/logs", adminLogsRouter);
 
 // Upload de imagem (event/miner covers)
 adminRouter.post("/upload-image", upload.single("image"), (req, res) => {

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/auth';
 import { Cpu, Mail, Lock, User, AlertCircle, Loader2, ChevronRight, Eye, EyeOff, Gift } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo';
+import SocialLoginButtons from '../components/auth/SocialLoginButtons';
 
 export default function Register() {
     const { t } = useTranslation();
@@ -76,7 +77,7 @@ export default function Register() {
                     <p className="text-gray-500 font-medium mt-1">{t('auth.register.subtitle')}</p>
                 </div>
 
-                <div className="bg-surface/50 backdrop-blur-xl border border-gray-800/50 rounded-[2.5rem] p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-700 delay-200">
+                <div className="bg-surface/95 border border-gray-800/70 rounded-[2.5rem] p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-700 delay-200">
                     {error && (
                         <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-3">
                             <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
@@ -219,7 +220,9 @@ export default function Register() {
                         </button>
                     </form>
 
-                    <div className="mt-10 text-center">
+                    <SocialLoginButtons />
+
+                    <div className="mt-4 text-center">
                         <p className="text-gray-500 text-xs font-medium">
                             {t('auth.register.already_have_account')}{' '}
                             <Link to="/login" className="text-primary hover:text-white font-black transition-colors ml-1 uppercase tracking-widest">

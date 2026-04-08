@@ -8,10 +8,11 @@ import { getTokenFromRequest, getRefreshTokenFromRequest, ACCESS_COOKIE_NAME, RE
 import { signAccessToken, createRefreshToken, parseRefreshToken, verifyAccessToken } from "../utils/authTokens.js";
 import { createRefreshTokenRecord, getRefreshTokenById, revokeRefreshToken } from "../models/refreshTokenModel.js";
 import { updateUserLoginMeta } from "../models/userModel.js";
-import { createAuditLog } from "../models/auditLogModel.js";
 import { createRateLimiter } from "../middleware/rateLimit.js";
 import { validateBody } from "../middleware/validate.js";
 import { requireAuth } from "../middleware/auth.js";
+import { enqueueAuditEvent, buildAuditEventFromHttpRequest } from "../src/audit/service.js";
+import { AuditEventType, AuditEventStatus } from "../src/audit/constants.js";
 import { getUserByRefCode, createReferral, listReferredUsers } from "../models/referralModel.js";
 import { getMinerBySlug } from "../models/minersModel.js";
 import { addInventoryItem } from "../models/inventoryModel.js";
@@ -275,14 +276,19 @@ authRouter.post("/register", authLimiter, validateBody(registerSchema), async (r
         })),
       });
 
-      // Audit Log for registration
-      await tx.auditLog.create({
-        data: {
-          userId: user.id,
-          action: "register",
-          ip: clientIp,
-          detailsJson: JSON.stringify({ referrerId })
-        }
+      // Audit log for registration
+      await enqueueAuditEvent({
+        prismaOrTx: tx,
+        event: buildAuditEventFromHttpRequest({
+          req,
+          event: {
+            userId: user.id,
+            eventType: AuditEventType.AUTH_REGISTER,
+            status: AuditEventStatus.SUCCESS,
+            resultCode: "USER_REGISTERED",
+            payload: { referrerId }
+          }
+        })
       });
 
       return user;
@@ -320,11 +326,34 @@ authRouter.post("/login", authLimiter, validateBody(loginSchema), async (req, re
     const user = await findUserByIdentifier(identifier);
 
     if (!user) {
+      await enqueueAuditEvent({
+        event: buildAuditEventFromHttpRequest({
+          req,
+          event: {
+            eventType: AuditEventType.AUTH_LOGIN_FAILURE,
+            status: AuditEventStatus.FAILED,
+            resultCode: "IDENTIFIER_NOT_FOUND",
+            payload: { identifier }
+          }
+        })
+      });
       return res.status(401).json({ ok: false, code: "IDENTIFIER_NOT_FOUND", message: "Email ou username não existe." });
     }
 
     const isPasswordMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordMatch) {
+      await enqueueAuditEvent({
+        event: buildAuditEventFromHttpRequest({
+          req,
+          event: {
+            userId: user.id,
+            eventType: AuditEventType.AUTH_LOGIN_FAILURE,
+            status: AuditEventStatus.FAILED,
+            resultCode: "INVALID_CREDENTIALS",
+            payload: { identifier }
+          }
+        })
+      });
       return res.status(401).json({ ok: false, code: "INVALID_CREDENTIALS", message: "Invalid credentials." });
     }
 
@@ -332,34 +361,63 @@ authRouter.post("/login", authLimiter, validateBody(loginSchema), async (req, re
 
     if (user.isTwoFactorEnabled) {
       if (!twoFactorToken) {
+        await enqueueAuditEvent({
+          event: buildAuditEventFromHttpRequest({
+            req,
+            event: {
+              userId: user.id,
+              eventType: AuditEventType.AUTH_2FA_CHALLENGE,
+              status: AuditEventStatus.PARTIAL,
+              resultCode: "REQUIRE_2FA",
+              payload: {}
+            }
+          })
+        });
         return res.json({ ok: false, code: "REQUIRE_2FA", require2FA: true, message: "2FA token required." });
       }
 
       const isValid = authenticator.check(twoFactorToken, user.twoFactorSecret);
       if (!isValid) {
+        await enqueueAuditEvent({
+          event: buildAuditEventFromHttpRequest({
+            req,
+            event: {
+              userId: user.id,
+              eventType: AuditEventType.AUTH_2FA_FAILURE,
+              status: AuditEventStatus.FAILED,
+              resultCode: "INVALID_2FA",
+              payload: {}
+            }
+          })
+        });
         return res.status(401).json({ ok: false, code: "INVALID_2FA", message: "Código 2FA inválido." });
       }
     }
 
-    // Update login meta and store AuditLog
-    await prisma.$transaction([
-      prisma.user.update({
+    // Update login meta and store audit event in the outbox
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
         where: { id: user.id },
-        data: { 
+        data: {
           ip: clientIp,
           lastLoginAt: new Date(),
-          userAgent: req.headers['user-agent']
+          userAgent: req.headers["user-agent"]
         }
-      }),
-      prisma.auditLog.create({
-        data: {
-          userId: user.id,
-          action: "login",
-          ip: clientIp,
-          userAgent: req.headers['user-agent']
-        }
-      })
-    ]);
+      });
+      await enqueueAuditEvent({
+        prismaOrTx: tx,
+        event: buildAuditEventFromHttpRequest({
+          req,
+          event: {
+            userId: user.id,
+            eventType: AuditEventType.AUTH_LOGIN_SUCCESS,
+            status: AuditEventStatus.SUCCESS,
+            resultCode: "LOGIN_SUCCESS",
+            payload: {}
+          }
+        })
+      });
+    });
 
     const accessToken = signAccessToken(user);
     const refreshToken = createRefreshToken();
@@ -391,7 +449,31 @@ authRouter.get("/session", async (req, res) => {
   }
 });
 
-authRouter.post("/logout", (req, res) => {
+authRouter.post("/logout", async (req, res) => {
+  try {
+    const token = getTokenFromRequest(req);
+    let userId = null;
+    if (token) {
+      const payload = verifyAccessToken(token);
+      if (payload?.sub) userId = Number(payload.sub);
+    }
+
+    await enqueueAuditEvent({
+      event: buildAuditEventFromHttpRequest({
+        req,
+        event: {
+          userId,
+          eventType: AuditEventType.AUTH_LOGOUT,
+          status: AuditEventStatus.SUCCESS,
+          resultCode: "LOGOUT_SUCCESS",
+          payload: {}
+        }
+      })
+    });
+  } catch (error) {
+    // Audit failure should not prevent logout flow
+  }
+
   res.setHeader("Set-Cookie", clearAuthCookies());
   res.json({ ok: true });
 });

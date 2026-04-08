@@ -62,6 +62,7 @@ import { verifyAccessToken } from "./utils/authTokens.js";
 import { getOrCreateMinerProfile, persistMinerProfile, syncUserBaseHashRate } from "./models/minerProfileModel.js";
 import { ensureDefaultInternalReward } from "./models/shortlinkRewardModel.js";
 import { ensureFaucetReward } from "./src/bootstrap/ensureFaucetReward.js";
+import { auditContextMiddleware, startAuditOutboxWorker } from "./src/audit/index.js";
 
 const logger = loggerLib.child("Server");
 const __filename = fileURLToPath(import.meta.url);
@@ -211,10 +212,13 @@ const globalLimiter = createRateLimiter({
   },
   message: "Too many requests from this IP, please try again later."
 });
+app.use("/api", auditContextMiddleware);
 app.use("/api", globalLimiter);
 
 app.use("/api", (req, res, next) => {
-  logger.info(`INCOMING API REQUEST: ${req.method} ${req.originalUrl}`);
+  logger.info(`INCOMING API REQUEST: ${req.method} ${req.originalUrl}`, {
+    correlationId: req.auditContext?.correlationId,
+  });
   next();
 });
 
@@ -400,6 +404,9 @@ async function bootstrap() {
         buildPublicState: async (minerId) => engine.getPublicState(minerId)
       });
       startDepositVerifier();
+      if (process.env.NODE_ENV !== "test") {
+        startAuditOutboxWorker();
+      }
     });
   } catch (error) {
     logger.error("Bootstrap failed", { error: error.message });

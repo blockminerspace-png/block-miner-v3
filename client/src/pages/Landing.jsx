@@ -1,14 +1,11 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ChevronDown,
   Clock,
   Gift,
-  Globe,
   Pickaxe,
-  Shield,
-  Sparkles,
   TrendingUp,
   Users,
   UserPlus,
@@ -19,41 +16,30 @@ import { useAuthStore } from '../store/auth';
 import BrandLogo from '../components/BrandLogo';
 
 const LAUNCH_DATE = new Date('2026-03-05T00:00:00.000Z');
-const STAGGER = ['[animation-delay:0ms]', '[animation-delay:90ms]', '[animation-delay:180ms]', '[animation-delay:270ms]'];
 
 function uptimeDays() {
   return Math.floor((Date.now() - LAUNCH_DATE.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function FadeUp({ children, className = '', delayClass = STAGGER[0] }) {
-  return (
-    <div
-      className={`opacity-0 motion-reduce:opacity-100 motion-reduce:translate-y-0 animate-fadeUp ${delayClass} ${className}`}
-    >
-      {children}
-    </div>
-  );
-}
-
 function FaqItem({ question, answer }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border border-white/10 rounded-2xl overflow-hidden bg-[#0f1623]">
+    <div className="rounded-[1.75rem] border border-white/10 bg-slate-950/80 overflow-hidden">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left text-white font-semibold hover:bg-white/[0.04] transition-colors"
+        onClick={() => setOpen((value) => !value)}
+        className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left text-white font-semibold hover:bg-white/5 transition-colors"
         aria-expanded={open}
       >
         <span>{question}</span>
         <ChevronDown
-          className={`w-5 h-5 text-gray-400 shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+          className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
           aria-hidden
         />
       </button>
       {open && (
-        <div className="px-6 pb-5 text-sm text-gray-400 leading-relaxed border-t border-white/[0.06]">
-          <p className="pt-4">{answer}</p>
+        <div className="px-6 pb-6 text-sm leading-relaxed text-slate-300 border-t border-white/10">
+          {answer}
         </div>
       )}
     </div>
@@ -67,18 +53,17 @@ export default function Landing() {
 
   useEffect(() => {
     document.title = 'Block Miner — Simulated POL Mining Farm | blockminer.space';
-    let meta = document.querySelector('meta[name="description"]');
-    if (!meta) {
-      meta = document.createElement('meta');
-      meta.name = 'description';
-      document.head.appendChild(meta);
-    }
-    meta.content =
+    const metaTag = document.querySelector('meta[name="description"]') || document.createElement('meta');
+    metaTag.name = 'description';
+    metaTag.content =
       'Build your simulated cryptocurrency mining farm on Polygon (POL). Buy rigs, earn block rewards every ~10 minutes proportional to your hashrate, withdraw on-chain. Free to play — no guaranteed returns.';
+    if (!document.querySelector('meta[name="description"]')) {
+      document.head.appendChild(metaTag);
+    }
 
     fetch('/api/public-stats')
-      .then((r) => r.json())
-      .then((data) => { if (data.ok) setPublicStats(data); })
+      .then((res) => res.json())
+      .then((data) => data.ok && setPublicStats(data))
       .catch(() => {});
   }, []);
 
@@ -94,44 +79,41 @@ export default function Landing() {
       label: t('landing.stats.users_label'),
       value: publicStats ? publicStats.users.toLocaleString() : '—',
       sub: t('landing.stats.users_sub'),
-      iconColor: 'text-blue-400',
+      iconColor: 'bg-sky-500/15 text-sky-300',
     },
     {
       icon: Wallet,
       label: t('landing.stats.withdrawn_label'),
       value: publicStats ? `${Number(publicStats.totalWithdrawn).toLocaleString(undefined, { maximumFractionDigits: 2 })} POL` : '—',
       sub: t('landing.stats.withdrawn_sub'),
-      iconColor: 'text-emerald-400',
+      iconColor: 'bg-emerald-500/15 text-emerald-300',
     },
     {
       icon: Clock,
       label: t('landing.stats.uptime_label'),
       value: `${days} dias`,
       sub: t('landing.stats.uptime_sub'),
-      iconColor: 'text-violet-400',
+      iconColor: 'bg-violet-500/15 text-violet-300',
     },
     {
       icon: Zap,
       label: t('landing.stats.miners_label'),
       value: publicStats ? publicStats.activeMiners.toLocaleString() : '—',
       sub: t('landing.stats.miners_sub'),
-      iconColor: 'text-amber-400',
+      iconColor: 'bg-amber-500/15 text-amber-300',
     },
   ];
 
   const featureCards = [
-    { icon: Zap, titleKey: 'landing.features.f1_title', bodyKey: 'landing.features.f1_body', accent: 'from-amber-500/20 to-orange-500/10' },
-    { icon: Wallet, titleKey: 'landing.features.f2_title', bodyKey: 'landing.features.f2_body', accent: 'from-emerald-500/20 to-teal-500/10' },
-    { icon: Gift, titleKey: 'landing.features.f3_title', bodyKey: 'landing.features.f3_body', accent: 'from-pink-500/20 to-rose-500/10' },
-    { icon: TrendingUp, titleKey: 'landing.features.f4_title', bodyKey: 'landing.features.f4_body', accent: 'from-violet-500/20 to-purple-500/10' },
-    { icon: Shield, titleKey: 'landing.features.f5_title', bodyKey: 'landing.features.f5_body', accent: 'from-blue-500/20 to-cyan-500/10' },
-    { icon: Sparkles, titleKey: 'landing.features.f6_title', bodyKey: 'landing.features.f6_body', accent: 'from-sky-500/20 to-primary/20' },
+    { icon: Zap, title: 'Motor de blocos ao vivo', body: 'O motor atualiza hashrate, progresso do bloco e distribuição do pool a cada ciclo de ~10 minutos.' },
+    { icon: Wallet, title: 'Carteira & saques', body: 'Saldo interno em POL, pedidos de saque e integração com Polygon para operações on-chain.' },
+    { icon: Gift, title: 'Check-in diário, faucet & PTC', body: 'Atividades diárias e offerwalls para ganhar créditos e aumentar seu hashrate.' },
   ];
 
   const howSteps = [
-    { num: '01', icon: UserPlus, titleKey: 'landing.how.step1_title', bodyKey: 'landing.how.step1_body' },
-    { num: '02', icon: Pickaxe, titleKey: 'landing.how.step2_title', bodyKey: 'landing.how.step2_body' },
-    { num: '03', icon: TrendingUp, titleKey: 'landing.how.step3_title', bodyKey: 'landing.how.step3_body' },
+    { icon: UserPlus, titleKey: 'landing.how.step1_title', bodyKey: 'landing.how.step1_body' },
+    { icon: Pickaxe, titleKey: 'landing.how.step2_title', bodyKey: 'landing.how.step2_body' },
+    { icon: TrendingUp, titleKey: 'landing.how.step3_title', bodyKey: 'landing.how.step3_body' },
   ];
 
   const faqItems = [
@@ -142,233 +124,168 @@ export default function Landing() {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-gray-100 font-sans overflow-x-hidden">
-      {/* Animated ambient background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(59,130,246,0.22),transparent_55%)]" />
-        <div className="absolute top-1/4 -left-32 h-[420px] w-[420px] rounded-full bg-primary/20 blur-[100px] animate-blob motion-reduce:animate-none" />
-        <div className="absolute bottom-0 right-[-120px] h-[480px] w-[480px] rounded-full bg-accent/18 blur-[110px] animate-blob-delay motion-reduce:animate-none" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-cyan-500/10 blur-[120px] animate-blob-slow motion-reduce:animate-none" />
+    <div className="relative min-h-screen overflow-x-hidden bg-[#020511] text-slate-100">
+      <div className="pointer-events-none fixed inset-0 opacity-90">
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-950 to-[#060a12]" />
+        <div className="absolute inset-x-0 top-0 h-[35vh] bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.18),transparent_45%)]" />
+        <div className="absolute inset-x-0 top-[48vh] bottom-0 bg-[linear-gradient(180deg,transparent,rgba(7,15,28,0.96))]" />
         <div
-          className="absolute inset-0 opacity-[0.12] motion-reduce:opacity-[0.08] animate-gridPulse"
+          className="absolute inset-x-0 bottom-0 top-[46vh] opacity-20"
           style={{
-            backgroundImage: `linear-gradient(rgba(59,130,246,0.35) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(59,130,246,0.35) 1px, transparent 1px)`,
-            backgroundSize: '56px 56px',
+            backgroundImage: `linear-gradient(rgba(56,189,248,0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.16) 1px, transparent 1px)`,
+            backgroundSize: '60px 60px',
           }}
         />
-        {/* Floating square particles */}
-        <div className="absolute top-[35%] left-[7%] w-3 h-3 bg-blue-500/50 rotate-12 rounded-sm animate-blob motion-reduce:animate-none" />
-        <div className="absolute top-[58%] left-[13%] w-2 h-2 bg-violet-500/45 rotate-45 rounded-sm animate-blob-slow motion-reduce:animate-none" />
-        <div className="absolute top-[22%] left-[20%] w-2 h-2 bg-cyan-400/40 -rotate-12 rounded-sm animate-blob-delay motion-reduce:animate-none" />
-        <div className="absolute top-[43%] right-[9%] w-3 h-3 bg-cyan-400/50 -rotate-6 rounded-sm animate-blob motion-reduce:animate-none" />
-        <div className="absolute top-[67%] right-[17%] w-2 h-2 bg-blue-400/45 rotate-12 rounded-sm animate-blob-slow motion-reduce:animate-none" />
-        <div className="absolute top-[28%] right-[23%] w-2 h-2 bg-violet-400/40 -rotate-12 rounded-sm animate-blob-delay motion-reduce:animate-none" />
       </div>
 
-      {/* Header */}
-      <header className="relative z-20 border-b border-white/[0.06] bg-background/70 backdrop-blur-xl sticky top-0">
-        <div className="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
-          <Link
-            to="/"
-            className="group flex items-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            aria-label="Block Miner"
-          >
+      <header className="relative z-10 border-b border-white/10 bg-[#02070f]/95 backdrop-blur-xl sticky top-0">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
+          <Link to="/" className="flex items-center gap-3 text-white" aria-label="Block Miner">
             <BrandLogo variant="header" interactive />
+            <span className="hidden text-sm font-black uppercase tracking-[0.3em] text-sky-400 sm:inline-flex">BLOCKMINER</span>
           </Link>
-          <nav className="flex items-center gap-2 sm:gap-3">
-            <Link
-              to="/login"
-              className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
-            >
-              {t('landing.nav.login')}
+          <div className="flex items-center gap-3">
+            <Link to="/login" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+              Entrar
             </Link>
             <Link
               to="/register"
-              className="px-5 py-2.5 text-sm font-semibold rounded-xl bg-gradient-to-r from-primary to-blue-500 text-white shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all"
+              className="rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 hover:brightness-110 transition-all"
             >
-              {t('landing.nav.register')}
+              Criar conta
             </Link>
-          </nav>
+          </div>
         </div>
       </header>
 
       <main className="relative z-10">
-        {/* Hero */}
-        <section className="max-w-6xl mx-auto px-5 sm:px-8 pt-14 sm:pt-20 pb-20 sm:pb-28">
-          <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
-            <FadeUp delayClass={STAGGER[0]}>
-              <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-white/15 bg-white/[0.06] text-sm font-medium text-gray-200">
-                <span className="relative flex h-2 w-2" aria-hidden>
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
-                </span>
-                {t('landing.hero.badge')}
-              </div>
-            </FadeUp>
-
-            <FadeUp delayClass={STAGGER[1]} className="mt-8">
-              <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight text-white leading-[1.05]">
-                <span>{t('landing.hero.title')}</span><br />
-                <span className="bg-gradient-to-r from-sky-400 to-blue-500 bg-clip-text text-transparent">
-                  {t('landing.hero.title_highlight')}
-                </span><br />
-                <span>{t('landing.hero.title_end')}</span>
-              </h1>
-            </FadeUp>
-
-            <FadeUp delayClass={STAGGER[2]} className="mt-7 max-w-2xl">
-              <p
-                className="text-lg sm:text-xl text-gray-400 leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: t('landing.hero.subtitle') }}
-              />
-            </FadeUp>
-
-            <FadeUp delayClass={STAGGER[3]} className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+        <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-14 pb-24 sm:pt-20 sm:pb-32">
+          <div className="text-center">
+            <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-slate-900/70 px-4 py-2 text-xs uppercase tracking-[0.25em] text-slate-300 shadow-[0_0_50px_rgba(15,23,42,0.25)]">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              Jogo online — blocos sendo minerados agora
+            </div>
+            <h1 className="mt-8 text-5xl font-black leading-[0.95] text-white sm:text-6xl lg:text-7xl">
+              Jogue, Minere e <span className="text-sky-400">Ganhe Cripto</span> de Verdade
+            </h1>
+            <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
+              A plataforma Web3 que já está no ar: monte sua farm, compre miners e receba recompensas reais em POL — tudo direto do seu browser.
+            </p>
+            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
                 to="/register"
-                className="inline-flex items-center justify-center px-9 py-4 rounded-full font-bold text-white bg-gradient-to-r from-primary to-blue-500 shadow-xl shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.02] active:scale-[0.98] transition-all text-base"
+                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-8 py-4 text-sm font-bold text-white shadow-xl shadow-sky-500/25 transition-transform hover:-translate-y-0.5"
               >
-                {t('landing.hero.cta_start')}
+                Jogar Agora — É Grátis
               </Link>
               <Link
                 to="/login"
-                className="inline-flex items-center justify-center px-9 py-4 rounded-full font-semibold text-gray-200 border border-white/20 bg-white/[0.06] hover:bg-white/[0.10] hover:border-white/30 transition-all text-base"
+                className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-8 py-4 text-sm font-semibold text-slate-100 hover:bg-white/10 transition-colors"
               >
-                {t('landing.hero.cta_login')}
+                Já tenho conta
               </Link>
-            </FadeUp>
+            </div>
           </div>
 
-          {/* Quick stats */}
-          <FadeUp delayClass="[animation-delay:360ms]" className="mt-16 sm:mt-20">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              {statsCards.map(({ label, value, sub, icon: Icon, iconColor }) => (
-                <div
-                  key={label}
-                  className="group p-4 sm:p-5 rounded-2xl border border-white/[0.08] bg-[#0d1520] hover:border-white/20 hover:bg-[#111b2a] transition-all duration-300"
-                >
-                  <Icon className={`w-5 h-5 mb-3 ${iconColor} group-hover:scale-110 transition-transform`} aria-hidden />
-                  <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-gray-500">{label}</p>
-                  <p className="text-xl sm:text-2xl font-black text-white mt-1">{value}</p>
-                  <p className="text-[11px] text-gray-500 mt-1 leading-snug">{sub}</p>
+          <div className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {statsCards.map(({ icon: Icon, label, value, sub, iconColor }) => (
+              <div key={label} className="rounded-[1.75rem] border border-white/10 bg-slate-950/80 p-5 shadow-xl shadow-slate-950/20">
+                <div className={`inline-flex h-12 w-12 items-center justify-center rounded-3xl ${iconColor}`}>
+                  <Icon className="h-5 w-5" aria-hidden />
+                </div>
+                <p className="mt-5 text-xs uppercase tracking-[0.24em] text-slate-400">{label}</p>
+                <p className="mt-4 text-3xl font-black text-white">{value}</p>
+                <p className="mt-2 text-sm text-slate-400">{sub}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="border-y border-white/10 bg-[#08101c] py-20">
+          <div className="mx-auto max-w-6xl px-5 sm:px-8">
+            <div className="text-center mb-14">
+              <p className="text-sm uppercase tracking-[0.32em] text-sky-400">O que a plataforma faz de verdade</p>
+              <h2 className="mt-4 text-4xl font-black text-white">Funcionalidades reais, sem marketing vazio.</h2>
+            </div>
+            <div className="grid gap-6 md:grid-cols-3">
+              {featureCards.map((card) => (
+                <div key={card.title} className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-8 shadow-xl shadow-slate-950/25">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-900/90 text-sky-400">
+                    <card.icon className="h-6 w-6" aria-hidden />
+                  </div>
+                  <h3 className="mt-6 text-xl font-semibold text-white">{card.title}</h3>
+                  <p className="mt-4 text-sm leading-relaxed text-slate-400">{card.body}</p>
                 </div>
               ))}
             </div>
-          </FadeUp>
+          </div>
         </section>
 
-        {/* How It Works */}
-        <section className="border-y border-white/[0.06] bg-surface/40 backdrop-blur-sm">
-          <div className="max-w-6xl mx-auto px-5 sm:px-8 py-20 sm:py-24">
-            <FadeUp>
-              <h2 className="text-3xl sm:text-4xl font-bold text-white text-center">{t('landing.how.title')}</h2>
-              <p className="text-center text-gray-400 mt-3 max-w-2xl mx-auto">{t('landing.how.subtitle')}</p>
-            </FadeUp>
-            <div className="mt-14 grid sm:grid-cols-3 gap-6 sm:gap-8">
-              {howSteps.map(({ num, icon: StepIcon, titleKey, bodyKey }, idx) => (
-                <FadeUp key={num} delayClass={STAGGER[idx % STAGGER.length]}>
-                  <div className="relative flex flex-col items-center text-center gap-5 p-6 rounded-3xl border border-white/[0.08] bg-gradient-to-br from-white/[0.04] to-transparent hover:border-primary/30 transition-all duration-300">
-                    <div className="relative">
-                      <div className="w-16 h-16 rounded-2xl bg-primary/15 border border-primary/30 flex items-center justify-center">
-                        <StepIcon className="w-7 h-7 text-primary" aria-hidden />
-                      </div>
-                      <span className="absolute -top-2 -right-3 text-xs font-black text-primary/60 bg-background px-1">{num}</span>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white">{t(titleKey)}</h3>
-                      <p className="mt-2 text-sm text-gray-400 leading-relaxed">{t(bodyKey)}</p>
-                    </div>
-                  </div>
-                </FadeUp>
-              ))}
+        <section className="mx-auto max-w-6xl px-5 sm:px-8 py-20">
+          <div className="text-center mb-14">
+            <p className="text-sm uppercase tracking-[0.32em] text-sky-400">Como funciona</p>
+            <h2 className="mt-4 text-4xl font-black text-white">Três passos para sua primeira recompensa em POL.</h2>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {howSteps.map(({ icon: StepIcon, titleKey, bodyKey }) => (
+              <div key={titleKey} className="flex h-full flex-col rounded-[2rem] border border-white/10 bg-[#0b1728] p-8 shadow-xl shadow-slate-950/20">
+                <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-950/90 text-sky-400">
+                  <StepIcon className="h-7 w-7" aria-hidden />
+                </div>
+                <h3 className="mt-6 text-xl font-semibold text-white">{t(titleKey)}</h3>
+                <p className="mt-4 text-sm leading-relaxed text-slate-400">{t(bodyKey)}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="border-t border-white/10 bg-[#08101c] py-20">
+          <div className="mx-auto max-w-6xl px-5 sm:px-8">
+            <div className="text-center mb-12">
+              <p className="text-sm uppercase tracking-[0.32em] text-sky-400">Perguntas frequentes</p>
+              <h2 className="mt-4 text-4xl font-black text-white">Dúvidas rápidas sobre o BlockMiner</h2>
             </div>
-          </div>
-        </section>
-
-        {/* Features */}
-        <section className="max-w-6xl mx-auto px-5 sm:px-8 py-20 sm:py-24">
-          <FadeUp>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white text-center">{t('landing.features.title')}</h2>
-            <p className="text-center text-gray-400 mt-3 max-w-2xl mx-auto">{t('landing.features.subtitle')}</p>
-          </FadeUp>
-          <div className="mt-14 grid sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
-            {featureCards.map((card, i) => {
-              const CardIcon = card.icon;
-              return (
-                <FadeUp key={card.titleKey} delayClass={STAGGER[i % STAGGER.length]}>
-                  <article
-                    className={`h-full p-6 sm:p-7 rounded-3xl border border-white/[0.08] bg-gradient-to-br ${card.accent} to-background/80 hover:border-white/20 hover:-translate-y-1 transition-all duration-300 shadow-lg shadow-black/20`}
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-black/30 border border-white/10 flex items-center justify-center mb-5">
-                      <CardIcon className="w-6 h-6 text-sky-300" aria-hidden />
-                    </div>
-                    <h3 className="text-lg font-bold text-white">{t(card.titleKey)}</h3>
-                    <p className="mt-3 text-sm text-gray-400 leading-relaxed">{t(card.bodyKey)}</p>
-                  </article>
-                </FadeUp>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* FAQ */}
-        <section className="border-t border-white/[0.06] bg-surface/40 backdrop-blur-sm">
-          <div className="max-w-3xl mx-auto px-5 sm:px-8 py-20 sm:py-24">
-            <FadeUp>
-              <h2 className="text-3xl sm:text-4xl font-bold text-white text-center">{t('landing.faq.title')}</h2>
-            </FadeUp>
-            <div className="mt-10 flex flex-col gap-3">
+            <div className="grid gap-4 lg:grid-cols-2">
               {faqItems.map(({ qKey, aKey }) => (
-                <FadeUp key={qKey} delayClass={STAGGER[0]}>
-                  <FaqItem question={t(qKey)} answer={t(aKey)} />
-                </FadeUp>
+                <FaqItem key={qKey} question={t(qKey)} answer={t(aKey)} />
               ))}
             </div>
           </div>
         </section>
 
-        {/* CTA strip */}
-        <section className="max-w-6xl mx-auto px-5 sm:px-8 py-20">
-          <FadeUp>
-            <div className="relative overflow-hidden rounded-3xl border border-primary/25 bg-gradient-to-br from-primary/15 via-background to-accent/10 p-10 sm:p-14 text-center">
-              <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[140%] h-48 bg-gradient-to-b from-primary/25 to-transparent blur-3xl pointer-events-none motion-reduce:opacity-50" aria-hidden />
-              <h2 className="relative text-2xl sm:text-3xl font-bold text-white">{t('landing.cta.title')}</h2>
-              <p className="relative mt-3 text-gray-400 max-w-xl mx-auto">{t('landing.cta.subtitle')}</p>
-              <div className="relative mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+        <section className="mx-auto max-w-6xl px-5 sm:px-8 py-20">
+          <div className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-10 shadow-2xl shadow-slate-950/30">
+            <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-center">
+              <div>
+                <p className="text-sm uppercase tracking-[0.32em] text-sky-400">Pronto para começar?</p>
+                <h2 className="mt-4 text-4xl font-black text-white">Crie sua conta e comece a minerar POL agora mesmo.</h2>
+                <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-400">
+                  Plataforma já ativa com recursos reais, extraindo valor na Polygon sem promessas vazias.
+                </p>
+              </div>
+              <div className="flex flex-col gap-4">
                 <Link
                   to="/register"
-                  className="inline-flex items-center justify-center px-8 py-3.5 rounded-2xl font-bold text-background bg-white hover:bg-gray-100 transition-colors"
+                  className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 hover:brightness-110 transition-all"
                 >
-                  {t('landing.cta.register')}
+                  Criar conta gratuitamente
                 </Link>
-                <a
-                  href="https://polygonscan.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl font-semibold border border-white/20 text-white hover:bg-white/10 transition-colors"
+                <Link
+                  to="/login"
+                  className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-8 py-4 text-sm font-semibold text-slate-100 hover:bg-white/10 transition-colors"
                 >
-                  {t('landing.cta.explore')}
-                  <Globe className="w-4 h-4" aria-hidden />
-                </a>
+                  Já tenho conta
+                </Link>
               </div>
             </div>
-          </FadeUp>
+          </div>
         </section>
       </main>
 
-      <footer className="relative z-10 border-t border-white/[0.06] bg-background/90 py-10 px-5 sm:px-8">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-          <div className="flex items-center gap-2">
-            <Pickaxe className="w-4 h-4 text-primary/70" aria-hidden />
-            <span>
-              © {new Date().getFullYear()} {t('landing.footer.rights')} ·{' '}
-              <span className="text-gray-400">blockminer.space</span>
-            </span>
-          </div>
-          <p className="text-center sm:text-right max-w-md">
-            {t('landing.footer.disclaimer')}
-          </p>
+      <footer className="border-t border-white/10 bg-[#02070f] py-10 px-5 sm:px-8">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} BlockMiner. Todos os direitos reservados.</p>
+          <p className="max-w-md">Jogo de mineração Web3 com recursos reais e economia de tokens POL integrada.</p>
         </div>
       </footer>
     </div>

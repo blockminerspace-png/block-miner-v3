@@ -15,7 +15,11 @@ export default defineConfig({
     },
   },
   define: {
-    'process.env.APP_URL': JSON.stringify(process.env.NODE_ENV === 'production' ? 'https://blockminer.space' : 'http://localhost:5000')
+    // Build: production → site real. Dev (vite serve) → mesmo host que o proxy em /api (porta 3000).
+    'process.env.APP_URL': JSON.stringify(
+      process.env.VITE_APP_URL ||
+        (process.env.NODE_ENV === 'production' ? 'https://blockminer.space' : 'http://localhost:3000')
+    ),
   },
   // Use content hashes (Vite default), NOT a new timestamp every build — otherwise stale
   // cached index.html points at deleted JS after deploy → white screen for many users.

@@ -336,6 +336,81 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+model AuditEvent {
+  id            Int      @id @default(autoincrement())
+  correlationId String   @unique @map("correlation_id")
+  userId        Int?     @map("user_id")
+  anonymousId   String?  @map("anonymous_id")
+  eventType     String   @map("event_type")
+  status        String
+  severity      String?  @map("severity")
+  resultCode    String   @map("result_code")
+  payload       Json
+  timestamp     DateTime @map("timestamp")
+  ipHash        String   @map("ip_hash")
+  userAgent     String?  @map("user_agent")
+  txHash        String?  @map("tx_hash")
+  errorContext  Json?    @map("error_context")
+  signature     String
+  schemaVersion String   @map("schema_version")
+  source        String
+  chainHash     String?  @map("chain_hash")
+  createdAt     DateTime @default(now()) @map("created_at")
+  validatedAt   DateTime? @map("validated_at")
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([status])
+  @@index([severity])
+  @@index([txHash])
+  @@index([ipHash])
+  @@index([createdAt])
+  @@index([createdAt, eventType, userId])
+  @@map("audit_events")
+}
+
+model AuditEventOutbox {
+  id            Int      @id @default(autoincrement())
+  correlationId String   @map("correlation_id")
+  userId        Int?     @map("user_id")
+  anonymousId   String?  @map("anonymous_id")
+  eventType     String   @map("event_type")
+  status        String
+  severity      String?  @map("severity")
+  resultCode    String   @map("result_code")
+  payload       Json
+  timestamp     DateTime @map("timestamp")
+  ipHash        String   @map("ip_hash")
+  userAgent     String?  @map("user_agent")
+  txHash        String?  @map("tx_hash")
+  errorContext  Json?    @map("error_context")
+  signature     String
+  schemaVersion String   @map("schema_version")
+  source        String
+  retryCount    Int      @default(0) @map("retry_count")
+  nextRetryAt   DateTime? @map("next_retry_at")
+  lastError     String?  @map("last_error")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([severity])
+  @@map("audit_event_outbox")
+}
+
+model AuditEventChain {
+  id           Int      @id @default(autoincrement())
+  batchStartAt DateTime @map("batch_start_at")
+  batchEndAt   DateTime @map("batch_end_at")
+  chainHash    String   @map("chain_hash")
+  merkleRoot   String?  @map("merkle_root")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("audit_event_chains")
+}
+
 model RackConfig {
   id         Int      @id @default(autoincrement())
   userId     Int      @map("user_id")

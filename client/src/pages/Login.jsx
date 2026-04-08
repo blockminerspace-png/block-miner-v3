@@ -5,6 +5,7 @@ import { useAuthStore, api } from '../store/auth';
 import { Cpu, Mail, Lock, AlertCircle, Loader2, ChevronRight, Eye, EyeOff, ShieldCheck, KeyRound, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import BrandLogo from '../components/BrandLogo';
+import SocialLoginButtons from '../components/auth/SocialLoginButtons';
 
 export default function Login() {
     const { t } = useTranslation();
@@ -171,7 +172,7 @@ export default function Login() {
                     <p className="text-gray-500 font-medium mt-1">{t('auth.login.subtitle')}</p>
                 </div>
 
-                <div className="bg-surface/50 backdrop-blur-xl border border-gray-800/50 rounded-[2.5rem] p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-700 delay-200">
+                <div className="bg-surface/95 border border-gray-800/70 rounded-[2.5rem] p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-700 delay-200">
                     {(error || localError) && (
                         <div className="mb-8 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-3 animate-in shake duration-500">
                             <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
@@ -277,14 +278,17 @@ export default function Login() {
                     </form>
 
                     {!requires2FA && (
-                        <div className="mt-10 text-center">
-                            <p className="text-gray-500 text-xs font-medium">
-                                {t('auth.login.no_account')}{' '}
-                                <Link to="/register" className="text-primary hover:text-white font-black transition-colors ml-1 uppercase tracking-widest">
-                                    {t('auth.login.register_now')}
-                                </Link>
-                            </p>
-                        </div>
+                        <>
+                            <SocialLoginButtons />
+                            <div className="mt-4 text-center">
+                                <p className="text-gray-500 text-xs font-medium">
+                                    {t('auth.login.no_account')}{' '}
+                                    <Link to="/register" className="text-primary hover:text-white font-black transition-colors ml-1 uppercase tracking-widest">
+                                        {t('auth.login.register_now')}
+                                    </Link>
+                                </p>
+                            </div>
+                        </>
                     )}
                 </div>
 
