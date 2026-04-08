@@ -12,7 +12,8 @@ import {
   YAxis,
   CartesianGrid,
   LineChart,
-  Line
+  Line,
+  Legend
 } from 'recharts';
 
 const COLORS = {
