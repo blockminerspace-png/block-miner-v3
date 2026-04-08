@@ -18,7 +18,13 @@ function groupIntoRacks(racks) {
 
 function SlotModal({ slot, inventory, onInstall, onRemove, onClose }) {
   const { t } = useTranslation();
+  const [confirmingRemoval, setConfirmingRemoval] = useState(false);
   const machine = slot.miner || null;
+
+  useEffect(() => {
+    setConfirmingRemoval(false);
+  }, [slot]);
+
   const groupedInventory = useMemo(() => {
     const groups = {};
     for (const item of inventory) {
@@ -57,9 +63,25 @@ function SlotModal({ slot, inventory, onInstall, onRemove, onClose }) {
                   </div>
                 </div>
               </div>
-              <button onClick={() => onRemove(slot.rack.id)} className="w-full py-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-2xl font-bold text-sm transition-all border border-red-500/20 flex items-center justify-center gap-2">
-                <Trash2 className="w-4 h-4" /> {t("inventory.modal.remove_to_inventory")}
-              </button>
+              <div className="space-y-4">
+                <p className="text-sm text-gray-400 leading-6">{t("inventory.modal.remove_warning")}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => confirmingRemoval ? onRemove(slot.rack.id) : setConfirmingRemoval(true)}
+                    className={`w-full py-4 rounded-2xl font-bold text-sm transition-all border flex items-center justify-center gap-2 ${confirmingRemoval ? "bg-red-500 text-white border-red-500" : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"}`}>
+                    <Trash2 className="w-4 h-4" /> {confirmingRemoval ? t("inventory.modal.confirm_remove_button") : t("inventory.modal.remove_to_inventory")}
+                  </button>
+                  {confirmingRemoval && (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingRemoval(false)}
+                      className="w-full py-4 bg-gray-800/80 text-gray-300 rounded-2xl font-bold text-sm transition-all border border-gray-700 hover:bg-gray-700">
+                      {t("common.cancel")}
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -129,6 +151,7 @@ function RackCard({ rackNumber, slots, onSlotClick, onSlotDrop }) {
             rendered.push(
               <button
                 key={rack ? rack.id : i}
+                title={machine ? `${t("inventory.modal.details_title")} ${machine.slotSize >= 2 ? `• ${t("inventory.double_slot_tooltip")}` : ""}` : t("inventory.slot_tooltip")}
                 onClick={() => onSlotClick({ rack, miner: machine, visualRackNumber: rackNumber, slotInRack: i })}
                 style={isDoubleSlot ? { gridColumn: 'span 2' } : {}}
                 onDragOver={!isOccupied ? (e) => { e.preventDefault(); setDragOverId(slotKey); } : undefined}
@@ -321,6 +344,9 @@ export default function Inventory() {
               </h2>
               <span className="text-xs font-bold text-gray-500">{inventory.length} {t("inventory.in_inventory")}</span>
             </div>
+            <div className="mb-4 rounded-3xl border border-primary/20 bg-primary/5 p-3 text-xs font-bold uppercase tracking-[0.24em] text-primary">
+              {t("inventory.tip_msg")}
+            </div>
             {inventory.length === 0 ? (
               <div className="py-12 flex flex-col items-center justify-center text-center px-4 bg-gray-800/20 rounded-2xl border border-dashed border-gray-800">
                 <AlertCircle className="w-10 h-10 text-gray-700 mb-3" />
@@ -334,6 +360,7 @@ export default function Inventory() {
                   return (
                     <div key={group.id}
                       draggable
+                      title={t("inventory.modal.choose_machine")}
                       onDragStart={(e) => { e.dataTransfer.setData('inventoryId', String(group.items[0].id)); e.dataTransfer.effectAllowed = 'move'; }}
                       className="bg-gray-800/30 border border-gray-800/50 rounded-2xl p-4 flex items-center gap-4 hover:border-gray-700 transition-all cursor-grab active:cursor-grabbing select-none">
                       <div className="w-14 h-14 bg-gray-900/50 rounded-xl p-2 border border-gray-800/50 shrink-0 relative">

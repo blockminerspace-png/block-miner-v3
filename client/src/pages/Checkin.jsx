@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { Calendar, CheckCircle2, Star, Trophy, Zap, Loader2, History } from 'lucide-react';
+import { Calendar, CheckCircle2, Star, Trophy, Zap, Loader2, History, Coins } from 'lucide-react';
 import { api } from '../store/auth';
 import { useWallet } from '../hooks/useWallet';
 import { getBrowserEthereumProvider } from '../utils/walletProvider.js';
@@ -46,6 +46,7 @@ export default function Checkin() {
     const [isPaying, setIsPaying] = useState(false);
     const [isConfirming, setIsConfirming] = useState(false);
     const [isClaiming, setIsClaiming] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState('wallet');
     const pollRef = useRef(null);
 
     const fetchStatus = useCallback(async () => {
@@ -214,6 +215,92 @@ export default function Checkin() {
         }
     };
 
+    const handleCheckinWallet = async () => {
+        if (!status?.checkinReceiver || !status?.checkinAmountWei) {
+            toast.error(t('common.error'));
+            return;
+        }
+        if (!isConnected || !account) {
+            toast.error(t('checkin.link_wallet_first'));
+            return;
+        }
+        if (!isCorrectNetwork) {
+            await switchNetwork();
+            toast.message(t('checkin.wrong_network'));
+            return;
+        }
+        const provider = getBrowserEthereumProvider();
+        if (!provider) {
+            toast.error(t('checkin.no_wallet'));
+            return;
+        }
+        setIsPaying(true);
+        try {
+            const txHash = await provider.request({
+                method: 'eth_sendTransaction',
+                params: [
+                    {
+                        from: account,
+                        to: status.checkinReceiver,
+                        value: weiHexFromDecimalString('10000000000000000')
+                    }
+                ]
+            });
+            if (!txHash || typeof txHash !== 'string') {
+                throw new Error('No transaction hash');
+            }
+            const res = await api.post('/checkin/wallet', { txHash: txHash.trim() });
+            if (res.data.ok) {
+                toast.success(t('checkin.claimed'));
+                setStatus((s) =>
+                    mergeStatus(s, {
+                        checkedIn: true,
+                        pending: false,
+                        failed: false,
+                        status: 'confirmed',
+                        streak: res.data.streak,
+                        recentCheckins: res.data.recentCheckins
+                    })
+                );
+                await fetchStatus();
+            }
+        } catch (err) {
+            if (err?.code === 4001) {
+                toast.error(t('checkin.rejected_wallet'));
+            } else {
+                toast.error(err?.message || t('common.error'));
+            }
+        } finally {
+            setIsPaying(false);
+        }
+    };
+
+    const handleCheckinBalance = async () => {
+        setIsPaying(true);
+        try {
+            const res = await api.post('/checkin/balance');
+            if (res.data.ok) {
+                toast.success(t('checkin.claimed'));
+                setStatus((s) =>
+                    mergeStatus(s, {
+                        checkedIn: true,
+                        pending: false,
+                        failed: false,
+                        status: 'confirmed',
+                        streak: res.data.streak,
+                        recentCheckins: res.data.recentCheckins,
+                        balance: res.data.newBalance
+                    })
+                );
+                await fetchStatus();
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || t('common.error'));
+        } finally {
+            setIsPaying(false);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center p-16 text-gray-400 gap-3">
@@ -303,7 +390,46 @@ export default function Checkin() {
                                     </Link>
                                 </div>
                             ) : (
-                                <>
+                                <div className="space-y-4">
+                                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.15em]">Payment Method</h3>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <label className={`relative rounded-xl cursor-pointer p-3 transition-all ${
+                                            paymentMethod === 'wallet' ? 'ring-2 ring-amber-400 bg-amber-400/10' : 'ring-1 ring-gray-700 bg-gray-900/30 hover:ring-gray-600'
+                                        }`}>
+                                            <input
+                                                type="radio"
+                                                name="paymentMethod"
+                                                value="wallet"
+                                                checked={paymentMethod === 'wallet'}
+                                                onChange={(e) => setPaymentMethod(e.target.value)}
+                                                className="sr-only"
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <Zap className="w-4 h-4 text-amber-400" />
+                                                <span className="text-xs font-bold">Wallet</span>
+                                            </div>
+                                            <div className="text-xs text-gray-500 mt-1">0.01 POL</div>
+                                        </label>
+
+                                        <label className={`relative rounded-xl cursor-pointer p-3 transition-all ${
+                                            paymentMethod === 'balance' ? 'ring-2 ring-emerald-400 bg-emerald-400/10' : 'ring-1 ring-gray-700 bg-gray-900/30 hover:ring-gray-600'
+                                        }`}>
+                                            <input
+                                                type="radio"
+                                                name="paymentMethod"
+                                                value="balance"
+                                                checked={paymentMethod === 'balance'}
+                                                onChange={(e) => setPaymentMethod(e.target.value)}
+                                                className="sr-only"
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <Coins className="w-4 h-4 text-emerald-400" />
+                                                <span className="text-xs font-bold">Balance</span>
+                                            </div>
+                                            <div className="text-xs text-gray-500 mt-1">0.02 POL</div>
+                                        </label>
+                                    </div>
+
                                     {status.failed && (
                                         <p className="text-red-400 text-sm text-center">{t('checkin.failed_retry')}</p>
                                     )}
@@ -315,28 +441,31 @@ export default function Checkin() {
                                         </div>
                                     )}
 
-                                    <button
-                                        type="button"
-                                        onClick={handlePay}
-                                        disabled={isPaying || isConfirming || status.pending}
-                                        className="w-full py-5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-xl shadow-amber-500/20 flex items-center justify-center gap-3"
-                                    >
-                                        {isPaying ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5 fill-current" />}
-                                        {t('checkin.send_payment')}
-                                    </button>
-
-                                    {status.txHash ? (
+                                    {paymentMethod === 'wallet' && (
                                         <button
                                             type="button"
-                                            onClick={handleCompleteCheckin}
-                                            disabled={isConfirming || isPaying}
-                                            className="w-full py-4 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-2xl font-bold text-sm text-white"
+                                            onClick={handleCheckinWallet}
+                                            disabled={isPaying || !isConnected || isConnecting || status.pending}
+                                            className="w-full py-5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-xl shadow-amber-500/20 flex items-center justify-center gap-3"
                                         >
-                                            {isConfirming ? t('common.loading') : t('checkin.complete_checkin')}
+                                            {isPaying ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5 fill-current" />}
+                                            Send Wallet Payment
                                         </button>
-                                    ) : null}
+                                    )}
 
-                                    {!isConnected && (
+                                    {paymentMethod === 'balance' && (
+                                        <button
+                                            type="button"
+                                            onClick={handleCheckinBalance}
+                                            disabled={isPaying}
+                                            className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3"
+                                        >
+                                            {isPaying ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                                            Claim From Balance
+                                        </button>
+                                    )}
+
+                                    {!isConnected && paymentMethod === 'wallet' && (
                                         <button
                                             type="button"
                                             onClick={() => connect()}
@@ -346,7 +475,7 @@ export default function Checkin() {
                                             {isConnecting ? t('common.loading') : t('checkin.connect_browser_wallet')}
                                         </button>
                                     )}
-                                    {isConnected && !isCorrectNetwork && (
+                                    {isConnected && !isCorrectNetwork && paymentMethod === 'wallet' && (
                                         <button
                                             type="button"
                                             onClick={() => switchNetwork()}
@@ -355,7 +484,7 @@ export default function Checkin() {
                                             {t('checkin.switch_polygon')} ({POLYGON_HEX})
                                         </button>
                                     )}
-                                </>
+                                </div>
                             )}
                         </>
                     ) : (

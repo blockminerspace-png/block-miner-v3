@@ -475,6 +475,8 @@ model DailyCheckin {
   status      String    @default("pending")
   amount      Float     @default(0.01)
   chainId     Int       @map("chain_id")
+  paymentMethod String  @default("wallet") @map("payment_method")
+  streak      Int       @default(0) @map("streak")
 
   user User @relation(fields: [userId], references: [id])
 

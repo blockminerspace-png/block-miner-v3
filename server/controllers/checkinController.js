@@ -363,3 +363,162 @@ export async function confirmCheckin(req, res) {
     res.status(500).json({ ok: false, message: "Unable to verify check-in." });
   }
 }
+
+/**
+ * Wallet-based check-in: Pay 0.01 POL via blockchain.
+ */
+export async function checkinWallet(req, res) {
+  try {
+    const userId = req.user.id;
+    const { txHash } = req.body;
+
+    if (!txHash || typeof txHash !== "string") {
+      return res.status(400).json({ ok: false, message: "Invalid transaction hash." });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { walletAddress: true }
+    });
+
+    if (!user?.walletAddress) {
+      return res.status(400).json({ ok: false, message: "Wallet not linked." });
+    }
+
+    const today = getBrazilCheckinDateKey();
+    const existing = await prisma.dailyCheckin.findUnique({
+      where: { userId_checkinDate: { userId, checkinDate: today } }
+    });
+
+    if (existing?.status === "confirmed") {
+      return res.json({ ok: false, message: "Already checked in today." });
+    }
+
+    // Create pending row
+    const row = await prisma.dailyCheckin.upsert({
+      where: { userId_checkinDate: { userId, checkinDate: today } },
+      update: {
+        txHash,
+        status: "pending",
+        paymentMethod: "wallet",
+        amount: 0.01,
+        chainId: POLYGON_CHAIN_ID
+      },
+      create: {
+        userId,
+        checkinDate: today,
+        txHash,
+        status: "pending",
+        paymentMethod: "wallet",
+        amount: 0.01,
+        chainId: POLYGON_CHAIN_ID
+      }
+    });
+
+    // Try to finalize immediately
+    const finalized = await tryFinalizeCheckinRow({ ...row, user });
+
+    if (finalized.status === "confirmed") {
+      return res.json({
+        ok: true,
+        message: "Check-in confirmed via wallet.",
+        streak: finalized.streak,
+        txHash: finalized.txHash
+      });
+    } else {
+      return res.json({
+        ok: true,
+        message: "Check-in pending confirmation.",
+        txHash: row.txHash
+      });
+    }
+  } catch (e) {
+    console.error("Checkin wallet error", { error: e.message, userId: req.user.id });
+    res.status(500).json({ ok: false, message: "Wallet check-in failed." });
+  }
+}
+
+/**
+ * Balance-based check-in: Deduct 0.02 POL from internal balance.
+ */
+export async function checkinBalance(req, res) {
+  try {
+    const userId = req.user.id;
+    const amount = 0.02;
+
+    const today = getBrazilCheckinDateKey();
+    const existing = await prisma.dailyCheckin.findUnique({
+      where: { userId_checkinDate: { userId, checkinDate: today } }
+    });
+
+    if (existing?.status === "confirmed") {
+      return res.json({ ok: false, message: "Already checked in today." });
+    }
+
+    // Atomic deduction
+    const result = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { polBalance: true }
+      });
+
+      if (!user || user.polBalance < amount) {
+        throw new Error("Insufficient POL balance.");
+      }
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { polBalance: { decrement: amount } }
+      });
+
+      const streak = await computeStreak(userId);
+
+      const row = await tx.dailyCheckin.upsert({
+        where: { userId_checkinDate: { userId, checkinDate: today } },
+        update: {
+          status: "confirmed",
+          confirmedAt: new Date(),
+          paymentMethod: "balance",
+          amount,
+          streak
+        },
+        create: {
+          userId,
+          checkinDate: today,
+          txHash: `balance-${userId}-${today}`,
+          status: "confirmed",
+          confirmedAt: new Date(),
+          paymentMethod: "balance",
+          amount,
+          streak
+        }
+      });
+
+      return row;
+    });
+
+    // Audit log
+    await prisma.auditLog.create({
+      data: {
+        userId,
+        action: "daily_checkin_balance",
+        details: { amount, streak: result.streak },
+        ipHash: req.ipHash || "",
+        userAgent: req.get("User-Agent") || ""
+      }
+    });
+
+    res.json({
+      ok: true,
+      message: "Check-in confirmed via balance.",
+      streak: result.streak,
+      txHash: result.txHash
+    });
+  } catch (e) {
+    console.error("Checkin balance error", { error: e.message, userId: req.user.id });
+    if (e.message === "Insufficient POL balance.") {
+      return res.status(400).json({ ok: false, message: "Insufficient POL balance." });
+    }
+    res.status(500).json({ ok: false, message: "Balance check-in failed." });
+  }
+}

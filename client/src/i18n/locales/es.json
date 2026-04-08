@@ -398,7 +398,31 @@
     "history_title": "Últimos check-ins confirmados",
     "free_hint": "Sin pago en POL — un toque al día mantiene la racha.",
     "server_note_free": "Al volver al sitio, la racha y el historial se cargan desde la base de datos.",
-    "server_note": "El servidor valida importe, destinatario y remitente en la blockchain. Las transacciones pendientes se revisan automáticamente."
+    "server_note": "El servidor valida importe, destinatario y remitente en la blockchain. Las transacciones pendientes se revisan automáticamente.",
+    "payment_options": {
+      "title": "Elige Método de Pago",
+      "wallet_option": "Pagar con Cartera (0.01 POL)",
+      "wallet_desc": "Enviar 0.01 POL desde tu cartera conectada",
+      "balance_option": "Pagar con Saldo (0.02 POL)",
+      "balance_desc": "Deducir 0.02 POL de tu saldo en el juego"
+    },
+    "errors": {
+      "insufficient_balance": "Saldo insuficiente. Necesitas al menos 0.02 POL para hacer check-in con saldo.",
+      "wallet_not_connected": "Cartera no conectada. Por favor, conecta tu cartera primero.",
+      "already_checked_in": "Ya hiciste check-in hoy. ¡Vuelve mañana!",
+      "payment_failed": "Pago fallido. Inténtalo de nuevo.",
+      "verification_failed": "Verificación del pago fallida. Contacta con soporte si persiste."
+    },
+    "success": {
+      "wallet_checkin": "¡Check-in confirmado via cartera! Racha de +{{streak}} días",
+      "balance_checkin": "¡Check-in confirmado via saldo! Racha de +{{streak}} días",
+      "streak_bonus": "¡Bono de racha: +{{bonus}} recompensa extra!"
+    },
+    "streak_info": {
+      "current_streak": "Racha actual: {{days}} días",
+      "longest_streak": "Racha más larga: {{days}} días",
+      "streak_reset_warning": "Faltar un día reseteará tu racha a 0"
+    }
   },
   "ptc": {
     "title": "Pago por Clic",

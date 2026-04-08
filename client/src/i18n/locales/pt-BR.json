@@ -248,6 +248,8 @@
       "settings": "Ajustes",
       "remove_to_inventory": "Remover para o Inventário",
       "confirm_remove": "Deseja enviar esta máquina de volta ao inventário?",
+      "confirm_remove_button": "Confirmar desmontagem",
+      "remove_warning": "Isso enviará a máquina de volta ao inventário e liberará o rack.",
       "choose_machine": "Escolha uma máquina para instalar neste slot:",
       "no_machines_avail": "Nenhuma máquina disponível."
     }
@@ -405,7 +407,31 @@
     "history_title": "Últimos check-ins confirmados",
     "free_hint": "Sem pagamento em POL — um toque por dia mantém a sequência.",
     "server_note_free": "Ao reabrir o site, o estado vem da base de dados (sequência + dias anteriores).",
-    "server_note": "O servidor valida valor, destino e remetente na blockchain. Transações pendentes são verificadas automaticamente em segundo plano."
+    "server_note": "O servidor valida valor, destino e remetente na blockchain. Transações pendentes são verificadas automaticamente em segundo plano.",
+    "payment_options": {
+      "title": "Escolha o Método de Pagamento",
+      "wallet_option": "Pagar com Carteira (0.01 POL)",
+      "wallet_desc": "Enviar 0.01 POL da sua carteira conectada",
+      "balance_option": "Pagar com Saldo (0.02 POL)",
+      "balance_desc": "Deduzir 0.02 POL do seu saldo no jogo"
+    },
+    "errors": {
+      "insufficient_balance": "Saldo insuficiente. Você precisa de pelo menos 0.02 POL para fazer check-in com saldo.",
+      "wallet_not_connected": "Carteira não conectada. Por favor, conecte sua carteira primeiro.",
+      "already_checked_in": "Já fez check-in hoje. Volte amanhã!",
+      "payment_failed": "Pagamento falhou. Tente novamente.",
+      "verification_failed": "Verificação do pagamento falhou. Entre em contato com o suporte se persistir."
+    },
+    "success": {
+      "wallet_checkin": "Check-in confirmado via carteira! Sequência de +{{streak}} dias",
+      "balance_checkin": "Check-in confirmado via saldo! Sequência de +{{streak}} dias",
+      "streak_bonus": "Bônus de sequência: +{{bonus}} recompensa extra!"
+    },
+    "streak_info": {
+      "current_streak": "Sequência atual: {{days}} dias",
+      "longest_streak": "Maior sequência: {{days}} dias",
+      "streak_reset_warning": "Faltar um dia irá resetar sua sequência para 0"
+    }
   },
   "ptc": {
     "title": "Pago por Clique",

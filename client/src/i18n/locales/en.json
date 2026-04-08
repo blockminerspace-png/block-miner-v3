@@ -247,6 +247,8 @@
       "settings": "Settings",
       "remove_to_inventory": "Remove to Inventory",
       "confirm_remove": "Do you want to send this machine back to inventory?",
+      "confirm_remove_button": "Confirm removal",
+      "remove_warning": "This will send the machine back to inventory and free the rack.",
       "choose_machine": "Choose a machine to install in this slot:",
       "no_machines_avail": "No machines available."
     }
@@ -400,7 +402,31 @@
     "history_title": "Recent confirmed check-ins",
     "free_hint": "No POL payment — one tap per day keeps your streak.",
     "server_note_free": "When you reopen the site, streak and history load from the database.",
-    "server_note": "The server validates amount, recipient, and sender on-chain. Pending transactions are rechecked automatically in the background."
+    "server_note": "The server validates amount, recipient, and sender on-chain. Pending transactions are rechecked automatically in the background.",
+    "payment_options": {
+      "title": "Choose Payment Method",
+      "wallet_option": "Pay with Wallet (0.01 POL)",
+      "wallet_desc": "Send 0.01 POL from your connected wallet",
+      "balance_option": "Pay with Balance (0.02 POL)",
+      "balance_desc": "Deduct 0.02 POL from your in-game balance"
+    },
+    "errors": {
+      "insufficient_balance": "Insufficient balance. You need at least 0.02 POL to check-in with balance.",
+      "wallet_not_connected": "Wallet not connected. Please connect your wallet first.",
+      "already_checked_in": "Already checked in today. Come back tomorrow!",
+      "payment_failed": "Payment failed. Please try again.",
+      "verification_failed": "Payment verification failed. Please contact support if this persists."
+    },
+    "success": {
+      "wallet_checkin": "Check-in confirmed via wallet! +{{streak}} day streak",
+      "balance_checkin": "Check-in confirmed via balance! +{{streak}} day streak",
+      "streak_bonus": "Streak bonus: +{{bonus}} extra reward!"
+    },
+    "streak_info": {
+      "current_streak": "Current streak: {{days}} days",
+      "longest_streak": "Longest streak: {{days}} days",
+      "streak_reset_warning": "Missing a day will reset your streak to 0"
+    }
   },
   "ptc": {
     "title": "Paid to Click",

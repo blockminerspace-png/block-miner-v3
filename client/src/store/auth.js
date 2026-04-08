@@ -12,7 +12,7 @@ export const api = axios.create({
 
 // Interceptor to attach Anti-Bot payload to every API request
 api.interceptors.request.use((config) => {
-    // We only attach this for state-changing or critical requests,
+    // We only attach this for state-changing or critical requests, 
     // but attaching it everywhere is safer and simpler.
     try {
         const security = generateSecurityPayload();
@@ -22,11 +22,6 @@ api.interceptors.request.use((config) => {
     } catch (e) {
         // Fallback if security module fails
         config.headers['X-Anti-Bot'] = '0';
-    }
-    const url = String(config.url || '');
-    const adminToken = typeof localStorage !== 'undefined' ? localStorage.getItem('adminToken') : null;
-    if (adminToken && url.includes('/admin/') && !url.includes('/admin/auth/login')) {
-        config.headers.Authorization = `Bearer ${adminToken}`;
     }
     return config;
 }, (error) => {
@@ -79,10 +74,6 @@ export const useAuthStore = create((set) => ({
             });
             return { success: false, message: fieldError || error.response?.data?.message, code };
         }
-    },
-
-    setUser: (updatedFields) => {
-        set((state) => ({ user: { ...state.user, ...updatedFields } }));
     },
 
     logout: async () => {
