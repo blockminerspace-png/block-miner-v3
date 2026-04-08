@@ -84,7 +84,7 @@ export async function getOrCreateMinerProfile(user) {
     lifetime_mined: 0, // Can be calculated from logs if needed
     refCode: profile.refCode,
     referralCount: profile._count.referrals,
-    mining_payout_mode: profile.miningPayoutMode || "both"
+    mining_payout_mode: profile.miningPayoutMode === "blk" ? "blk" : "pol"
   };
 }
 

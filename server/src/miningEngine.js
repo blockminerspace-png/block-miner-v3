@@ -53,7 +53,8 @@ export class MiningEngine {
           miner.baseHashRate = Number(profile.base_hash_rate || 0);
           miner.refCode = profile.refCode;
           miner.referralCount = profile.referralCount;
-          miner.miningPayoutMode = profile.mining_payout_mode || profile.miningPayoutMode || "both";
+          miner.miningPayoutMode =
+            profile.mining_payout_mode === "blk" || profile.miningPayoutMode === "blk" ? "blk" : "pol";
           // Sincroniza saldo: se DB tem mais (ex: deposito creditado), atualiza memoria
           const dbBalance = Number(profile.balance || 0);
           if (dbBalance > miner.balance) {
@@ -89,7 +90,8 @@ export class MiningEngine {
         existing.baseHashRate = Number(profile.base_hash_rate || profile.baseHashRate || 0);
         existing.refCode = profile.refCode;
         existing.referralCount = profile.referralCount;
-        existing.miningPayoutMode = profile.mining_payout_mode || profile.miningPayoutMode || "both";
+        existing.miningPayoutMode =
+          profile.mining_payout_mode === "blk" || profile.miningPayoutMode === "blk" ? "blk" : "pol";
         // Sincroniza saldo com o banco ao reconectar (pega o maior valor para nao perder rewards nao persistidos)
         const dbBalance = Number(profile.balance || 0);
         if (dbBalance > existing.balance) {
@@ -117,7 +119,8 @@ export class MiningEngine {
       connected: true,
       refCode: profile?.refCode || null,
       referralCount: profile?.referralCount || 0,
-      miningPayoutMode: profile?.mining_payout_mode || profile?.miningPayoutMode || "both"
+      miningPayoutMode:
+        profile?.mining_payout_mode === "blk" || profile?.miningPayoutMode === "blk" ? "blk" : "pol"
     };
 
     this.miners.set(id, miner);
@@ -301,9 +304,9 @@ export class MiningEngine {
       const hashRate = this.getMinerHashRate(miner);
       totalHashRate += hashRate;
       if (hashRate > 0) activeMiners += 1;
-      const payoutMode = miner.miningPayoutMode || "both";
-      // blk-only: entra no pool BLK (hashrate no DB) mas não acumula work para o bloco POL
-      if (payoutMode !== "blk") {
+      const payoutMode = miner.miningPayoutMode === "blk" ? "blk" : "pol";
+      // 100% POL: acumula work do bloco. 100% BLK: só entra no pool por tempo (sem POL do bloco).
+      if (payoutMode === "pol") {
         this.roundWork.set(minerId, (this.roundWork.get(minerId) || 0) + hashRate);
       }
     }

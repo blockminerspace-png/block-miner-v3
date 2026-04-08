@@ -287,16 +287,16 @@ export async function getPendingDeposits(req, res) {
   }
 }
 
-const VALID_MINING_PAYOUT_MODES = new Set(["pol", "blk", "both"]);
+const VALID_MINING_PAYOUT_MODES = new Set(["pol", "blk"]);
 
-/** POL = só blocos; BLK = só pool por tempo; both = os dois */
+/** 100% hashrate: POL (blocos) ou BLK (pool por tempo) — exclusivo */
 export async function setMiningPayoutMode(req, res) {
   try {
     const raw = String(req.body?.mode ?? "").toLowerCase().trim();
     if (!VALID_MINING_PAYOUT_MODES.has(raw)) {
       return res.status(400).json({
         ok: false,
-        message: "Modo inválido. Use: pol, blk ou both."
+        message: "Modo inválido. Use: pol ou blk."
       });
     }
     await prisma.user.update({

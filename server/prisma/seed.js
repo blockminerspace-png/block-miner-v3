@@ -134,6 +134,14 @@ async function main() {
   });
   console.log('Seed: BLK economy config OK');
 
+  const legacyBoth = await prisma.user.updateMany({
+    where: { miningPayoutMode: "both" },
+    data: { miningPayoutMode: "pol" }
+  });
+  if (legacyBoth.count > 0) {
+    console.log(`Seed: mining mode 'both' -> 'pol' for ${legacyBoth.count} user(s)`);
+  }
+
   console.log('Seed: All data seeded successfully!');
 }
 

@@ -18,7 +18,7 @@ export default function Dashboard() {
     const [refInput, setRefInput] = useState('');
     const [linkingRef, setLinkingRef] = useState(false);
     const [blkBalance, setBlkBalance] = useState(null);
-    const [miningPayoutMode, setMiningPayoutMode] = useState('both');
+    const [miningPayoutMode, setMiningPayoutMode] = useState('pol');
     const [savingMiningMode, setSavingMiningMode] = useState(false);
 
     useEffect(() => {
@@ -34,7 +34,8 @@ export default function Dashboard() {
                     const dbBalance = Number(res.data.balance);
                     setBlkBalance(Number(res.data.blkBalance ?? 0));
                     if (res.data.miningPayoutMode) {
-                        setMiningPayoutMode(String(res.data.miningPayoutMode));
+                        const m = String(res.data.miningPayoutMode);
+                        setMiningPayoutMode(m === 'blk' ? 'blk' : 'pol');
                     }
                     useGameStore.setState(state => {
                         if (!state.stats?.miner) return {};
@@ -56,8 +57,9 @@ export default function Dashboard() {
         try {
             const res = await api.put('/wallet/mining-payout-mode', { mode });
             if (res.data.ok) {
-                setMiningPayoutMode(res.data.miningPayoutMode);
-                toast.success('Preferência de mineração atualizada.');
+                const m = String(res.data.miningPayoutMode);
+                setMiningPayoutMode(m === 'blk' ? 'blk' : 'pol');
+                toast.success('Alocação de mineração atualizada (100% ' + (m === 'blk' ? 'BLK' : 'POL') + ').');
             }
         } catch (err) {
             toast.error(err?.response?.data?.message || 'Erro ao guardar preferência.');
@@ -128,19 +130,18 @@ export default function Dashboard() {
                     <div>
                         <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
                             <Coins className="w-4 h-4 text-amber-400" />
-                            Moeda de mineração
+                            Alocação de mineração (100%)
                         </h3>
                         <p className="text-[11px] text-gray-500 mt-1 max-w-xl">
-                            <strong className="text-gray-400">POL</strong> — recompensa dos blocos na rede simulada.
-                            <strong className="text-gray-400"> BLK</strong> — pool por tempo (proporcional ao hashrate; não sacável).
-                            <strong className="text-gray-400"> Ambos</strong> — recebe os dois tipos.
+                            O teu <strong className="text-gray-400">poder de mineração inteiro</strong> vai para um dos modos — não acumula os dois ao mesmo tempo.
+                            <strong className="text-gray-400"> POL</strong> — quota nos blocos da rede simulada (sacável como POL).
+                            <strong className="text-gray-400"> BLK</strong> — pool por tempo, proporcional ao hashrate (BLK interno, não sacável).
                         </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {[
-                            { id: 'pol', label: 'Só POL' },
-                            { id: 'blk', label: 'Só BLK' },
-                            { id: 'both', label: 'POL + BLK' }
+                            { id: 'pol', label: '100% POL' },
+                            { id: 'blk', label: '100% BLK' }
                         ].map(({ id, label }) => (
                             <button
                                 key={id}

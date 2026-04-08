@@ -28,7 +28,7 @@ async function fetchActivityEligibleUserIds(activitySec) {
   const rows = await prisma.user.findMany({
     where: {
       isBanned: false,
-      miningPayoutMode: { in: ["blk", "both"] },
+      miningPayoutMode: "blk",
       OR: [{ lastHeartbeatAt: { gte: cutoff } }, { lastLoginAt: { gte: cutoff } }]
     },
     select: { id: true }

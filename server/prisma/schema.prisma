@@ -34,8 +34,8 @@ model User {
   zerBalance    Decimal  @default(0) @map("zer_balance") @db.Decimal(20, 8)
   blkBalance    Decimal  @default(0) @map("blk_balance") @db.Decimal(20, 8)
   blkLocked     Decimal  @default(0) @map("blk_locked") @db.Decimal(20, 8)
-  /** pol = só recompensa dos blocos POL; blk = só pool BLK por tempo; both = ambos */
-  miningPayoutMode String @default("both") @map("mining_payout_mode")
+  /** 100% hashrate: pol = blocos POL simulados | blk = pool BLK por tempo (exclusivo) */
+  miningPayoutMode String @default("pol") @map("mining_payout_mode")
 
   // Session Tracking
   ytSecondsBalance Int     @default(0) @map("yt_seconds_balance")
