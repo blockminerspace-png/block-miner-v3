@@ -142,7 +142,57 @@ O **`docker-entrypoint.sh`** do contentor `app` espera Postgres em `db:5432`, co
 
 ## Nginx e TLS
 
-O serviço **nginx** monta `./nginx/nginx.conf` e `./nginx/certs`. Alinha `server_name` e certificados com o domínio (ex.: `blockminer.space`).
+O serviço **nginx** monta `./nginx/nginx.conf` e **`./nginx/certs`** (pasta **gitignored**). O `nginx.conf` espera:
+
+- **`nginx/certs/cert.pem`** — cadeia completa do certificado (**fullchain**).
+- **`nginx/certs/key.pem`** — chave privada.
+
+### Porque o Chrome mostra `NET::ERR_CERT_AUTHORITY_INVALID` (ex.: `tests.blockminer.space`)
+
+- Certificado **autoassinado** (ex.: `CN=localhost`) ou emitido por uma CA que o browser **não confia**.
+- Certificado **emitido para outro nome** (sem `tests.blockminer.space` no Subject Alternative Name).
+
+Em desenvolvimento local isso é normal; em **produção ou VM de teste pública** tens de usar um certificado **confiável**, normalmente **Let’s Encrypt**.
+
+### Let’s Encrypt na VPS (ex.: só `tests.blockminer.space`)
+
+1. **DNS:** registo **A** (ou AAAA) de `tests.blockminer.space` → IP público da VM (a que responde na porta 443).
+2. Na VM, com Docker a correr e portas **80/443** acessíveis de fora:
+
+```bash
+cd /root/block-miner   # ou o path do clone
+
+# Instala o cliente (Debian/Ubuntu)
+sudo apt-get update && sudo apt-get install -y certbot
+
+# Opção A — nginx no host (se não usares Docker só para 80)
+# sudo certbot certonly --webroot -w /var/www/html -d tests.blockminer.space
+
+# Opção B — standalone (para o certbot ocupar a porta 80 sozinho; para o nginx do compose primeiro)
+docker compose stop nginx
+sudo certbot certonly --standalone --preferred-challenges http -d tests.blockminer.space
+docker compose up -d nginx
+```
+
+3. **Copiar** o certificado para a pasta que o contentor monta (nomes fixos do `nginx.conf`):
+
+```bash
+sudo cp /etc/letsencrypt/live/tests.blockminer.space/fullchain.pem nginx/certs/cert.pem
+sudo cp /etc/letsencrypt/live/tests.blockminer.space/privkey.pem nginx/certs/key.pem
+sudo chmod 644 nginx/certs/cert.pem
+sudo chmod 600 nginx/certs/key.pem
+
+docker compose exec -T nginx nginx -s reload
+```
+
+4. **Vários nomes no mesmo certificado** (produção + teste numa só VM ou mesmo ficheiro):
+
+```bash
+sudo certbot certonly --standalone -d blockminer.space -d www.blockminer.space -d tests.blockminer.space
+# depois copia o mesmo fullchain/privkey para nginx/certs/ como acima
+```
+
+5. **Renovação:** o Let’s Encrypt expira ~90 dias. Testa `sudo certbot renew --dry-run` e configura um cron/systemd timer; após renovar, volta a **copiar** `fullchain.pem` / `privkey.pem` para `nginx/certs/` (ou usa um `--deploy-hook` que faça essa cópia + `docker compose exec nginx nginx -s reload`).
 
 ---
 
@@ -155,6 +205,7 @@ O serviço **nginx** monta `./nginx/nginx.conf` e `./nginx/certs`. Alinha `serve
 
 ## Problemas frequentes
 
+- **HTTPS “Não seguro” / `ERR_CERT_AUTHORITY_INVALID`:** vê [Nginx e TLS](#nginx-e-tls) — na VM quase sempre falta substituir o par `cert.pem` / `key.pem` por um certificado Let’s Encrypt com o **hostname correto** no SAN (ex.: `tests.blockminer.space`).
 - **Timeout no `deploy-vps-windows.ps1`:** firewall, IP da VPS mudou, ou SSH fechado. Confirma host no `-SshHost` e acesso `ping`/porta 22.
 - **`git push` para outro remoto falha com `unpack failed`:** problema no repositório GitHub/Git remoto; o deploy na VM usa `git pull` do remoto que lá estiver configurado (`origin`).
 - **`deploy.py --remote` pede password em loop:** esse fluxo é só com chave; para password usa a secção **Windows + PuTTY** acima.
