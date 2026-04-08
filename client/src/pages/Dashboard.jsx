@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
     Pickaxe, Zap, Activity, Coins, Clock, TrendingUp, ShieldCheck, 
-    Share2, Users, Copy, Check, Link2
+    Share2, Users, Copy, Check, Link2, Banknote
 } from 'lucide-react';
 import { useAuthStore, api } from '../store/auth';
 import { useGameStore } from '../store/game';
@@ -17,6 +17,9 @@ export default function Dashboard() {
     const [copied, setCopied] = useState(false);
     const [refInput, setRefInput] = useState('');
     const [linkingRef, setLinkingRef] = useState(false);
+    const [blkBalance, setBlkBalance] = useState(null);
+    const [miningPayoutMode, setMiningPayoutMode] = useState('both');
+    const [savingMiningMode, setSavingMiningMode] = useState(false);
 
     useEffect(() => {
         initSocket();
@@ -29,6 +32,10 @@ export default function Dashboard() {
                 const res = await api.get('/wallet/balance');
                 if (res.data.ok && res.data.balance !== undefined) {
                     const dbBalance = Number(res.data.balance);
+                    setBlkBalance(Number(res.data.blkBalance ?? 0));
+                    if (res.data.miningPayoutMode) {
+                        setMiningPayoutMode(String(res.data.miningPayoutMode));
+                    }
                     useGameStore.setState(state => {
                         if (!state.stats?.miner) return {};
                         const engineBalance = state.stats.miner.balance;
@@ -42,6 +49,22 @@ export default function Dashboard() {
         const interval = setInterval(syncBalance, 60000);
         return () => clearInterval(interval);
     }, []);
+
+    const changeMiningPayoutMode = async (mode) => {
+        if (savingMiningMode || mode === miningPayoutMode) return;
+        setSavingMiningMode(true);
+        try {
+            const res = await api.put('/wallet/mining-payout-mode', { mode });
+            if (res.data.ok) {
+                setMiningPayoutMode(res.data.miningPayoutMode);
+                toast.success('Preferência de mineração atualizada.');
+            }
+        } catch (err) {
+            toast.error(err?.response?.data?.message || 'Erro ao guardar preferência.');
+        } finally {
+            setSavingMiningMode(false);
+        }
+    };
 
     const miner = stats?.miner;
     const blockHistory = stats?.blockHistory || [];
@@ -99,13 +122,58 @@ export default function Dashboard() {
                 </div>
             </div>
             <DashboardBanners />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            <div className="bg-surface border border-gray-800/50 rounded-2xl p-5 md:p-6 shadow-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                            <Coins className="w-4 h-4 text-amber-400" />
+                            Moeda de mineração
+                        </h3>
+                        <p className="text-[11px] text-gray-500 mt-1 max-w-xl">
+                            <strong className="text-gray-400">POL</strong> — recompensa dos blocos na rede simulada.
+                            <strong className="text-gray-400"> BLK</strong> — pool por tempo (proporcional ao hashrate; não sacável).
+                            <strong className="text-gray-400"> Ambos</strong> — recebe os dois tipos.
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            { id: 'pol', label: 'Só POL' },
+                            { id: 'blk', label: 'Só BLK' },
+                            { id: 'both', label: 'POL + BLK' }
+                        ].map(({ id, label }) => (
+                            <button
+                                key={id}
+                                type="button"
+                                disabled={savingMiningMode}
+                                onClick={() => changeMiningPayoutMode(id)}
+                                className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
+                                    miningPayoutMode === id
+                                        ? 'bg-indigo-600 border-indigo-400 text-white shadow-lg shadow-indigo-600/20'
+                                        : 'bg-gray-900/60 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-200'
+                                } ${savingMiningMode ? 'opacity-60 cursor-wait' : ''}`}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                 <Card
                     icon={Coins}
                     label={t('dashboard.balance')}
                     value={miner ? miner.balance.toFixed(6) : '0.000000'}
                     unit={stats?.tokenSymbol || 'POL'}
                     color="blue"
+                />
+                <Card
+                    icon={Banknote}
+                    label="BLK interno (não sacável)"
+                    value={blkBalance != null ? blkBalance.toFixed(4) : '—'}
+                    unit="BLK"
+                    color="cyan"
                 />
                 <Card
                     icon={Pickaxe}
@@ -308,6 +376,7 @@ export default function Dashboard() {
 function Card({ icon: Icon, label, value, unit, color }) {
     const colorMap = {
         blue: 'bg-blue-500/10 text-blue-400',
+        cyan: 'bg-cyan-500/10 text-cyan-400',
         purple: 'bg-purple-500/10 text-purple-400',
         amber: 'bg-amber-500/10 text-amber-400',
         emerald: 'bg-emerald-500/10 text-emerald-400',

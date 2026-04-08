@@ -7,6 +7,9 @@ async function getUserBalance(userId) {
     where: { id: userId },
     select: {
       polBalance: true,
+      blkBalance: true,
+      blkLocked: true,
+      miningPayoutMode: true,
       walletAddress: true,
       miningLogs: {
         select: {
@@ -16,7 +19,18 @@ async function getUserBalance(userId) {
     }
   });
 
-  if (!user) return { balance: 0, lifetimeMined: 0, totalWithdrawn: 0, walletAddress: null };
+  if (!user) {
+    return {
+      balance: 0,
+      blkBalance: 0,
+      blkLocked: 0,
+      miningPayoutMode: 'both',
+      blkUsdEquivalent: 0,
+      lifetimeMined: 0,
+      totalWithdrawn: 0,
+      walletAddress: null
+    };
+  }
 
   // Calculate lifetime mined from mining logs
   const lifetimeMined = user.miningLogs.reduce((acc, log) => acc + Number(log.rewardAmount), 0);
@@ -27,8 +41,15 @@ async function getUserBalance(userId) {
     _sum: { amount: true }
   });
 
+  const blkAvail = Number(user.blkBalance);
+  const blkLocked = Number(user.blkLocked);
+
   return {
     balance: Number(user.polBalance),
+    blkBalance: blkAvail,
+    blkLocked,
+    miningPayoutMode: user.miningPayoutMode || 'both',
+    blkUsdEquivalent: blkAvail,
     lifetimeMined: Number(lifetimeMined),
     totalWithdrawn: Number(aggregations._sum.amount || 0),
     walletAddress: user.walletAddress
@@ -224,6 +245,26 @@ async function updateTransactionStatus(transactionId, status, txHash = null) {
             data: { polBalance: { increment: transaction.amount } }
           });
           applyUserBalanceDelta(transaction.userId, Number(transaction.amount));
+        }
+      }
+    }
+
+    if (transaction.type === 'blk_withdrawal') {
+      if (status === 'completed' && prevStatus !== 'completed' && transaction.fundsReserved) {
+        await tx.user.update({
+          where: { id: transaction.userId },
+          data: { blkLocked: { decrement: transaction.amount } }
+        });
+      }
+      if (status === 'failed' && prevStatus !== 'failed' && prevStatus !== 'completed') {
+        if (transaction.fundsReserved) {
+          await tx.user.update({
+            where: { id: transaction.userId },
+            data: {
+              blkLocked: { decrement: transaction.amount },
+              blkBalance: { increment: transaction.amount }
+            }
+          });
         }
       }
     }

@@ -4,6 +4,7 @@ import prisma from "../src/db/prisma.js";
 import loggerLib from "../utils/logger.js";
 import { runDepositVerifier } from "../services/depositVerifier.js";
 import { wakeUpScanner } from "../cron/depositsCron.js";
+import { getMiningEngine } from "../src/miningEngineInstance.js";
 
 /** Minimum POL for a deposit request. */
 export const DEPOSIT_MIN_POL = 1;
@@ -36,7 +37,8 @@ export async function getTransactions(req, res) {
     // Converter Decimal do Prisma para número JS para evitar erros no frontend
     const normalized = transactions.map(tx => ({
       ...tx,
-      amount: Number(tx.amount)
+      amount: Number(tx.amount),
+      fee: tx.fee != null ? Number(tx.fee) : null
     }));
     res.json({ ok: true, transactions: normalized });
   } catch (error) {
@@ -282,5 +284,29 @@ export async function getPendingDeposits(req, res) {
   } catch (err) {
     logger.error("getPendingDeposits error", { error: err.message });
     return res.status(500).json({ ok: false, message: "Erro ao buscar depósitos." });
+  }
+}
+
+const VALID_MINING_PAYOUT_MODES = new Set(["pol", "blk", "both"]);
+
+/** POL = só blocos; BLK = só pool por tempo; both = os dois */
+export async function setMiningPayoutMode(req, res) {
+  try {
+    const raw = String(req.body?.mode ?? "").toLowerCase().trim();
+    if (!VALID_MINING_PAYOUT_MODES.has(raw)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Modo inválido. Use: pol, blk ou both."
+      });
+    }
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { miningPayoutMode: raw }
+    });
+    getMiningEngine()?.reloadMinerProfile(req.user.id).catch(() => {});
+    return res.json({ ok: true, miningPayoutMode: raw });
+  } catch (err) {
+    logger.error("setMiningPayoutMode error", { error: err.message });
+    return res.status(500).json({ ok: false, message: "Não foi possível atualizar a preferência." });
   }
 }

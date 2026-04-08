@@ -10,6 +10,8 @@ import { adminOfferEventsRouter } from "./admin-offer-events.js";
 import { requireAdminAuth } from "../middleware/adminAuth.js";
 import { createRateLimiter } from "../middleware/rateLimit.js";
 import * as walletModel from "../models/walletModel.js";
+import * as blkWalletController from "../controllers/blkWalletController.js";
+import * as miningController from "../controllers/miningController.js";
 import prisma from "../src/db/prisma.js";
 import path from "path";
 import fs from "fs/promises";
@@ -340,6 +342,11 @@ adminRouter.get("/withdrawals/pending", adminController.listPendingWithdrawals);
 adminRouter.post("/withdrawals/:withdrawalId/approve", adminController.approveWithdrawal);
 adminRouter.post("/withdrawals/:withdrawalId/reject", adminController.rejectWithdrawal);
 adminRouter.post("/withdrawals/:withdrawalId/complete", adminController.completeWithdrawal);
+
+// BLK (USD-pegged internal currency, not withdrawable)
+adminRouter.get("/blk/economy", blkWalletController.adminGetEconomy);
+adminRouter.put("/blk/economy", blkWalletController.adminPutEconomy);
+adminRouter.post("/mining/blk-cycle/run", miningController.adminTriggerBlkCycle);
 
 // Finance Overview & Activity
 adminRouter.get("/finance/overview", async (req, res) => {

@@ -7,6 +7,7 @@ import { startShortlinkResetCron } from "./shortlinkResetCron.js";
 import { startDepositMonitoring } from "./depositsCron.js";
 import { startCheckinPendingCron } from "./checkinPendingCron.js";
 import { startOfferEventsExpireCron } from "./offerEventsExpireCron.js";
+import { startBlkRewardCycleCron } from "./blkRewardCycleCron.js";
 
 export function startCronTasks({
   engine,
@@ -30,6 +31,7 @@ export function startCronTasks({
   const depositTimers = startDepositMonitoring();
   const checkinPendingTimers = startCheckinPendingCron();
   const offerEventsExpireTimers = startOfferEventsExpireCron();
+  const blkRewardCycleTimer = startBlkRewardCycleCron();
 
   // Run full site backup on startup (includes DB + all files)
   // runFullSiteBackupOnStartup();
@@ -43,6 +45,7 @@ export function startCronTasks({
     ...shortlinkResetTimers,
     ...depositTimers,
     ...checkinPendingTimers,
-    ...offerEventsExpireTimers
+    ...offerEventsExpireTimers,
+    ...blkRewardCycleTimer
   };
 }

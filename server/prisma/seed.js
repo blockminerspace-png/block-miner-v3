@@ -114,6 +114,26 @@ async function main() {
     }
   });
 
+  await prisma.blkEconomyConfig.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      id: 1,
+      polPerBlk: 100,
+      convertFeeBps: 500,
+      minConvertPol: 50,
+      dailyConvertLimitBlk: null,
+      convertCooldownSec: 300,
+      blkCycleReward: 0.03,
+      blkCycleIntervalSec: 600,
+      blkCycleActivitySec: 900,
+      blkCycleMinHashrate: 0.00000001,
+      blkCyclePaused: false,
+      blkCycleBoost: 1
+    }
+  });
+  console.log('Seed: BLK economy config OK');
+
   console.log('Seed: All data seeded successfully!');
 }
 

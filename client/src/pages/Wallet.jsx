@@ -21,7 +21,8 @@ import {
     Ticket,
     Send,
     HelpCircle,
-    Loader2
+    Loader2,
+    Banknote
 } from 'lucide-react';
 import { api } from '../store/auth';
 import { parseEther, formatEther, isAddress } from 'ethers';
@@ -36,9 +37,14 @@ export default function Wallet() {
 
     const [balance, setBalance] = useState({
         amount: 0,
+        blkBalance: 0,
+        blkLocked: 0,
         lifetimeMined: 0,
         totalWithdrawn: 0
     });
+    const [blkEconomy, setBlkEconomy] = useState(null);
+    const [blkPoolInfo, setBlkPoolInfo] = useState(null);
+    const [blkConvertPol, setBlkConvertPol] = useState('');
     const [transactions, setTransactions] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isActionLoading, setIsActionLoading] = useState(false);
@@ -90,6 +96,8 @@ export default function Wallet() {
             if (balanceRes.data.ok) {
                 setBalance({
                     amount: Number(balanceRes.data.balance || 0),
+                    blkBalance: Number(balanceRes.data.blkBalance ?? 0),
+                    blkLocked: Number(balanceRes.data.blkLocked ?? 0),
                     lifetimeMined: Number(balanceRes.data.lifetimeMined || 0),
                     totalWithdrawn: Number(balanceRes.data.totalWithdrawn || 0)
                 });
@@ -369,6 +377,56 @@ export default function Wallet() {
         }
     };
 
+    const fetchBlkEconomy = useCallback(async () => {
+        try {
+            const res = await api.get('/wallet/blk/economy');
+            if (res.data.ok) setBlkEconomy(res.data.economy);
+        } catch {
+            /* silent */
+        }
+    }, []);
+
+    const fetchBlkPoolInfo = useCallback(async () => {
+        try {
+            const res = await api.get('/mining/cycle');
+            if (res.data.ok) setBlkPoolInfo(res.data);
+        } catch {
+            setBlkPoolInfo(null);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (activeTab === 'blk') {
+            fetchBlkEconomy();
+            fetchBlkPoolInfo();
+        }
+    }, [activeTab, fetchBlkEconomy, fetchBlkPoolInfo]);
+
+    const handleBlkConvert = async (e) => {
+        e.preventDefault();
+        const pol = parseFloat(blkConvertPol);
+        if (isNaN(pol) || pol <= 0) {
+            toast.error('Informe um valor válido de POL');
+            return;
+        }
+        setIsActionLoading(true);
+        try {
+            const res = await api.post('/wallet/blk/convert', { polAmount: pol });
+            if (res.data.ok) {
+                toast.success(`Convertido: +${Number(res.data.blkReceived).toFixed(8)} BLK`);
+                setBlkConvertPol('');
+                fetchWalletData();
+                fetchBlkPoolInfo();
+            } else {
+                toast.error(res.data.message || 'Falha na conversão');
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Falha na conversão');
+        } finally {
+            setIsActionLoading(false);
+        }
+    };
+
     const copyToClipboard = (text) => {
         navigator.clipboard.writeText(text);
         toast.success(t('common.copied'));
@@ -409,6 +467,7 @@ export default function Wallet() {
         const config = {
             completed: { color: 'text-emerald-400 bg-emerald-400/10', label: 'Success' },
             pending: { color: 'text-amber-400 bg-amber-400/10', label: 'Pending' },
+            approved: { color: 'text-sky-400 bg-sky-400/10', label: 'Approved' },
             failed: { color: 'text-red-400 bg-red-400/10', label: 'Failed' }
         };
         const s = config[status] || config.pending;
@@ -522,6 +581,23 @@ export default function Wallet() {
                                     </p>
                                 </div>
                             </div>
+
+                            <div className="mt-6 pt-6 border-t border-white/10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                                <div>
+                                    <p className="text-blue-100/50 font-black uppercase tracking-[0.25em] text-[8px] mb-1 flex items-center gap-2">
+                                        <Banknote className="w-3 h-3" /> BLK (1 BLK ≈ 1 USD)
+                                    </p>
+                                    <p className="text-2xl sm:text-3xl font-black tabular-nums tracking-tight">
+                                        {balance.blkBalance.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 8 })}
+                                        <span className="text-sm sm:text-lg text-blue-200/70 ml-2">BLK</span>
+                                    </p>
+                                    {balance.blkLocked > 0 && (
+                                        <p className="text-[10px] font-bold text-amber-200/90 mt-1">
+                                            Bloqueado (legado): {balance.blkLocked.toFixed(8)} BLK — contate suporte se necessário.
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
                         {/* Decorative Icons */}
@@ -551,9 +627,80 @@ export default function Wallet() {
                             >
                                 {t('wallet.tab_ticket')}
                             </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('blk')}
+                                className={`flex-1 py-2.5 sm:py-4 text-[8px] sm:text-xs font-black uppercase tracking-tight sm:tracking-widest rounded-[1.8rem] transition-all duration-500 border border-transparent ${activeTab === 'blk' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/20 border-white/10' : 'text-slate-500 hover:text-slate-300'}`}
+                            >
+                                BLK
+                            </button>
                         </div>
 
                         <div className="p-3 sm:p-8">
+                            {activeTab === 'blk' && (
+                                <div className="space-y-6">
+                                    <div className="rounded-2xl border border-cyan-500/30 bg-cyan-950/30 px-4 py-3 text-[10px] font-bold text-cyan-100/90 leading-relaxed space-y-2">
+                                        <p>
+                                            BLK é saldo interno (1 BLK ≈ 1 USD) — <span className="text-cyan-300">não pode ser sacado</span>. Pool: recompensa proporcional ao hashrate a cada ciclo.
+                                        </p>
+                                        {blkPoolInfo && !blkPoolInfo.paused && (
+                                            <p className="text-cyan-200/80 font-mono text-[9px]">
+                                                Pool: {blkPoolInfo.rewardPerCycle} BLK / {Math.round((blkPoolInfo.intervalSec || 600) / 60)} min
+                                                {blkPoolInfo.lastCycle != null && (
+                                                    <> · último ciclo: {blkPoolInfo.lastCycle.minerCount} miners, Σ {Number(blkPoolInfo.lastCycle.totalHashrate).toFixed(2)} H/s</>
+                                                )}
+                                                {blkPoolInfo.nextWindowStart && (
+                                                    <> · próximo fechamento ~ {new Date(blkPoolInfo.nextWindowStart).toLocaleString()}</>
+                                                )}
+                                            </p>
+                                        )}
+                                        {blkPoolInfo?.paused && (
+                                            <p className="text-amber-300 text-[9px]">Emissão do pool BLK pausada pelo admin.</p>
+                                        )}
+                                    </div>
+
+                                    {blkEconomy && (
+                                        <div className="text-[10px] text-slate-500 font-bold space-y-1 bg-slate-900/40 rounded-2xl p-4 border border-slate-800/50">
+                                            <p>
+                                                Taxa: {blkEconomy.polPerBlk} POL por 1 BLK · Fee conversão: {blkEconomy.convertFeePercent}%
+                                            </p>
+                                            <p>
+                                                Mín. conversão: {blkEconomy.minConvertPol} POL
+                                                {blkEconomy.convertCooldownSec > 0 && ` · Cooldown: ${blkEconomy.convertCooldownSec}s`}
+                                            </p>
+                                            {blkEconomy.dailyConvertLimitBlk != null && (
+                                                <p>Limite diário conversão: {blkEconomy.dailyConvertLimitBlk} BLK</p>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <form onSubmit={handleBlkConvert} className="space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Quantidade POL</label>
+                                            <input
+                                                type="number"
+                                                step="any"
+                                                min="0"
+                                                value={blkConvertPol}
+                                                onChange={(e) => setBlkConvertPol(e.target.value)}
+                                                placeholder="0"
+                                                className="w-full bg-slate-900 border border-slate-800 rounded-2xl py-4 px-4 text-white font-mono text-sm"
+                                            />
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            disabled={isActionLoading}
+                                            className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest disabled:opacity-50"
+                                        >
+                                            {isActionLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Converter para BLK'}
+                                        </button>
+                                        <p className="text-[9px] text-slate-600 text-center">
+                                            O servidor calcula taxas e créditos; valores exatos aparecem após a confirmação.
+                                        </p>
+                                    </form>
+                                </div>
+                            )}
+
                             {activeTab === 'withdraw' && (
                                 <form onSubmit={handleWithdraw} className="space-y-4 sm:space-y-8">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
@@ -931,17 +1078,43 @@ export default function Wallet() {
                                 </div>
                             ) : (
                                 transactions.map((tx, i) => {
-                                    const isWithdrawal = tx.type === 'withdrawal';
+                                    const isBlkConvert = tx.type === 'blk_convert';
+                                    const isBlkWithdraw = tx.type === 'blk_withdrawal';
+                                    const isWithdrawal = tx.type === 'withdrawal' || isBlkWithdraw;
+                                    const unit = isBlkConvert || isBlkWithdraw ? 'BLK' : 'POL';
+                                    const usdSub =
+                                        isBlkConvert || isBlkWithdraw
+                                            ? `≈ $${Number(tx.amount).toFixed(2)}`
+                                            : polPrice > 0
+                                              ? `$${(Number(tx.amount) * polPrice).toFixed(2)}`
+                                              : null;
+                                    const label = isBlkConvert
+                                        ? 'POL → BLK'
+                                        : isBlkWithdraw
+                                          ? 'BLK (saque legado)'
+                                          : isWithdrawal
+                                            ? 'Outflow'
+                                            : 'Inflow';
                                     return (
                                         <div key={i} className="group relative flex items-center gap-4 p-4 hover:bg-slate-900/50 rounded-2xl transition-all border border-transparent hover:border-slate-800/50">
-                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-lg ${isWithdrawal ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
-                                                {isWithdrawal ? <ArrowUpCircle className="w-6 h-6" /> : <ArrowDownCircle className="w-6 h-6" />}
+                                            <div
+                                                className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-lg ${
+                                                    isWithdrawal ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'
+                                                }`}
+                                            >
+                                                {isBlkConvert ? (
+                                                    <Banknote className="w-6 h-6" />
+                                                ) : isWithdrawal ? (
+                                                    <ArrowUpCircle className="w-6 h-6" />
+                                                ) : (
+                                                    <ArrowDownCircle className="w-6 h-6" />
+                                                )}
                                             </div>
 
                                             <div className="flex-1 min-w-0 space-y-1">
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-xs font-black text-white italic uppercase tracking-tighter">
-                                                        {isWithdrawal ? 'Outflow' : 'Inflow'}
+                                                        {label}
                                                     </span>
                                                     <StatusBadge status={tx.status} />
                                                 </div>
@@ -950,11 +1123,10 @@ export default function Wallet() {
                                                         {new Date(tx.createdAt || tx.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                     </p>
                                                     <p className={`text-sm font-black italic tracking-tighter ${isWithdrawal ? 'text-red-400' : 'text-emerald-400'}`}>
-                                                        {isWithdrawal ? '-' : '+'}{Number(tx.amount).toFixed(4)}
-                                                        {polPrice > 0 && (
-                                                            <span className="block text-[8px] opacity-50 not-italic text-right">
-                                                                ${(Number(tx.amount) * polPrice).toFixed(2)}
-                                                            </span>
+                                                        {isWithdrawal ? '-' : '+'}
+                                                        {Number(tx.amount).toFixed(4)} {unit}
+                                                        {usdSub && (
+                                                            <span className="block text-[8px] opacity-50 not-italic text-right">{usdSub}</span>
                                                         )}
                                                     </p>
                                                 </div>

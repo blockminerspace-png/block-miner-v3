@@ -53,6 +53,7 @@ export class MiningEngine {
           miner.baseHashRate = Number(profile.base_hash_rate || 0);
           miner.refCode = profile.refCode;
           miner.referralCount = profile.referralCount;
+          miner.miningPayoutMode = profile.mining_payout_mode || profile.miningPayoutMode || "both";
           // Sincroniza saldo: se DB tem mais (ex: deposito creditado), atualiza memoria
           const dbBalance = Number(profile.balance || 0);
           if (dbBalance > miner.balance) {
@@ -88,6 +89,7 @@ export class MiningEngine {
         existing.baseHashRate = Number(profile.base_hash_rate || profile.baseHashRate || 0);
         existing.refCode = profile.refCode;
         existing.referralCount = profile.referralCount;
+        existing.miningPayoutMode = profile.mining_payout_mode || profile.miningPayoutMode || "both";
         // Sincroniza saldo com o banco ao reconectar (pega o maior valor para nao perder rewards nao persistidos)
         const dbBalance = Number(profile.balance || 0);
         if (dbBalance > existing.balance) {
@@ -114,7 +116,8 @@ export class MiningEngine {
       lifetimeMined: Number(profile?.lifetimeMined || 0),
       connected: true,
       refCode: profile?.refCode || null,
-      referralCount: profile?.referralCount || 0
+      referralCount: profile?.referralCount || 0,
+      miningPayoutMode: profile?.mining_payout_mode || profile?.miningPayoutMode || "both"
     };
 
     this.miners.set(id, miner);
@@ -298,7 +301,11 @@ export class MiningEngine {
       const hashRate = this.getMinerHashRate(miner);
       totalHashRate += hashRate;
       if (hashRate > 0) activeMiners += 1;
-      this.roundWork.set(minerId, (this.roundWork.get(minerId) || 0) + hashRate);
+      const payoutMode = miner.miningPayoutMode || "both";
+      // blk-only: entra no pool BLK (hashrate no DB) mas não acumula work para o bloco POL
+      if (payoutMode !== "blk") {
+        this.roundWork.set(minerId, (this.roundWork.get(minerId) || 0) + hashRate);
+      }
     }
 
     this.currentNetworkHashRate = totalHashRate;

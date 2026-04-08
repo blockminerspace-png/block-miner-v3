@@ -7,23 +7,41 @@ import { api } from '../store/auth';
 
 export default function AdminFinance() {
     const [withdrawals, setWithdrawals] = useState([]);
+    const [blkEconomyForm, setBlkEconomyForm] = useState(null);
     const [overview, setOverview] = useState(null);
     const [activity, setActivity] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [tab, setTab] = useState('withdrawals'); // 'withdrawals', 'activity'
+    const [tab, setTab] = useState('withdrawals'); // 'withdrawals', 'blk', 'activity'
 
     const fetchData = useCallback(async () => {
         try {
             setIsLoading(true);
-            const [withdrawalsRes, overviewRes, activityRes] = await Promise.all([
+            const [withdrawalsRes, overviewRes, activityRes, blkEcRes] = await Promise.all([
                 api.get('/admin/withdrawals/pending'),
                 api.get('/admin/finance/overview'),
-                api.get('/admin/finance/activity?limit=50')
+                api.get('/admin/finance/activity?limit=50'),
+                api.get('/admin/blk/economy')
             ]);
 
             if (withdrawalsRes.data.ok) setWithdrawals(withdrawalsRes.data.withdrawals || []);
             if (overviewRes.data.ok) setOverview(overviewRes.data.overview || {});
             if (activityRes.data.ok) setActivity(activityRes.data.activity || []);
+            if (blkEcRes.data.ok && blkEcRes.data.economy) {
+                const e = blkEcRes.data.economy;
+                setBlkEconomyForm({
+                    polPerBlk: e.polPerBlk,
+                    convertFeeBps: e.convertFeeBps,
+                    minConvertPol: e.minConvertPol,
+                    dailyConvertLimitBlk: e.dailyConvertLimitBlk ?? '',
+                    convertCooldownSec: e.convertCooldownSec,
+                    blkCycleReward: e.blkCycleReward,
+                    blkCycleIntervalSec: e.blkCycleIntervalSec,
+                    blkCycleActivitySec: e.blkCycleActivitySec,
+                    blkCycleMinHashrate: e.blkCycleMinHashrate,
+                    blkCyclePaused: !!e.blkCyclePaused,
+                    blkCycleBoost: e.blkCycleBoost
+                });
+            }
         } catch (err) {
             console.error("Erro ao carregar dados financeiros", err);
             toast.error("Erro ao carregar dados financeiros");
@@ -74,6 +92,30 @@ export default function AdminFinance() {
             }
         } catch (err) {
             toast.error(err.response?.data?.message || 'Erro ao concluir saque.');
+        }
+    };
+
+    const saveBlkEconomy = async () => {
+        if (!blkEconomyForm) return;
+        try {
+            const body = {
+                polPerBlk: Number(blkEconomyForm.polPerBlk),
+                convertFeeBps: Number(blkEconomyForm.convertFeeBps),
+                minConvertPol: Number(blkEconomyForm.minConvertPol),
+                convertCooldownSec: Number(blkEconomyForm.convertCooldownSec),
+                dailyConvertLimitBlk: blkEconomyForm.dailyConvertLimitBlk === '' ? null : Number(blkEconomyForm.dailyConvertLimitBlk),
+                blkCycleReward: Number(blkEconomyForm.blkCycleReward),
+                blkCycleIntervalSec: Number(blkEconomyForm.blkCycleIntervalSec),
+                blkCycleActivitySec: Number(blkEconomyForm.blkCycleActivitySec),
+                blkCycleMinHashrate: Number(blkEconomyForm.blkCycleMinHashrate),
+                blkCyclePaused: Boolean(blkEconomyForm.blkCyclePaused),
+                blkCycleBoost: Number(blkEconomyForm.blkCycleBoost)
+            };
+            const res = await api.put('/admin/blk/economy', body);
+            if (res.data.ok) toast.success('Economia BLK atualizada.');
+            else toast.error(res.data.message || 'Erro');
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Erro ao salvar BLK');
         }
     };
 
@@ -135,7 +177,13 @@ export default function AdminFinance() {
                     onClick={() => setTab('withdrawals')}
                     className={`px-6 py-3 font-black text-xs uppercase tracking-widest transition-all ${tab === 'withdrawals' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-slate-500 hover:text-slate-300'}`}
                 >
-                    Saques à Processar
+                    Saques POL
+                </button>
+                <button
+                    onClick={() => setTab('blk')}
+                    className={`px-6 py-3 font-black text-xs uppercase tracking-widest transition-all ${tab === 'blk' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                    Economia BLK
                 </button>
                 <button
                     onClick={() => setTab('activity')}
@@ -219,13 +267,169 @@ export default function AdminFinance() {
                                 {withdrawals.length === 0 && (
                                     <tr>
                                         <td colSpan="6" className="px-8 py-12 text-center text-slate-500 italic font-medium">
-                                            Não há saques pendentes no momento. Tudo limpo!
+                                            Não há saques POL pendentes.
                                         </td>
                                     </tr>
                                 )}
                             </tbody>
                         </table>
                     </div>
+                </div>
+            )}
+
+            {tab === 'blk' && (
+                <div className="space-y-8">
+                    {blkEconomyForm && (
+                        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+                            <h3 className="text-sm font-black text-white uppercase tracking-widest">Economia BLK (1 BLK ≈ 1 USD)</h3>
+                            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+                                BLK não é sacável — conversão POL → BLK, recompensa por tempo (pool) e uso interno (loja / perks).
+                            </p>
+                            <div className="flex flex-wrap gap-3 items-center pb-2 border-b border-slate-800/80">
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        if (!confirm('Disparar distribuição BLK do ciclo atual (idempotente)?')) return;
+                                        try {
+                                            const res = await api.post('/admin/mining/blk-cycle/run');
+                                            if (res.data.ok) {
+                                                const r = res.data.result || {};
+                                                toast.success(
+                                                    r.skipped
+                                                        ? `Ciclo BLK: ${r.skipped}`
+                                                        : `Ciclo BLK OK${r.cycleId != null ? ` #${r.cycleId}` : ''}`
+                                                );
+                                            }
+                                            else toast.error('Falhou');
+                                            fetchData();
+                                        } catch (err) {
+                                            toast.error(err.response?.data?.message || 'Erro');
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-cyan-700 hover:bg-cyan-600 text-white rounded-xl text-[10px] font-black uppercase"
+                                >
+                                    Rodar ciclo BLK agora
+                                </button>
+                                <span className="text-[9px] text-slate-600">Cron UTC a cada 10 min; manual usa a mesma janela.</span>
+                            </div>
+                            <h4 className="text-[10px] font-black text-cyan-500 uppercase tracking-widest pt-2">Emissão BLK (pool / 10 min)</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                                <label className="space-y-1">
+                                    <span className="text-slate-500 font-bold">BLK / ciclo (base)</span>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                                        value={blkEconomyForm.blkCycleReward}
+                                        onChange={(e) => setBlkEconomyForm((p) => ({ ...p, blkCycleReward: e.target.value }))}
+                                    />
+                                </label>
+                                <label className="space-y-1">
+                                    <span className="text-slate-500 font-bold">Duração ciclo (s)</span>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                                        value={blkEconomyForm.blkCycleIntervalSec}
+                                        onChange={(e) => setBlkEconomyForm((p) => ({ ...p, blkCycleIntervalSec: e.target.value }))}
+                                    />
+                                </label>
+                                <label className="space-y-1">
+                                    <span className="text-slate-500 font-bold">Janela atividade (s)</span>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                                        value={blkEconomyForm.blkCycleActivitySec}
+                                        onChange={(e) => setBlkEconomyForm((p) => ({ ...p, blkCycleActivitySec: e.target.value }))}
+                                    />
+                                </label>
+                                <label className="space-y-1">
+                                    <span className="text-slate-500 font-bold">Hashrate mínimo</span>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                                        value={blkEconomyForm.blkCycleMinHashrate}
+                                        onChange={(e) => setBlkEconomyForm((p) => ({ ...p, blkCycleMinHashrate: e.target.value }))}
+                                    />
+                                </label>
+                                <label className="space-y-1">
+                                    <span className="text-slate-500 font-bold">Boost (multiplier)</span>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                                        value={blkEconomyForm.blkCycleBoost}
+                                        onChange={(e) => setBlkEconomyForm((p) => ({ ...p, blkCycleBoost: e.target.value }))}
+                                    />
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer pt-6">
+                                    <input
+                                        type="checkbox"
+                                        checked={blkEconomyForm.blkCyclePaused}
+                                        onChange={(e) => setBlkEconomyForm((p) => ({ ...p, blkCyclePaused: e.target.checked }))}
+                                        className="rounded border-slate-600"
+                                    />
+                                    <span className="text-slate-500 font-bold">Pausar emissão BLK</span>
+                                </label>
+                            </div>
+                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest pt-4">Conversão POL → BLK</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                                <label className="space-y-1">
+                                    <span className="text-slate-500 font-bold">POL por 1 BLK</span>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                                        value={blkEconomyForm.polPerBlk}
+                                        onChange={(e) => setBlkEconomyForm((p) => ({ ...p, polPerBlk: e.target.value }))}
+                                    />
+                                </label>
+                                <label className="space-y-1">
+                                    <span className="text-slate-500 font-bold">Fee conversão (bps, 500 = 5%)</span>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                                        value={blkEconomyForm.convertFeeBps}
+                                        onChange={(e) => setBlkEconomyForm((p) => ({ ...p, convertFeeBps: e.target.value }))}
+                                    />
+                                </label>
+                                <label className="space-y-1">
+                                    <span className="text-slate-500 font-bold">Mín. POL conversão</span>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                                        value={blkEconomyForm.minConvertPol}
+                                        onChange={(e) => setBlkEconomyForm((p) => ({ ...p, minConvertPol: e.target.value }))}
+                                    />
+                                </label>
+                                <label className="space-y-1">
+                                    <span className="text-slate-500 font-bold">Cooldown conversão (s)</span>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                                        value={blkEconomyForm.convertCooldownSec}
+                                        onChange={(e) => setBlkEconomyForm((p) => ({ ...p, convertCooldownSec: e.target.value }))}
+                                    />
+                                </label>
+                                <label className="space-y-1">
+                                    <span className="text-slate-500 font-bold">Limite diário conversão (BLK, vazio = ∞)</span>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                                        value={blkEconomyForm.dailyConvertLimitBlk}
+                                        onChange={(e) => setBlkEconomyForm((p) => ({ ...p, dailyConvertLimitBlk: e.target.value }))}
+                                        placeholder="∞"
+                                    />
+                                </label>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={saveBlkEconomy}
+                                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase"
+                            >
+                                Salvar economia BLK
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 

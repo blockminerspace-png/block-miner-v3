@@ -32,6 +32,10 @@ model User {
   usdtBalance   Decimal  @default(0) @map("usdt_balance") @db.Decimal(20, 8)
   usdcBalance   Decimal  @default(0) @map("usdc_balance") @db.Decimal(20, 8)
   zerBalance    Decimal  @default(0) @map("zer_balance") @db.Decimal(20, 8)
+  blkBalance    Decimal  @default(0) @map("blk_balance") @db.Decimal(20, 8)
+  blkLocked     Decimal  @default(0) @map("blk_locked") @db.Decimal(20, 8)
+  /** pol = só recompensa dos blocos POL; blk = só pool BLK por tempo; both = ambos */
+  miningPayoutMode String @default("both") @map("mining_payout_mode")
 
   // Session Tracking
   ytSecondsBalance Int     @default(0) @map("yt_seconds_balance")
@@ -86,6 +90,7 @@ model User {
   userRooms              UserRoom[]
   userRacks              UserRack[]
   broadcastViews         BroadcastMessageView[]
+  blkRewardLogs          BlkRewardLog[]
 
   @@map("users")
 }
@@ -226,6 +231,7 @@ model Transaction {
   userId          Int       @map("user_id")
   type            String    // deposit, withdrawal, etc
   amount          Decimal   @db.Decimal(20, 8)
+  fee             Decimal?  @db.Decimal(20, 8)
   address         String?
   txHash          String?   @map("tx_hash")
   rawTx           String?   @map("raw_tx")
@@ -246,6 +252,58 @@ model Transaction {
   @@index([status])
   @@index([txHash])
   @@map("transactions")
+}
+
+// Singleton (id=1): POL→BLK rate, fees, limits. Treat BLK as USD-pegged (1 BLK ≈ 1 USD).
+model BlkEconomyConfig {
+  id                    Int      @id @default(1)
+  polPerBlk             Decimal  @map("pol_per_blk") @db.Decimal(20, 8)
+  convertFeeBps         Int      @default(500) @map("convert_fee_bps")
+  minConvertPol         Decimal  @map("min_convert_pol") @db.Decimal(20, 8)
+  dailyConvertLimitBlk  Decimal? @map("daily_convert_limit_blk") @db.Decimal(20, 8)
+  convertCooldownSec    Int      @default(300) @map("convert_cooldown_sec")
+  // Time-based BLK emission (shared pool, proportional to DB snapshot hashrate)
+  blkCycleReward        Decimal  @default(0.03) @map("blk_cycle_reward") @db.Decimal(20, 8)
+  blkCycleIntervalSec   Int      @default(600) @map("blk_cycle_interval_sec")
+  blkCycleActivitySec   Int      @default(900) @map("blk_cycle_activity_sec")
+  blkCycleMinHashrate   Decimal  @default(0.00000001) @map("blk_cycle_min_hashrate") @db.Decimal(24, 8)
+  blkCyclePaused        Boolean  @default(false) @map("blk_cycle_paused")
+  blkCycleBoost         Decimal  @default(1) @map("blk_cycle_boost") @db.Decimal(10, 4)
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("blk_economy_config")
+}
+
+model BlkRewardCycle {
+  id            Int      @id @default(autoincrement())
+  windowStart   DateTime @unique @map("window_start")
+  totalHashrate Decimal  @map("total_hashrate") @db.Decimal(24, 8)
+  totalReward   Decimal  @map("total_reward") @db.Decimal(20, 8)
+  distributed   Decimal  @map("distributed") @db.Decimal(20, 8)
+  minerCount    Int      @map("miner_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  logs BlkRewardLog[]
+
+  @@index([windowStart])
+  @@map("blk_reward_cycles")
+}
+
+model BlkRewardLog {
+  id        Int      @id @default(autoincrement())
+  cycleId   Int      @map("cycle_id")
+  userId    Int      @map("user_id")
+  hashrate  Decimal  @db.Decimal(24, 8)
+  shareBps  Int      @map("share_bps")
+  amount    Decimal  @db.Decimal(20, 8)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  cycle BlkRewardCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([cycleId])
+  @@map("blk_reward_logs")
 }
 
 model Payout {

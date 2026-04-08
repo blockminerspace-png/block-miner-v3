@@ -8,6 +8,7 @@ export async function getOrCreateMinerProfile(user) {
       id: true,
       username: true,
       polBalance: true,
+      miningPayoutMode: true,
       refCode: true,
       _count: {
         select: { referrals: true }
@@ -25,6 +26,7 @@ export async function getOrCreateMinerProfile(user) {
         id: true,
         username: true,
         polBalance: true,
+        miningPayoutMode: true,
         refCode: true,
         _count: {
           select: { referrals: true }
@@ -81,7 +83,8 @@ export async function getOrCreateMinerProfile(user) {
     balance: Number(profile.polBalance || 0),
     lifetime_mined: 0, // Can be calculated from logs if needed
     refCode: profile.refCode,
-    referralCount: profile._count.referrals
+    referralCount: profile._count.referrals,
+    mining_payout_mode: profile.miningPayoutMode || "both"
   };
 }
 
