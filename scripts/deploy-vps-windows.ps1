@@ -16,7 +16,8 @@ param(
     [string] $RemotePath = '/root/block-miner',
     [string] $PlinkExe   = 'C:\Program Files\PuTTY\plink.exe',
     [string] $ComposeService = 'app',
-    [switch] $RemoveOrphans
+    [switch] $RemoveOrphans,
+    [string] $LetsEncryptDomain = ''
 )
 
 Set-StrictMode -Version Latest
@@ -42,6 +43,7 @@ if (Test-Path -LiteralPath $deploySecretsPath) {
 if ($deploySecrets['SSH_HOST'])    { $SshHost    = $deploySecrets['SSH_HOST'] }
 if ($deploySecrets['SSH_USER'])    { $SshUser    = $deploySecrets['SSH_USER'] }
 if ($deploySecrets['REMOTE_PATH']) { $RemotePath = $deploySecrets['REMOTE_PATH'] }
+if ($deploySecrets['LE_SYNC_DOMAIN']) { $LetsEncryptDomain = $deploySecrets['LE_SYNC_DOMAIN'] }
 
 $SshPassword = $deploySecrets['SSH_PASSWORD']
 if (-not $SshPassword) { $SshPassword = $env:BLOCKMINER_VPS_PW }
@@ -71,6 +73,28 @@ try {
         $pscpExe = Join-Path (Split-Path $PlinkExe) 'pscp.exe'
         & $pscpExe -batch -pw $SshPassword $envBackupPath "${SshUser}@${SshHost}:${RemotePath}/.env.production"
         if ($LASTEXITCODE -ne 0) { throw "pscp falhou ao enviar .env.production" }
+    }
+
+    # Após git reset, certificados PEM commitados no repo (dev) sobrescrevem os da VM —
+    # se houver Let's Encrypt no servidor, volta a copiar para nginx/certs antes do nginx subir.
+    if ($LetsEncryptDomain) {
+        $le = $LetsEncryptDomain.Trim()
+        Write-Host "==> Sync Let's Encrypt -> nginx/certs ($le)..."
+        $syncCmd = @"
+set -e
+cd $RemotePath
+mkdir -p nginx/certs
+if [ -f "/etc/letsencrypt/live/$le/fullchain.pem" ] && [ -f "/etc/letsencrypt/live/$le/privkey.pem" ]; then
+  cp "/etc/letsencrypt/live/$le/fullchain.pem" nginx/certs/cert.pem
+  cp "/etc/letsencrypt/live/$le/privkey.pem" nginx/certs/key.pem
+  chmod 644 nginx/certs/cert.pem
+  chmod 600 nginx/certs/key.pem
+  echo "LE sync OK for $le"
+else
+  echo "WARNING: LE_SYNC_DOMAIN=$le but /etc/letsencrypt/live/$le missing — HTTPS pode falhar"
+fi
+"@
+        & $PlinkExe -batch -ssh -pwfile $tmpPw "${SshUser}@${SshHost}" $syncCmd
     }
 
     # Por último faz o build e restart (serviço típico: app → 127.0.0.1:3000)

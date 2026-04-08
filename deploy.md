@@ -147,6 +147,10 @@ O serviço **nginx** monta `./nginx/nginx.conf` e **`./nginx/certs`** (pasta **g
 - **`nginx/certs/cert.pem`** — cadeia completa do certificado (**fullchain**).
 - **`nginx/certs/key.pem`** — chave privada.
 
+### Deploy sobrescreveu o HTTPS de novo?
+
+Se no repositório **não** houver PEM reais (recomendado: só `.gitkeep` em `nginx/certs/`), cada `git pull` / `reset` **não** deve trazer certificado de `localhost`. Na VM, após o deploy, usa **`LE_SYNC_DOMAIN`** em `deploy.secrets.local` ou o parâmetro **`-LetsEncryptDomain`** no `deploy-vps-windows.ps1` para copiar de `/etc/letsencrypt/live/SEU_DOMÍNIO/` para `nginx/certs/` antes do Docker subir.
+
 ### Porque o Chrome mostra `NET::ERR_CERT_AUTHORITY_INVALID` (ex.: `tests.blockminer.space`)
 
 - Certificado **autoassinado** (ex.: `CN=localhost`) ou emitido por uma CA que o browser **não confia**.
