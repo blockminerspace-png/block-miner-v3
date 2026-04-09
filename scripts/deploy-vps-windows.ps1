@@ -162,6 +162,18 @@ fi
     $remoteBuildCmd = "set -e`ncd $RemotePath`n$buildStep`ndocker compose exec -T nginx nginx -s reload || true`ncurl -sS -o /dev/null -w 'health_http:%{http_code}\n' http://127.0.0.1:3000/health || true`n"
     Write-Host "==> docker compose build no VPS ($SshHost)..."
     & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" $remoteBuildCmd
+
+    $runMigrate = $deploySecrets['DEPLOY_PRISMA_MIGRATE_DEPLOY']
+    if ($runMigrate -eq '1' -or ($runMigrate -and $runMigrate.ToLower() -eq 'true')) {
+        Write-Host "==> prisma migrate deploy no contentor ($ComposeService)..."
+        $migrateRemote = @"
+set -e
+cd $RemotePath
+docker compose exec -T $ComposeService npx prisma migrate deploy --schema=server/prisma/schema.prisma
+"@
+        & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" $migrateRemote
+    }
+
     Write-Host '==> Feito.'
 }
 finally {
