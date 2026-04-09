@@ -3,6 +3,12 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { normalizeEnvString } from "../server/services/ccpayment/ccpaymentEnv.js";
+
+test("normalizeEnvString strips BOM and quotes", () => {
+  assert.equal(normalizeEnvString('\ufeff"true"'), "true");
+  assert.equal(normalizeEnvString("'  x  '"), "x");
+});
 
 test("isCcpaymentIntegrationEnabled: true/1/yes/on/enabled", async () => {
   const { isCcpaymentIntegrationEnabled } = await import("../server/services/ccpayment/ccpaymentEnv.js");

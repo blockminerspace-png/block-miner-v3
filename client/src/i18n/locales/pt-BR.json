@@ -362,7 +362,7 @@
       "open_button": "Depositar via CCPayment",
       "loading": "Contactando CCPayment…",
       "error_load": "Não foi possível carregar o endereço CCPayment.",
-      "error_disabled": "CCPayment está desabilitado no servidor (ou a variável desliga a integração). Peça para ativar CCPAYMENT_ENABLED=true (ou 1/yes) e credenciais válidas no ambiente de produção.",
+      "error_disabled": "Servidor com CCPayment desligado: no .env.production use CCPAYMENT_ENABLED=true (ou 1) e credenciais, ou remova a linha CCPAYMENT_ENABLED=false. Confirme CCPAYMENT_APP_ID e CCPAYMENT_APP_SECRET. Nos logs do arranque: linha \"CCPayment wallet deposit endpoint\" (explicit_off = flag false; unset_no_credentials = sem chaves).",
       "error_not_configured": "Falta App ID ou App Secret do CCPayment no servidor. Configure CCPAYMENT_APP_ID e CCPAYMENT_APP_SECRET no ambiente de produção e reinicie a aplicação.",
       "min_deposit": "Depósito mínimo: {{min}} POL (definido pelo servidor).",
       "address_label": "Endereço de depósito",

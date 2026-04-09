@@ -7,18 +7,19 @@
  */
 
 import { computeCcPaymentSign } from "./ccpaymentSignature.js";
+import { normalizeEnvString } from "./ccpaymentEnv.js";
 
 function getAppId() {
-  return String(process.env.CCPAYMENT_APP_ID || process.env.CCPAYMENT_API_KEY || "").trim();
+  return normalizeEnvString(process.env.CCPAYMENT_APP_ID || process.env.CCPAYMENT_API_KEY || "");
 }
 
 function getAppSecret() {
-  return String(
+  return normalizeEnvString(
     process.env.CCPAYMENT_APP_SECRET ||
       process.env.CCPAYMENT_SECRET_KEY ||
       process.env.CCPAYMENT_WEBHOOK_SECRET ||
       ""
-  ).trim();
+  );
 }
 
 function baseUrl() {

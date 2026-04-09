@@ -9,6 +9,7 @@ import {
 } from "./ccpaymentDepositDomain.js";
 import { applyUserBalanceDelta } from "../../src/runtime/miningRuntime.js";
 import { getMiningEngine } from "../../src/miningEngineInstance.js";
+import { normalizeEnvString } from "./ccpaymentEnv.js";
 const logger = loggerLib.child("CcpaymentDepositWebhook");
 
 export class CcpaymentWebhookError extends Error {
@@ -25,16 +26,16 @@ export class CcpaymentWebhookError extends Error {
 }
 
 function getAppId() {
-  return String(process.env.CCPAYMENT_APP_ID || process.env.CCPAYMENT_API_KEY || "").trim();
+  return normalizeEnvString(process.env.CCPAYMENT_APP_ID || process.env.CCPAYMENT_API_KEY || "");
 }
 
 function getAppSecret() {
-  return String(
+  return normalizeEnvString(
     process.env.CCPAYMENT_WEBHOOK_SECRET ||
       process.env.CCPAYMENT_APP_SECRET ||
       process.env.CCPAYMENT_SECRET_KEY ||
       ""
-  ).trim();
+  );
 }
 
 function parseChainList() {

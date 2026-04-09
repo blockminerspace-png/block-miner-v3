@@ -12,6 +12,11 @@ import prisma from "./src/db/prisma.js";
 import { MiningEngine } from "./src/miningEngine.js";
 import { setMiningEngine } from "./src/miningEngineInstance.js";
 import loggerLib from "./utils/logger.js";
+import {
+  getCcpaymentIntegrationStatus,
+  isCcpaymentIntegrationEnabled
+} from "./services/ccpayment/ccpaymentEnv.js";
+import { isCcpaymentClientConfigured } from "./services/ccpayment/ccpaymentApiClient.js";
 
 // Middlewares
 import { createRateLimiter } from "./middleware/rateLimit.js";
@@ -426,6 +431,16 @@ async function bootstrap() {
     } else {
       logger.info("Startup data migrations disabled (RUN_STARTUP_DATA_MIGRATIONS=false).");
     }
+
+    const ccpSt = getCcpaymentIntegrationStatus();
+    const ccpWalletReady =
+      isCcpaymentIntegrationEnabled() && isCcpaymentClientConfigured();
+    logger.info("CCPayment wallet deposit endpoint", {
+      mode: ccpSt.mode,
+      integrationOn: isCcpaymentIntegrationEnabled(),
+      credentialsPresent: ccpSt.configured,
+      depositAddressReady: ccpWalletReady
+    });
 
     server.listen(port, host, () => {
       logger.info(`Server running on ${host}:${port}`);
