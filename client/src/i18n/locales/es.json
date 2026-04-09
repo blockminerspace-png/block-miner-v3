@@ -180,6 +180,11 @@
       "social": "Social & Fun"
     }
   },
+  "header": {
+    "community_discord": "Comunidad Discord",
+    "community_telegram": "Canal de Telegram",
+    "community_nav": "Enlaces de la comunidad"
+  },
   "dashboard": {
     "welcome": "Bienvenido, {{name}}",
     "subtitle": "Tu operación minera está activa. Sigue las recompensas del próximo bloque en tiempo real.",

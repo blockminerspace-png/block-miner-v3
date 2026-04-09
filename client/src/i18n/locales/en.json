@@ -180,6 +180,11 @@
       "social": "Social & Fun"
     }
   },
+  "header": {
+    "community_discord": "Discord community",
+    "community_telegram": "Telegram channel",
+    "community_nav": "Community links"
+  },
   "dashboard": {
     "welcome": "Welcome, {{name}}",
     "subtitle": "Your mining operation is active. Track next block rewards in real-time.",

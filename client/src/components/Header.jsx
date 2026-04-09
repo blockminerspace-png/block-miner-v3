@@ -4,6 +4,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../store/game';
 import { useAuthStore } from '../store/auth';
+import CommunityShortcuts from './CommunityShortcuts';
 
 export default function Header() {
   const { t } = useTranslation();
@@ -79,7 +80,9 @@ export default function Header() {
           >
             <MessageSquare className="w-5 h-5" />
           </button>
-          
+
+          <CommunityShortcuts gapClass="gap-0.5" />
+
           {/* Notification Bell */}
           <div className="relative" ref={notificationRef}>
             <button 

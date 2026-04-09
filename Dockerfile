@@ -1,6 +1,10 @@
 # Stage 1: Build React Frontend
 FROM node:20-bookworm-slim AS frontend-builder
 WORKDIR /app
+ARG VITE_DISCORD_URL=
+ARG VITE_TELEGRAM_URL=
+ENV VITE_DISCORD_URL=$VITE_DISCORD_URL
+ENV VITE_TELEGRAM_URL=$VITE_TELEGRAM_URL
 COPY client/package*.json ./
 RUN npm install --no-audit --no-fund
 COPY client/ ./

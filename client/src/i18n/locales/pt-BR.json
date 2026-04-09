@@ -181,6 +181,11 @@
       "social": "Social & Fun"
     }
   },
+  "header": {
+    "community_discord": "Comunidade Discord",
+    "community_telegram": "Canal Telegram",
+    "community_nav": "Ligações da comunidade"
+  },
   "dashboard": {
     "welcome": "Bem-vindo, {{name}}",
     "subtitle": "Sua operação de mineração está ativa. Acompanhe os rendimentos do próximo bloco em tempo real.",

@@ -29,6 +29,7 @@ import {
 import { useAuthStore } from '../store/auth';
 import { useGameStore } from '../store/game';
 import BrandLogo from './BrandLogo';
+import CommunityShortcuts from './CommunityShortcuts';
 
 export default function Sidebar() {
   const { t } = useTranslation();
@@ -165,6 +166,8 @@ export default function Sidebar() {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-400 rounded-full" />
             )}
           </button>
+
+          <CommunityShortcuts gapClass="gap-0" />
 
           {/* Notifications */}
           <div className="relative" ref={notifRef}>

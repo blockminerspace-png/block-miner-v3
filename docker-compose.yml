@@ -14,7 +14,11 @@ services:
     restart: unless-stopped
 
   app:
-    build: .
+    build:
+      context: .
+      args:
+        VITE_DISCORD_URL: ${VITE_DISCORD_URL:-}
+        VITE_TELEGRAM_URL: ${VITE_TELEGRAM_URL:-}
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
