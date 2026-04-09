@@ -434,6 +434,8 @@
     "tx_sent": "Transaction sent. Confirming on server…",
     "failed_retry": "Last attempt failed. Send a new payment or tap “Complete check-in” after fixing.",
     "unavailable": "Check-in is unavailable on the server.",
+    "status_degraded": "Check-in data could not be loaded (database is updating).",
+    "status_degraded_hint": "Wait a minute and refresh the page. If this persists, contact support.",
     "come_back": "Come back tomorrow to keep your streak.",
     "wrong_network": "Switch your wallet to Polygon.",
     "switch_polygon": "Switch to Polygon",

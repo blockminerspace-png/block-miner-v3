@@ -439,6 +439,8 @@
     "tx_sent": "Transação enviada. Confirmando no servidor…",
     "failed_retry": "A última tentativa falhou. Envie um novo pagamento ou use “Completar check-in” após corrigir.",
     "unavailable": "Check-in indisponível no servidor.",
+    "status_degraded": "Não foi possível carregar o check-in (a base de dados está a atualizar).",
+    "status_degraded_hint": "Espera um minuto e atualiza a página. Se continuar, contacta o suporte.",
     "come_back": "Volte amanhã para manter a sequência.",
     "wrong_network": "Use a rede Polygon na carteira.",
     "switch_polygon": "Mudar para Polygon",

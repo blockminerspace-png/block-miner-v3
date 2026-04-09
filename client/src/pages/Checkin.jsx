@@ -324,10 +324,13 @@ export default function Checkin() {
         );
     }
 
-    if (!status?.ok) {
+    if (!status?.ok || status?.statusDegraded) {
         return (
-            <div className="p-8 text-center text-gray-400">
-                {t('checkin.unavailable')}
+            <div className="p-8 text-center text-gray-400 space-y-3 max-w-md mx-auto">
+                <p>{status?.statusDegraded ? t('checkin.status_degraded') : t('checkin.unavailable')}</p>
+                {status?.statusDegraded ? (
+                    <p className="text-xs text-slate-600">{t('checkin.status_degraded_hint')}</p>
+                ) : null}
             </div>
         );
     }

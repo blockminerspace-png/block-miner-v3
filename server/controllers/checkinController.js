@@ -132,42 +132,53 @@ export async function getStatus(req, res) {
       select: { walletAddress: true }
     });
     const wallet = user?.walletAddress || null;
-
-    if (paymentCheckinEnabled()) {
-      await tryFinalizeTodayCheckin(userId, wallet);
-    }
-
-    const row = await getTodayRow(userId);
-    const streak = await computeCheckinStreak(userId);
-    const [recentCheckins, totalConfirmed, milestones] = await Promise.all([
-      loadRecentHistory(userId, 21),
-      prisma.dailyCheckin.count({ where: { userId, status: "confirmed" } }),
-      buildMilestoneStatusForUser(userId, streak).catch((err) => {
-        console.error("checkin getStatus: milestones unavailable (DB migration may be pending)", err?.message);
-        return [];
-      })
-    ]);
-
     const pay = paymentCheckinEnabled();
     const minWei = parseCheckinAmountWei();
 
+    let row = null;
+    let streak = 0;
+    let recentCheckins = [];
+    let totalConfirmed = 0;
+    let milestones = [];
+    let statusDegraded = false;
+
+    try {
+      if (pay) {
+        await tryFinalizeTodayCheckin(userId, wallet);
+      }
+      row = await getTodayRow(userId);
+      streak = await computeCheckinStreak(userId);
+      [recentCheckins, totalConfirmed, milestones] = await Promise.all([
+        loadRecentHistory(userId, 21),
+        prisma.dailyCheckin.count({ where: { userId, status: "confirmed" } }),
+        buildMilestoneStatusForUser(userId, streak).catch((err) => {
+          console.error("checkin getStatus: milestones unavailable", err?.message);
+          return [];
+        })
+      ]);
+    } catch (dbErr) {
+      statusDegraded = true;
+      console.error("checkin getStatus: daily_checkins / milestones DB error", dbErr?.message || dbErr);
+    }
+
     res.json({
       ok: true,
-      checkedIn: row?.status === "confirmed",
-      pending: row?.status === "pending" && !isFreeSyntheticTx(row?.txHash, userId, row?.checkinDate),
-      failed: row?.status === "failed",
-      status: row?.status || null,
-      txHash: row?.txHash || null,
-      streak,
-      totalConfirmed,
-      recentCheckins,
+      statusDegraded,
+      checkedIn: statusDegraded ? false : row?.status === "confirmed",
+      pending: statusDegraded ? false : row?.status === "pending" && !isFreeSyntheticTx(row?.txHash, userId, row?.checkinDate),
+      failed: statusDegraded ? false : row?.status === "failed",
+      status: statusDegraded ? null : row?.status || null,
+      txHash: statusDegraded ? null : row?.txHash || null,
+      streak: statusDegraded ? 0 : streak,
+      totalConfirmed: statusDegraded ? 0 : totalConfirmed,
+      recentCheckins: statusDegraded ? [] : recentCheckins,
       walletLinked: Boolean(wallet),
       paymentRequired: pay,
       checkinReceiver: pay ? getReceiver() : null,
       checkinAmountWei: pay ? minWei.toString() : "0",
       chainId: POLYGON_CHAIN_ID,
       rpcConfigured: pay && Boolean(process.env.AETHER_RPC_URL?.trim() || process.env.POLYGON_RPC_URL?.trim()),
-      milestones
+      milestones: statusDegraded ? [] : milestones
     });
   } catch (e) {
     console.error("Checkin getStatus:", e);
