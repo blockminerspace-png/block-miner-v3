@@ -11,21 +11,77 @@ function getRouteGroup(pathname) {
   return "app";
 }
 
+/** Reown AppKit / WalletConnect — https://docs.reown.com/advanced/security/content-security-policy */
+const WALLETCONNECT_CONNECT = [
+  "https://rpc.walletconnect.com",
+  "https://rpc.walletconnect.org",
+  "https://relay.walletconnect.com",
+  "https://relay.walletconnect.org",
+  "wss://relay.walletconnect.com",
+  "wss://relay.walletconnect.org",
+  "https://pulse.walletconnect.com",
+  "https://pulse.walletconnect.org",
+  "https://api.web3modal.com",
+  "https://api.web3modal.org",
+  "https://keys.walletconnect.com",
+  "https://keys.walletconnect.org",
+  "https://notify.walletconnect.com",
+  "https://notify.walletconnect.org",
+  "https://echo.walletconnect.com",
+  "https://echo.walletconnect.org",
+  "https://push.walletconnect.com",
+  "https://push.walletconnect.org",
+  "wss://www.walletlink.org",
+  "https://cca-lite.coinbase.com",
+  "https://explorer-api.walletconnect.com",
+  "https://registry.walletconnect.com"
+];
+
 function baseDirectives({ allowWebSockets }) {
+  const connectBase = allowWebSockets
+    ? ["'self'", "https:", "ws:", "wss:", "http://localhost:*", "ws://localhost:*"]
+    : ["'self'", "https:"];
+
   return {
     defaultSrc: ["'self'"],
     baseUri: ["'self'"],
+    formAction: ["'self'"],
     frameAncestors: ["'self'"],
     frameSrc: [
       "'self'",
+      "https://verify.walletconnect.com",
+      "https://verify.walletconnect.org",
+      "https://secure.walletconnect.com",
+      "https://secure.walletconnect.org",
       "https://www.youtube.com",
       "https://www.youtube-nocookie.com",
       "https://ad.a-ads.com",
       "https://zerads.com"
     ],
     objectSrc: ["'none'"],
-    imgSrc: ["'self'", "data:", "https:"],
-    fontSrc: ["'self'", "https://cdn.jsdelivr.net", "data:"],
+    scriptSrcAttr: ["'none'"],
+    // AppKit wallet grid uses blob: URLs and many icon hosts; Reown recommends img-src * … blob:
+    imgSrc: [
+      "*",
+      "'self'",
+      "data:",
+      "blob:",
+      "https://walletconnect.org",
+      "https://walletconnect.com",
+      "https://secure.walletconnect.com",
+      "https://secure.walletconnect.org",
+      "https://tokens-data.1inch.io",
+      "https://tokens.1inch.io",
+      "https://ipfs.io",
+      "https://cdn.zerion.io"
+    ],
+    fontSrc: [
+      "'self'",
+      "https://cdn.jsdelivr.net",
+      "https://fonts.gstatic.com",
+      "https://fonts.reown.com",
+      "data:"
+    ],
     scriptSrc: [
       "'self'",
       "'unsafe-inline'",
@@ -35,17 +91,20 @@ function baseDirectives({ allowWebSockets }) {
       "https://www.youtube.com",
       "https://s.ytimg.com"
     ],
-    styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-    connectSrc: allowWebSockets
-      ? ["'self'", "https:", "ws:", "wss:", "http://localhost:*", "ws://localhost:*"]
-      : ["'self'", "https:"],
-    upgradeInsecureRequests: []
+    styleSrc: [
+      "'self'",
+      "'unsafe-inline'",
+      "https://cdn.jsdelivr.net",
+      "https://fonts.googleapis.com"
+    ],
+    connectSrc: [...connectBase, ...WALLETCONNECT_CONNECT],
+    workerSrc: ["'self'", "blob:", "https:"]
   };
 }
 
 export function createCspMiddleware() {
   const appCsp = helmet.contentSecurityPolicy({
-    useDefaults: true,
+    useDefaults: false,
     directives: baseDirectives({ allowWebSockets: true })
   });
 
