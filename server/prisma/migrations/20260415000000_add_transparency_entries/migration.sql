@@ -1,5 +1,5 @@
--- CreateTable
-CREATE TABLE "transparency_entries" (
+-- Idempotent: table may already exist from db push / manual sync.
+CREATE TABLE IF NOT EXISTS "transparency_entries" (
     "id" SERIAL NOT NULL,
     "category" TEXT NOT NULL DEFAULT 'misc',
     "name" TEXT NOT NULL,
@@ -18,8 +18,6 @@ CREATE TABLE "transparency_entries" (
     CONSTRAINT "transparency_entries_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
-CREATE INDEX "transparency_entries_is_active_idx" ON "transparency_entries"("is_active");
+CREATE INDEX IF NOT EXISTS "transparency_entries_is_active_idx" ON "transparency_entries"("is_active");
 
--- CreateIndex
-CREATE INDEX "transparency_entries_category_idx" ON "transparency_entries"("category");
+CREATE INDEX IF NOT EXISTS "transparency_entries_category_idx" ON "transparency_entries"("category");
