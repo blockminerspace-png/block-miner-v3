@@ -7,7 +7,9 @@ import assert from "node:assert/strict";
 import crypto from "crypto";
 import {
   verifyCcPaymentWebhookSignature,
-  computeCcPaymentSign
+  verifyCcPaymentWebhookSignatureFlexible,
+  computeCcPaymentSign,
+  computeCcPaymentOutboundSignV2
 } from "../server/services/ccpayment/ccpaymentSignature.js";
 import {
   verifyCcpaymentWebhookRequest,
@@ -55,6 +57,65 @@ test("verifyCcPaymentWebhookSignature rejects wrong sign", () => {
       timestamp: "1",
       rawBody: "{}",
       signHeader: "deadbeef"
+    }),
+    false
+  );
+});
+
+test("verifyCcPaymentWebhookSignatureFlexible (auto) accepts v2-style HMAC sign", () => {
+  const appId = "merchant_v2";
+  const appSecret = "secret_v2";
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const body = '{"type":"UserDeposit","msg":{"recordId":"r1"}}';
+  const hmacSign = computeCcPaymentOutboundSignV2(appId, appSecret, timestamp, body);
+  const v1Sign = computeCcPaymentSign(appId, appSecret, timestamp, body);
+  assert.notEqual(hmacSign, v1Sign);
+  assert.equal(
+    verifyCcPaymentWebhookSignatureFlexible({
+      appId,
+      appSecret,
+      timestamp,
+      rawBody: body,
+      signHeader: hmacSign,
+      mode: "auto"
+    }),
+    true
+  );
+});
+
+test("verifyCcPaymentWebhookSignatureFlexible mode=sha256 rejects HMAC-only sign", () => {
+  const appId = "m";
+  const appSecret = "s";
+  const timestamp = "1700000000";
+  const body = "{}";
+  const hmacSign = computeCcPaymentOutboundSignV2(appId, appSecret, timestamp, body);
+  assert.equal(
+    verifyCcPaymentWebhookSignatureFlexible({
+      appId,
+      appSecret,
+      timestamp,
+      rawBody: body,
+      signHeader: hmacSign,
+      mode: "sha256"
+    }),
+    false
+  );
+});
+
+test("verifyCcPaymentWebhookSignatureFlexible mode=hmac rejects v1-only sign", () => {
+  const appId = "m";
+  const appSecret = "s";
+  const timestamp = "1700000000";
+  const body = "{}";
+  const v1 = computeCcPaymentSign(appId, appSecret, timestamp, body);
+  assert.equal(
+    verifyCcPaymentWebhookSignatureFlexible({
+      appId,
+      appSecret,
+      timestamp,
+      rawBody: body,
+      signHeader: v1,
+      mode: "hmac"
     }),
     false
   );
@@ -159,6 +220,28 @@ test("verifyCcpaymentWebhookRequest passes for valid headers and body", () => {
     else process.env.CCPAYMENT_APP_ID = prevId;
     if (prevSec === undefined) delete process.env.CCPAYMENT_APP_SECRET;
     else process.env.CCPAYMENT_APP_SECRET = prevSec;
+  }
+});
+
+test("verifyCcpaymentWebhookRequest passes with HMAC (v2-style) Sign when v1 would differ", () => {
+  const prevId = process.env.CCPAYMENT_APP_ID;
+  const prevSec = process.env.CCPAYMENT_APP_SECRET;
+  const prevMode = process.env.CCPAYMENT_WEBHOOK_SIGN_MODE;
+  process.env.CCPAYMENT_APP_ID = "merchant_app_id";
+  process.env.CCPAYMENT_APP_SECRET = "merchant_secret";
+  delete process.env.CCPAYMENT_WEBHOOK_SIGN_MODE;
+  try {
+    const ts = String(Math.floor(Date.now() / 1000));
+    const body = '{"type":"UserDeposit","msg":{"recordId":"x","userId":"BM1-bm","status":"Success","amount":"1","coinSymbol":"POL"}}';
+    const sign = computeCcPaymentOutboundSignV2("merchant_app_id", "merchant_secret", ts, body);
+    verifyCcpaymentWebhookRequest(body, { appid: "merchant_app_id", timestamp: ts, sign });
+  } finally {
+    if (prevId === undefined) delete process.env.CCPAYMENT_APP_ID;
+    else process.env.CCPAYMENT_APP_ID = prevId;
+    if (prevSec === undefined) delete process.env.CCPAYMENT_APP_SECRET;
+    else process.env.CCPAYMENT_APP_SECRET = prevSec;
+    if (prevMode === undefined) delete process.env.CCPAYMENT_WEBHOOK_SIGN_MODE;
+    else process.env.CCPAYMENT_WEBHOOK_SIGN_MODE = prevMode;
   }
 });
 

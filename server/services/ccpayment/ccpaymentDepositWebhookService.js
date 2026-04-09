@@ -1,6 +1,6 @@
 import prisma from "../../src/db/prisma.js";
 import loggerLib from "../../utils/logger.js";
-import { verifyCcPaymentWebhookSignature } from "./ccpaymentSignature.js";
+import { verifyCcPaymentWebhookSignatureFlexible } from "./ccpaymentSignature.js";
 import {
   parseUserIdFromMerchantOrderId,
   isAllowedChainAndCrypto,
@@ -67,6 +67,20 @@ function getMaxDeposit() {
   return Number.isFinite(v) && v > 0 ? v : 100000;
 }
 
+/** Docs say 2 minutes; allow override for clock skew and slow proxies. Idempotency limits replay risk. */
+function getWebhookMaxSkewSeconds() {
+  const n = parseInt(String(process.env.CCPAYMENT_WEBHOOK_MAX_SKEW_SECONDS ?? "").trim(), 10);
+  if (Number.isFinite(n) && n >= 60 && n <= 3600) return n;
+  return 600;
+}
+
+/** auto: accept v1 SHA-256 or v2-style HMAC (same as outbound v2). sha256 | hmac to force one algorithm. */
+function getWebhookSignMode() {
+  const raw = String(process.env.CCPAYMENT_WEBHOOK_SIGN_MODE ?? "auto").trim().toLowerCase();
+  if (raw === "sha256" || raw === "hmac") return raw;
+  return "auto";
+}
+
 /**
  * Verifies headers, timestamp freshness, and signature.
  *
@@ -98,16 +112,18 @@ export function verifyCcpaymentWebhookRequest(rawBody, headers) {
     throw new CcpaymentWebhookError("BAD_TIMESTAMP", "Invalid timestamp", 401);
   }
   const now = Math.floor(Date.now() / 1000);
-  if (Math.abs(now - tsNum) > 120) {
+  const maxSkew = getWebhookMaxSkewSeconds();
+  if (Math.abs(now - tsNum) > maxSkew) {
     throw new CcpaymentWebhookError("TIMESTAMP_EXPIRED", "Timestamp outside allowed window", 401);
   }
 
-  const ok = verifyCcPaymentWebhookSignature({
+  const ok = verifyCcPaymentWebhookSignatureFlexible({
     appId: appIdHeader,
     appSecret,
     timestamp,
     rawBody,
-    signHeader: sign
+    signHeader: sign,
+    mode: getWebhookSignMode()
   });
 
   if (!ok) {
