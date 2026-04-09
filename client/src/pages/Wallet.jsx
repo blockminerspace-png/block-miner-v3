@@ -53,6 +53,7 @@ export default function Wallet() {
     const [isActionLoading, setIsActionLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('deposit');
     const [systemDepositAddress, setSystemDepositAddress] = useState(null);
+    const walletConnectedRef = useRef(false);
 
     const [withdrawForm, setWithdrawForm] = useState({
         address: '',
@@ -69,6 +70,21 @@ export default function Wallet() {
     const pendingPollRef = useRef(null);
 
     const socket = useGameStore(s => s.socket);
+
+    useEffect(() => {
+        walletConnectedRef.current = isConnected;
+    }, [isConnected]);
+
+    const waitForWalletConnected = async (timeoutMs = 15000) => {
+        const start = Date.now();
+        while (Date.now() - start < timeoutMs) {
+            if (walletConnectedRef.current) {
+                return true;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+        return false;
+    };
 
     // Deposit Ticket state
     const [myTickets, setMyTickets] = useState([]);
@@ -198,10 +214,12 @@ export default function Wallet() {
         try {
             if (!isConnected) {
                 await connect();
-                // We add a small delay or check isConnected again to allow state to sync if possible,
-                // but usually the user will need to click again. Let's at least explain it.
-                toast.info('Wallet connected. Please click "Express Deposit" again to authorize the transaction.');
-                return;
+
+                const walletReady = await waitForWalletConnected(10000);
+                if (!walletReady) {
+                    toast.error('Não foi possível conectar a carteira. Tente novamente.');
+                    return;
+                }
             }
 
             if (!isCorrectNetwork) {
