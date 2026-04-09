@@ -6,6 +6,8 @@ data/*.sqlite
 backups
 logs
 .env
+.env.production
+.env.production.*
 .git
 .github
 *.log

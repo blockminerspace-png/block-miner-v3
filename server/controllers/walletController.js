@@ -323,13 +323,13 @@ const VALID_MINING_PAYOUT_MODES = new Set(["pol"]);
  */
 export async function getCcpaymentWalletDepositAddress(req, res) {
   try {
-    if (!isCcpaymentIntegrationEnabled()) {
-      return res.status(503).json({ ok: false, code: "DISABLED", message: "CCPayment is disabled." });
-    }
     if (!isCcpaymentClientConfigured()) {
       return res
         .status(503)
         .json({ ok: false, code: "NOT_CONFIGURED", message: "CCPayment credentials are missing." });
+    }
+    if (!isCcpaymentIntegrationEnabled()) {
+      return res.status(503).json({ ok: false, code: "DISABLED", message: "CCPayment is disabled." });
     }
     const { address, memo } = await getPermanentDepositAddress({ userId: req.user.id });
     const minRaw = parseFloat(String(process.env.CCPAYMENT_MIN_DEPOSIT_POL || "0.01"));
