@@ -777,5 +777,14 @@
     "ranking": "Salón de la Fama",
     "settings": "Ajustes de Cuenta",
     "overview": "Visión General"
-    }
-    }
+  },
+  "adminCheckinMilestones": {
+    "toast_created": "Hito creado.",
+    "toast_updated": "Hito actualizado.",
+    "toast_deleted": "Eliminado.",
+    "toast_save_error": "No se pudo guardar.",
+    "toast_load_error": "No se pudieron cargar los hitos.",
+    "toast_migration_pending": "Faltan migraciones en la base de datos del servidor. Ejecuta Prisma migrate deploy e inténtalo de nuevo.",
+    "confirm_delete": "¿Eliminar este hito? Las recompensas ya otorgadas siguen registradas."
+  }
+}

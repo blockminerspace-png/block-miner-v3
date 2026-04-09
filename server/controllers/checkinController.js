@@ -142,7 +142,10 @@ export async function getStatus(req, res) {
     const [recentCheckins, totalConfirmed, milestones] = await Promise.all([
       loadRecentHistory(userId, 21),
       prisma.dailyCheckin.count({ where: { userId, status: "confirmed" } }),
-      buildMilestoneStatusForUser(userId, streak)
+      buildMilestoneStatusForUser(userId, streak).catch((err) => {
+        console.error("checkin getStatus: milestones unavailable (DB migration may be pending)", err?.message);
+        return [];
+      })
     ]);
 
     const pay = paymentCheckinEnabled();

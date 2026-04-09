@@ -38,11 +38,9 @@ function readAppId() {
 }
 
 function readAppSecret() {
+  // Do not use CCPAYMENT_WEBHOOK_SECRET here: webhooks may use a different key and would break outbound API signing.
   return normalizeEnvString(
-    process.env.CCPAYMENT_APP_SECRET ||
-      process.env.CCPAYMENT_SECRET_KEY ||
-      process.env.CCPAYMENT_WEBHOOK_SECRET ||
-      ""
+    process.env.CCPAYMENT_APP_SECRET || process.env.CCPAYMENT_SECRET_KEY || ""
   );
 }
 

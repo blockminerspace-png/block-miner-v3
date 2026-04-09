@@ -362,7 +362,8 @@ export async function getCcpaymentWalletDepositAddress(req, res) {
     });
   } catch (err) {
     logger.error("getCcpaymentWalletDepositAddress error", { message: err.message });
-    return res.status(502).json({
+    // 200 so axios does not surface a "failed request" in DevTools; UI uses ok/code/message.
+    return res.status(200).json({
       ok: false,
       code: "CCPAYMENT_ERROR",
       message: "Unable to reach CCPayment. Try again later."

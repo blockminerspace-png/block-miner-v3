@@ -66,6 +66,32 @@ test("isCcpaymentIntegrationEnabled: unset + credentials implies enabled", async
   }
 });
 
+test("isCcpaymentIntegrationEnabled: webhook secret alone does not enable (outbound needs app secret)", async () => {
+  const { isCcpaymentIntegrationEnabled } = await import("../server/services/ccpayment/ccpaymentEnv.js");
+  const keys = [
+    "CCPAYMENT_ENABLED",
+    "CCPAYMENT_APP_ID",
+    "CCPAYMENT_APP_SECRET",
+    "CCPAYMENT_SECRET_KEY",
+    "CCPAYMENT_WEBHOOK_SECRET"
+  ];
+  const prev = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
+
+  try {
+    delete process.env.CCPAYMENT_ENABLED;
+    delete process.env.CCPAYMENT_APP_SECRET;
+    delete process.env.CCPAYMENT_SECRET_KEY;
+    process.env.CCPAYMENT_APP_ID = "app";
+    process.env.CCPAYMENT_WEBHOOK_SECRET = "webhook_only_secret";
+    assert.equal(isCcpaymentIntegrationEnabled(), false);
+  } finally {
+    for (const k of keys) {
+      if (prev[k] === undefined) delete process.env[k];
+      else process.env[k] = prev[k];
+    }
+  }
+});
+
 test("isCcpaymentIntegrationEnabled: unset + no credentials is disabled", async () => {
   const { isCcpaymentIntegrationEnabled } = await import("../server/services/ccpayment/ccpaymentEnv.js");
   const keys = ["CCPAYMENT_ENABLED", "CCPAYMENT_APP_ID", "CCPAYMENT_APP_SECRET"];

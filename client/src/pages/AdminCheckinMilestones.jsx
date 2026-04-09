@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Plus, Trash2, Pencil, X, Save, CalendarRange, Loader2 } from 'lucide-react';
 import { api } from '../store/auth';
+
+function milestoneErrMessage(errLike, t, fallbackKey) {
+  const d = errLike?.response?.data ?? errLike?.data;
+  if (d?.code === 'MILESTONE_DB_PENDING') return t('adminCheckinMilestones.toast_migration_pending');
+  if (d?.message) return d.message;
+  return t(fallbackKey);
+}
 
 const EMPTY = {
   dayThreshold: 7,
@@ -15,6 +23,7 @@ const EMPTY = {
 };
 
 export default function AdminCheckinMilestones() {
+  const { t } = useTranslation();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
@@ -27,7 +36,7 @@ export default function AdminCheckinMilestones() {
       const res = await api.get('/admin/checkin-milestones');
       if (res.data.ok) setRows(res.data.milestones || []);
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Erro ao carregar marcos.');
+      toast.error(milestoneErrMessage(e, t, 'adminCheckinMilestones.toast_load_error'));
     } finally {
       setLoading(false);
     }
@@ -75,29 +84,41 @@ export default function AdminCheckinMilestones() {
       };
       if (editingId === 'new') {
         const res = await api.post('/admin/checkin-milestones', body);
-        if (res.data.ok) toast.success('Marco criado.');
+        if (!res.data?.ok) {
+          toast.error(
+            milestoneErrMessage({ data: res.data }, t, 'adminCheckinMilestones.toast_save_error')
+          );
+          return;
+        }
+        toast.success(t('adminCheckinMilestones.toast_created'));
       } else {
         const res = await api.put(`/admin/checkin-milestones/${editingId}`, body);
-        if (res.data.ok) toast.success('Marco atualizado.');
+        if (!res.data?.ok) {
+          toast.error(
+            milestoneErrMessage({ data: res.data }, t, 'adminCheckinMilestones.toast_save_error')
+          );
+          return;
+        }
+        toast.success(t('adminCheckinMilestones.toast_updated'));
       }
       cancelEdit();
       await load();
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Erro ao guardar.');
+      toast.error(milestoneErrMessage(e, t, 'adminCheckinMilestones.toast_save_error'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Eliminar este marco? Recompensas já atribuídas mantêm-se registadas.')) return;
+    if (!window.confirm(t('adminCheckinMilestones.confirm_delete'))) return;
     try {
       await api.delete(`/admin/checkin-milestones/${id}`);
-      toast.success('Removido.');
+      toast.success(t('adminCheckinMilestones.toast_deleted'));
       if (editingId === id) cancelEdit();
       await load();
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Erro ao eliminar.');
+      toast.error(milestoneErrMessage(e, t, 'adminCheckinMilestones.toast_save_error'));
     }
   };
 

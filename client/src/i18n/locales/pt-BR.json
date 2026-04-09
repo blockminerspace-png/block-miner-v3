@@ -914,5 +914,14 @@
       "toast_image_error": "Erro ao enviar imagem.",
       "toast_error": "Erro ao salvar."
     }
+  },
+  "adminCheckinMilestones": {
+    "toast_created": "Marco criado.",
+    "toast_updated": "Marco atualizado.",
+    "toast_deleted": "Removido.",
+    "toast_save_error": "Não foi possível guardar.",
+    "toast_load_error": "Não foi possível carregar os marcos.",
+    "toast_migration_pending": "Faltam migrações na base de dados do servidor. Executa Prisma migrate deploy e tenta de novo.",
+    "confirm_delete": "Eliminar este marco? Recompensas já atribuídas mantêm-se registadas."
   }
 }

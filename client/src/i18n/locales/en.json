@@ -909,5 +909,14 @@
       "toast_image_error": "Error uploading image.",
       "toast_error": "Error saving."
     }
+  },
+  "adminCheckinMilestones": {
+    "toast_created": "Milestone created.",
+    "toast_updated": "Milestone updated.",
+    "toast_deleted": "Removed.",
+    "toast_save_error": "Could not save.",
+    "toast_load_error": "Could not load milestones.",
+    "toast_migration_pending": "Database migrations are pending on the server. Run Prisma migrate deploy, then try again.",
+    "confirm_delete": "Delete this milestone? Already granted rewards stay recorded."
   }
 }

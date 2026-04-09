@@ -4,6 +4,15 @@ import { REWARD_HASHRATE, REWARD_NONE, REWARD_POL } from "../services/checkinMil
 
 const TYPES = new Set([REWARD_POL, REWARD_HASHRATE, REWARD_NONE]);
 
+function isMissingMilestoneTablesError(e) {
+  if (!e || typeof e !== "object") return false;
+  if (e.code === "P2021" || e.code === "P2010") return true;
+  const msg = String(e.message || "");
+  return /checkin_streak_milestones|user_checkin_streak_rewards|does not exist|relation.*does not exist/i.test(
+    msg
+  );
+}
+
 function parseBody(body) {
   const dayThreshold = Number(body?.dayThreshold);
   if (!Number.isInteger(dayThreshold) || dayThreshold < 1) {
@@ -49,6 +58,14 @@ export async function listCheckinMilestones(_req, res) {
     });
   } catch (e) {
     console.error("admin listCheckinMilestones", e);
+    if (isMissingMilestoneTablesError(e)) {
+      return res.status(503).json({
+        ok: false,
+        code: "MILESTONE_DB_PENDING",
+        message:
+          "Check-in milestone tables are missing. Apply pending Prisma migrations on the server, then retry."
+      });
+    }
     res.status(500).json({ ok: false, message: "Failed to list milestones." });
   }
 }
@@ -64,6 +81,14 @@ export async function createCheckinMilestone(req, res) {
     }
     if (e.message && !e.code) {
       return res.status(400).json({ ok: false, message: e.message });
+    }
+    if (isMissingMilestoneTablesError(e)) {
+      return res.status(503).json({
+        ok: false,
+        code: "MILESTONE_DB_PENDING",
+        message:
+          "Check-in milestone tables are missing. Apply pending Prisma migrations on the server, then retry."
+      });
     }
     console.error("admin createCheckinMilestone", e);
     res.status(500).json({ ok: false, message: "Failed to create milestone." });
@@ -92,6 +117,14 @@ export async function updateCheckinMilestone(req, res) {
     if (e.message && !e.code) {
       return res.status(400).json({ ok: false, message: e.message });
     }
+    if (isMissingMilestoneTablesError(e)) {
+      return res.status(503).json({
+        ok: false,
+        code: "MILESTONE_DB_PENDING",
+        message:
+          "Check-in milestone tables are missing. Apply pending Prisma migrations on the server, then retry."
+      });
+    }
     console.error("admin updateCheckinMilestone", e);
     res.status(500).json({ ok: false, message: "Failed to update milestone." });
   }
@@ -108,6 +141,14 @@ export async function deleteCheckinMilestone(req, res) {
   } catch (e) {
     if (e?.code === "P2025") {
       return res.status(404).json({ ok: false, message: "Milestone not found." });
+    }
+    if (isMissingMilestoneTablesError(e)) {
+      return res.status(503).json({
+        ok: false,
+        code: "MILESTONE_DB_PENDING",
+        message:
+          "Check-in milestone tables are missing. Apply pending Prisma migrations on the server, then retry."
+      });
     }
     console.error("admin deleteCheckinMilestone", e);
     res.status(500).json({ ok: false, message: "Failed to delete milestone." });

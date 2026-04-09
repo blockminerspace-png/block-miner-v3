@@ -23,12 +23,12 @@ function getAppId() {
   return normalizeEnvString(process.env.CCPAYMENT_APP_ID || process.env.CCPAYMENT_API_KEY || "");
 }
 
+/**
+ * Outbound wallet API secret only (never CCPAYMENT_WEBHOOK_SECRET — different key breaks signing).
+ */
 function getAppSecret() {
   return normalizeEnvString(
-    process.env.CCPAYMENT_APP_SECRET ||
-      process.env.CCPAYMENT_SECRET_KEY ||
-      process.env.CCPAYMENT_WEBHOOK_SECRET ||
-      ""
+    process.env.CCPAYMENT_APP_SECRET || process.env.CCPAYMENT_SECRET_KEY || ""
   );
 }
 
@@ -62,6 +62,126 @@ function v2UserDepositAddressPath() {
     process.env.CCPAYMENT_V2_USER_DEPOSIT_PATH || "/getOrCreateUserDepositAddress"
   ).trim();
   return p.startsWith("/") ? p : `/${p}`;
+}
+
+/** Exported for tests — CCPayment v1-only accounts often return this in `msg`. */
+export function shouldRetryDepositAddressWithV2Api(message) {
+  return /version\s*2|only\s*call\s*api\s*of\s*version\s*2|v2\s*api|api\s*of\s*version\s*2/i.test(
+    String(message || "")
+  );
+}
+
+function chainCandidates() {
+  const preferred = String(process.env.CCPAYMENT_CHAIN || "POLYGON").trim();
+  const rest = ["POLYGON", "MATIC", "polygon", "POL"];
+  return [...new Set([preferred, ...rest].filter(Boolean))];
+}
+
+function isLikelyChainParameterError(message) {
+  return /chain|not\s*support|unsupported|invalid\s*chain|unknown\s*chain/i.test(String(message || ""));
+}
+
+/**
+ * @param {unknown} data
+ * @returns {{ address: string, memo: string }}
+ */
+function mapAddressPayload(data) {
+  if (!data || typeof data !== "object") {
+    throw new Error("CCPayment empty data");
+  }
+  const d = /** @type {{ address?: unknown; memo?: unknown }} */ (data);
+  const address = String(d.address ?? "").trim();
+  if (!address) {
+    throw new Error("CCPayment response missing address");
+  }
+  const memo = d.memo != null ? String(d.memo).trim() : "";
+  return { address, memo };
+}
+
+/**
+ * @param {string} referenceId
+ * @param {string} chain
+ * @returns {Promise<{ address: string, memo: string }>}
+ */
+async function fetchDepositAddressV2(referenceId, chain) {
+  const appId = getAppId();
+  const appSecret = getAppSecret();
+  if (!appId || !appSecret) {
+    throw new Error("CCPayment credentials not configured");
+  }
+  const v2Payload = { userId: referenceId, chain };
+  const body = JSON.stringify(v2Payload);
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const sign = computeCcPaymentOutboundSignV2(appId, appSecret, timestamp, body);
+  const url = `${outboundV2BaseUrl()}${v2UserDepositAddressPath()}`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      Appid: appId,
+      Timestamp: timestamp,
+      Sign: sign
+    },
+    body,
+    signal: AbortSignal.timeout(timeoutMs())
+  });
+
+  const text = await res.text();
+  let parsed = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    parsed = null;
+  }
+
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error(`CCPayment invalid JSON (HTTP ${res.status})`);
+  }
+
+  if (Number(parsed.code) !== 10000) {
+    const msg = String(parsed.msg || "CCPayment request failed");
+    throw new Error(msg);
+  }
+
+  return mapAddressPayload(parsed.data);
+}
+
+/**
+ * @param {string} referenceId
+ * @param {string} chain
+ * @param {string} notifyUrl
+ * @returns {Promise<{ address: string, memo: string }>}
+ */
+async function fetchDepositAddressV1(referenceId, chain, notifyUrl) {
+  const payload = {
+    user_id: referenceId,
+    chain
+  };
+  if (notifyUrl) {
+    payload.notify_url = notifyUrl;
+  }
+  const data = await ccpaymentPostSignedJson(addressPath(), payload);
+  return mapAddressPayload(data);
+}
+
+/**
+ * @param {(chain: string) => Promise<{ address: string, memo: string }>} fn
+ */
+async function tryChainCandidates(fn) {
+  const chains = chainCandidates();
+  let lastErr = /** @type {Error | null} */ (null);
+  for (const chain of chains) {
+    try {
+      return await fn(chain);
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e));
+      if (!isLikelyChainParameterError(lastErr.message)) {
+        throw lastErr;
+      }
+    }
+  }
+  throw lastErr || new Error("CCPayment: no chain candidates");
 }
 
 /**
@@ -136,87 +256,21 @@ export function ccpaymentMerchantUserId(userId) {
  * @returns {Promise<{ address: string, memo?: string }>}
  */
 export async function getPermanentDepositAddress({ userId }) {
-  const chain = String(process.env.CCPAYMENT_CHAIN || "POLYGON").trim();
   const notifyUrl = String(process.env.CCPAYMENT_NOTIFY_URL || process.env.CCPAYMENT_WEBHOOK_URL || "").trim();
   const referenceId = ccpaymentMerchantUserId(userId);
+  const version = outboundWalletApiVersion();
 
-  const payload = {
-    user_id: referenceId,
-    chain
-  };
-  if (notifyUrl) {
-    payload.notify_url = notifyUrl;
+  if (version === "2") {
+    return tryChainCandidates((chain) => fetchDepositAddressV2(referenceId, chain));
   }
 
-  if (outboundWalletApiVersion() === "2") {
-    const appId = getAppId();
-    const appSecret = getAppSecret();
-    if (!appId || !appSecret) {
-      throw new Error("CCPayment credentials not configured");
+  try {
+    return await tryChainCandidates((chain) => fetchDepositAddressV1(referenceId, chain, notifyUrl));
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (shouldRetryDepositAddressWithV2Api(msg)) {
+      return tryChainCandidates((chain) => fetchDepositAddressV2(referenceId, chain));
     }
-    /**
-     * User Deposit API — Create or Get User Deposit Address (v2 host).
-     * @see https://ccpayment.com/api/doc/?en#deposit-apis
-     */
-    const v2Payload = { userId: referenceId, chain };
-    const body = JSON.stringify(v2Payload);
-    const timestamp = String(Math.floor(Date.now() / 1000));
-    const sign = computeCcPaymentOutboundSignV2(appId, appSecret, timestamp, body);
-    const url = `${outboundV2BaseUrl()}${v2UserDepositAddressPath()}`;
-
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        Appid: appId,
-        Timestamp: timestamp,
-        Sign: sign
-      },
-      body,
-      signal: AbortSignal.timeout(timeoutMs())
-    });
-
-    const text = await res.text();
-    let parsed = null;
-    try {
-      parsed = text ? JSON.parse(text) : null;
-    } catch {
-      parsed = null;
-    }
-
-    if (!parsed || typeof parsed !== "object") {
-      throw new Error(`CCPayment invalid JSON (HTTP ${res.status})`);
-    }
-
-    if (Number(parsed.code) !== 10000) {
-      const msg = String(parsed.msg || "CCPayment request failed");
-      throw new Error(msg);
-    }
-
-    const data = parsed.data;
-    if (!data || typeof data !== "object") {
-      throw new Error("CCPayment empty data");
-    }
-    const address = String(data.address || "").trim();
-    if (!address) {
-      throw new Error("CCPayment response missing address");
-    }
-    return {
-      address,
-      memo: data.memo != null ? String(data.memo).trim() : ""
-    };
+    throw e;
   }
-
-  const data = await ccpaymentPostSignedJson(addressPath(), payload);
-  if (!data || typeof data !== "object") {
-    throw new Error("CCPayment empty data");
-  }
-  const address = String(data.address || "").trim();
-  if (!address) {
-    throw new Error("CCPayment response missing address");
-  }
-  return {
-    address,
-    memo: data.memo != null ? String(data.memo).trim() : ""
-  };
 }
