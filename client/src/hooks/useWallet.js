@@ -91,6 +91,7 @@ export function useWallet() {
 
     const walletConnectConfigured = isWalletConnectConfigured();
     const linkingRef = useRef(null);
+    const openModalRef = useRef(false);
 
     const kitChainNum = normalizeChainNum(kitChainId);
 
@@ -194,25 +195,47 @@ export function useWallet() {
     );
 
     const openConnectModal = useCallback(async () => {
+        if (openModalRef.current) {
+            return;
+        }
+
+        openModalRef.current = true;
         setIsConnecting(true);
         try {
+            if (kitConnected) {
+                await disconnectAsync().catch(() => {});
+                linkingRef.current = null;
+                setAccount(null);
+                setIsConnected(false);
+            }
+
             // Abre direto a grelha "All Wallets" (mesmo UX que Web3Modal / AppKit padrão no mobile).
             await open({ view: 'AllWallets' });
         } catch (e) {
+            const message = String(e?.message || '');
             console.error(e);
-            toast.error(e?.message || 'Could not open wallet modal.');
+            if (/connector already connected/i.test(message)) {
+                toast.info('Wallet already connected. Disconnect first if you want to choose another wallet.');
+                return;
+            }
+            toast.error(message || 'Could not open wallet modal.');
         } finally {
+            openModalRef.current = false;
             setIsConnecting(false);
         }
-    }, [open]);
+    }, [open, kitConnected, disconnectAsync]);
 
     const connect = useCallback(async () => {
         if (walletConnectConfigured) {
+            if (kitConnected && isConnected) {
+                toast.info('Wallet already connected. Disconnect first to choose another wallet.');
+                return;
+            }
             await openConnectModal();
             return;
         }
         await connectInjectedAndVerify();
-    }, [walletConnectConfigured, openConnectModal, connectInjectedAndVerify]);
+    }, [walletConnectConfigured, kitConnected, isConnected, openConnectModal, connectInjectedAndVerify]);
 
     const connectWalletConnect = useCallback(async () => {
         if (!walletConnectConfigured) {
