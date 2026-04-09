@@ -129,7 +129,18 @@ fi
     } else {
         "$composeEnv up -d --build --no-deps$orph $ComposeService"
     }
-    $remoteBuildCmd = "set -e`ncd $RemotePath`n$buildStep`n$composeEnv exec -T nginx nginx -s reload || true`ncurl -sS -o /dev/null -w 'health_http:%{http_code}\n' http://127.0.0.1:3000/health || true`n"
+    # Sobe DB + reverse proxy: antes só o app era reiniciado (--no-deps) e o nginx ficava parado.
+    $remoteBuildCmd = @"
+set -e
+cd $RemotePath
+$composeEnv up -d db
+$buildStep
+$composeEnv up -d nginx
+$composeEnv ps
+$composeEnv exec -T nginx nginx -s reload 2>/dev/null || true
+sleep 2
+curl -sS -o /dev/null -w 'health_http:%{http_code}\n' http://127.0.0.1:3000/health || true
+"@
     Write-Host "==> docker compose build no VPS ($SshHost)..."
     & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" $remoteBuildCmd
 
