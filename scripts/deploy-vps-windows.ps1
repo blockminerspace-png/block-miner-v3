@@ -12,7 +12,7 @@
   .\scripts\deploy-vps-windows.ps1
 #>
 param(
-    [string] $SshHost    = '37.27.38.21',
+    [string] $SshHost    = '89.167.119.164',
     [string] $SshUser    = 'root',
     [string] $RemotePath = '/root/block-miner',
     [string] $PlinkExe   = 'C:\Program Files\PuTTY\plink.exe',
