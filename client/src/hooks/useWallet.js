@@ -129,9 +129,10 @@ export function useWallet() {
 
     const verifyWithServer = useCallback(
         async (userAccount, eip1193Provider) => {
+            const provider = eip1193Provider || walletProvider;
             let signature;
-            if (eip1193Provider) {
-                signature = await signOwnershipMessageWithProvider(eip1193Provider, userAccount);
+            if (provider) {
+                signature = await signOwnershipMessageWithProvider(provider, userAccount);
             } else {
                 const message = `Verify wallet ownership for Block Miner: ${userAccount}`;
                 signature = await signMessageAsync({ message, account: userAccount });
@@ -295,7 +296,7 @@ export function useWallet() {
                     return;
                 }
 
-                await verifyWithServer(addr, null);
+                await verifyWithServer(addr, getActiveEip1193());
                 if (cancelled) return;
                 linkingRef.current = `done:${addr}`;
             } catch (e) {
