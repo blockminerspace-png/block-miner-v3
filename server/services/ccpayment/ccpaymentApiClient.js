@@ -10,8 +10,10 @@ import { computeCcPaymentSign, computeCcPaymentOutboundSignV2 } from "./ccpaymen
 import { normalizeEnvString } from "./ccpaymentEnv.js";
 
 /**
- * Outbound wallet API: "1" = legacy SHA-256 + POST; "2" = same POST path/body + HMAC sign + Api-Version: 2.
- * v2 is required for merchants that return error 225213. (GET on /payment/address/get returns HTTP 404.)
+ * Outbound wallet API:
+ * - "1" (default): POST admin /v1/payment/address/get, body user_id + chain, Sign = SHA-256(appId+appSecret+timestamp+body).
+ * - "2": same POST URL by default, body referenceId + chain (CCPayment deposit APIs doc), Sign = HMAC-SHA256(appSecret, appId+timestamp+body).
+ *   Do not send Api-Version header (doc examples omit it; v1 Sign on v2-only accounts yields 225213).
  */
 function outboundWalletApiVersion() {
   return normalizeEnvString(process.env.CCPAYMENT_OUTBOUND_API_VERSION || "1").toLowerCase();
@@ -136,7 +138,9 @@ export async function getPermanentDepositAddress({ userId }) {
     if (!appId || !appSecret) {
       throw new Error("CCPayment credentials not configured");
     }
-    const body = JSON.stringify(payload);
+    /** @see https://ccpayment.com/api/doc/?en#deposit-apis — Get Permanent Deposit Address */
+    const v2Payload = { referenceId, chain };
+    const body = JSON.stringify(v2Payload);
     const timestamp = String(Math.floor(Date.now() / 1000));
     const sign = computeCcPaymentOutboundSignV2(appId, appSecret, timestamp, body);
     const url = `${baseUrl()}${addressPath()}`;
@@ -147,8 +151,7 @@ export async function getPermanentDepositAddress({ userId }) {
         "Content-Type": "application/json; charset=utf-8",
         Appid: appId,
         Timestamp: timestamp,
-        Sign: sign,
-        "Api-Version": "2"
+        Sign: sign
       },
       body,
       signal: AbortSignal.timeout(timeoutMs())
