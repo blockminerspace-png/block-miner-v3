@@ -7,9 +7,9 @@ This project accepts **API Deposit** callbacks from [CCPayment](https://docs.ccp
 - [API Deposit Webhook Notification](https://docs.ccpayment.com/ccpayment-v1.0-api/webhook-notification/api-deposit-webhook-notification)
 - [Signature (SHA-256)](https://docs.ccpayment.com/ccpayment-v1.0-api/to-get-started/signature)
 
-## Important: signature algorithm (not HMAC)
+## Signature algorithm (v1 official + v2-style HMAC)
 
-Official CCPayment signing is a **plain SHA-256** over UTF-8 concatenation (not HMAC-SHA256 over the body alone):
+Official CCPayment webhook signing is a **plain SHA-256** over UTF-8 concatenation:
 
 ```text
 Sign = lowercase_hex( SHA256( UTF8( appId + appSecret + timestamp + rawBody ) ) )
@@ -23,7 +23,7 @@ Headers (required):
 | `Timestamp` | Unix time in **seconds** (10 digits) |
 | `Sign`    | Hex digest above                     |
 
-The webhook is valid for **2 minutes** from `Timestamp`.
+CCPayment documents a **2 minute** validity window for `Timestamp`. This server accepts a wider window by default (**600 seconds**) to tolerate clock skew and slow proxies; override with `CCPAYMENT_WEBHOOK_MAX_SKEW_SECONDS` (60–3600). Deposits remain idempotent on `record_id`.
 
 The HTTP response must be **200** with body **`success`** (plain text). Any other body causes CCPayment to retry (up to ~6 times).
 
@@ -66,6 +66,8 @@ Configure your checkout / API deposit flow so `merchant_order_id` uses one of th
 | `CCPAYMENT_VERIFY_TOKEN` | No | If set, serves `GET /ccpayment{token}.txt` for domain verification |
 | `CCPAYMENT_VERIFY_FILE_BODY` | No | Plain-text body for verification file |
 | `TRUST_PROXY` | No | Set `1` if behind a reverse proxy so IP allowlist uses `X-Forwarded-For` |
+| `CCPAYMENT_WEBHOOK_SIGN_MODE` | No | `auto` (default): accept **v1 SHA-256** or **v2-style HMAC** `HMAC-SHA256(appSecret, appId+timestamp+rawBody)` (same as outbound API v2). Use `sha256` or `hmac` to allow only one. |
+| `CCPAYMENT_WEBHOOK_MAX_SKEW_SECONDS` | No | Max \|now − Timestamp\| in seconds (60–3600). Default **600**. |
 
 Default webhook source IPs (always included; `CCPAYMENT_ALLOWED_IPS` adds more):
 
