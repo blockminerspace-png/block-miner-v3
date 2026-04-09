@@ -762,6 +762,8 @@
     "toast_started": "Session started.",
     "error_network": "Network error. Please try again.",
     "error_code": "Error ({{code}})",
+    "schema_unavailable_title": "Auto Mining is updating",
+    "schema_unavailable_body": "The server is still applying database changes for this feature, or they are not ready yet. Wait a minute and refresh the page.",
     "legacy_note": "Legacy GPU claims (if any) still appear in your total hashrate until they expire."
   },
   "pages": {

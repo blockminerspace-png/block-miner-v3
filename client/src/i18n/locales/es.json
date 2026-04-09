@@ -760,6 +760,8 @@
     "toast_started": "Sesión iniciada.",
     "error_network": "Error de red. Inténtalo de nuevo.",
     "error_code": "Error ({{code}})",
+    "schema_unavailable_title": "Auto Mining se está actualizando",
+    "schema_unavailable_body": "El servidor aún está aplicando cambios en la base de datos para esta función. Espera un minuto y actualiza la página.",
     "legacy_note": "Los reclamos antiguos de GPU (si los hay) siguen contando en tu hashrate hasta que caduquen."
   },
   "pages": {

@@ -42,13 +42,15 @@ async function syncEngineForUser(userId) {
 function sendError(res, err, defaultStatus = 400) {
   const code = err.code || "SERVER_ERROR";
   const status =
-    code === "NOT_FOUND"
-      ? 404
-      : code === "CONCURRENT_CLAIM"
-        ? 409
-        : code === "INVALID_MODE"
-          ? 400
-          : defaultStatus;
+    code === "SCHEMA_UNAVAILABLE"
+      ? 503
+      : code === "NOT_FOUND"
+        ? 404
+        : code === "CONCURRENT_CLAIM"
+          ? 409
+          : code === "INVALID_MODE"
+            ? 400
+            : defaultStatus;
   const message = err.message || "Request failed";
   res.status(status).json({ success: false, error: message, code });
 }

@@ -10,6 +10,10 @@ import TurboPartnerBanner from "../components/autoMining/TurboPartnerBanner.jsx"
 
 function errToast(t, err) {
   const code = err.response?.data?.code;
+  if (code === "SCHEMA_UNAVAILABLE") {
+    toast.error(t("autoMiningGpuPage.schema_unavailable_body"));
+    return;
+  }
   const msg = err.response?.data?.error || err.message;
   if (code) {
     toast.error(t("autoMiningGpuPage.error_code", { code }));
@@ -184,6 +188,7 @@ export default function AutoMining() {
 
   const handleStart = async (e) => {
     if (!validateTrustedEvent(e)) return;
+    if (v2?.schemaUnavailable) return;
     setActionBusy(true);
     try {
       const res = await api.post("/auto-mining-gpu/v2/session/start", { mode: selectedMode });
@@ -251,6 +256,7 @@ export default function AutoMining() {
   const bannerStats = v2?.bannerStatsToday ?? { impressions: 0, clicks: 0 };
   const nearest = activeGrants[0];
   const dailyPct = dailyLimit > 0 ? Math.min(100, (dailyUsed / dailyLimit) * 100) : 0;
+  const schemaUnavailable = !!v2?.schemaUnavailable;
 
   if (isLoading) {
     return (
@@ -279,6 +285,17 @@ export default function AutoMining() {
 
       <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">{t("autoMiningGpuPage.legacy_note")}</p>
 
+      {schemaUnavailable && (
+        <div className="rounded-2xl border border-amber-500/35 bg-amber-950/25 px-5 py-4 text-amber-100/90">
+          <p className="text-sm font-black uppercase tracking-wide text-amber-400">
+            {t("autoMiningGpuPage.schema_unavailable_title")}
+          </p>
+          <p className="text-xs mt-2 text-amber-200/85 leading-relaxed">
+            {t("autoMiningGpuPage.schema_unavailable_body")}
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           <div className="bg-surface border border-gray-800/50 rounded-[3rem] p-8 md:p-10 shadow-2xl relative overflow-hidden">
@@ -289,11 +306,16 @@ export default function AutoMining() {
                     <h2 className="text-xl font-black text-white uppercase italic tracking-tighter">{t("autoMiningGpuPage.mode_title")}</h2>
                     <p className="text-sm text-gray-500 font-medium mt-1">{t("autoMiningGpuPage.mode_hint")}</p>
                   </div>
-                  <AutoMiningModeSelector value={selectedMode} onChange={setSelectedMode} disabled={actionBusy} t={t} />
+                  <AutoMiningModeSelector
+                    value={selectedMode}
+                    onChange={setSelectedMode}
+                    disabled={actionBusy || schemaUnavailable}
+                    t={t}
+                  />
                   <button
                     type="button"
                     onClick={handleStart}
-                    disabled={actionBusy}
+                    disabled={actionBusy || schemaUnavailable}
                     className="w-full md:w-auto px-12 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest bg-primary text-white shadow-xl hover:scale-[1.02] active:scale-95 disabled:opacity-30 flex items-center justify-center gap-2"
                   >
                     {actionBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 fill-current" />}

@@ -4,6 +4,7 @@
  */
 
 import prisma from "../../src/db/prisma.js";
+import { isAutoMiningV2SchemaAvailable } from "./autoMiningV2DbAvailability.js";
 import {
   MINING_MODES,
   DAILY_LIMIT_HASH,
@@ -19,6 +20,34 @@ import {
   MIN_CLICK_DELAY_MS,
   CLICK_GRACE_MS
 } from "./autoMiningV2Domain.js";
+
+async function assertV2SchemaOrThrow() {
+  if (!(await isAutoMiningV2SchemaAvailable())) {
+    const err = new Error("Auto Mining v2 is not available yet (database migrations may be pending).");
+    err.code = "SCHEMA_UNAVAILABLE";
+    throw err;
+  }
+}
+
+/**
+ * Safe payload when v2 tables are missing — avoids 500 on GET /v2/status.
+ */
+function degradedStatusPayload() {
+  const now = new Date();
+  return {
+    session: null,
+    schemaUnavailable: true,
+    serverNow: now.toISOString(),
+    dailyUsedHash: 0,
+    dailyLimitHash: DAILY_LIMIT_HASH,
+    dailyRemainingHash: DAILY_LIMIT_HASH,
+    cycleSeconds: CYCLE_SECONDS,
+    activeGrants: [],
+    sessionEarningsHash: 0,
+    bannerStatsToday: { impressions: 0, clicks: 0 },
+    recentGrants: []
+  };
+}
 
 /**
  * @param {import('@prisma/client').PrismaClient | import('@prisma/client').Prisma.TransactionClient} tx
@@ -56,6 +85,7 @@ export async function deactivateUserSessions(userId, tx = prisma) {
  * @param {string} mode
  */
 export async function startSession(userId, mode) {
+  await assertV2SchemaOrThrow();
   const m = assertValidMiningMode(mode);
   const now = new Date();
   const nextClaimAt = new Date(now.getTime() + CYCLE_SECONDS * 1000);
@@ -77,6 +107,9 @@ export async function startSession(userId, mode) {
  * @param {number} userId
  */
 export async function stopSession(userId) {
+  if (!(await isAutoMiningV2SchemaAvailable())) {
+    return { count: 0 };
+  }
   return prisma.autoMiningV2Session.updateMany({
     where: { userId, isActive: true },
     data: { isActive: false }
@@ -127,6 +160,9 @@ export async function pickPartnerBanner(tx = prisma) {
  * @param {number} userId
  */
 export async function getStatusPayload(userId) {
+  if (!(await isAutoMiningV2SchemaAvailable())) {
+    return degradedStatusPayload();
+  }
   const now = new Date();
   const session = await getActiveSession(userId);
   const dailyUsed = await sumDailyGrantedHash(userId, now);
@@ -254,6 +290,7 @@ export async function claimNormal(userId) {
  * @param {number} userId
  */
 export async function getOrCreateBannerImpression(userId) {
+  await assertV2SchemaOrThrow();
   const now = new Date();
   return prisma.$transaction(async (tx) => {
     const session = await tx.autoMiningV2Session.findFirst({
@@ -318,6 +355,7 @@ export async function getOrCreateBannerImpression(userId) {
  * @param {string} impressionId
  */
 export async function registerBannerClick(userId, impressionId) {
+  await assertV2SchemaOrThrow();
   const now = new Date();
   return prisma.$transaction(async (tx) => {
     const imp = await tx.autoMiningV2BannerImpression.findFirst({
@@ -360,6 +398,7 @@ export async function registerBannerClick(userId, impressionId) {
  * @param {string} impressionId
  */
 export async function claimTurbo(userId, impressionId) {
+  await assertV2SchemaOrThrow();
   const now = new Date();
   return prisma.$transaction(async (tx) => {
     const session = await tx.autoMiningV2Session.findFirst({
@@ -446,6 +485,7 @@ export async function claimTurbo(userId, impressionId) {
  * @returns {Promise<number>}
  */
 export async function cleanupStaleAutoMiningV2Impressions() {
+  if (!(await isAutoMiningV2SchemaAvailable())) return 0;
   const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const r = await prisma.autoMiningV2BannerImpression.deleteMany({
     where: {
