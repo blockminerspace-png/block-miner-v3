@@ -46,9 +46,14 @@ export function aggregateUserHashrates(user, opts = {}) {
   };
 }
 
-/** Prisma select/include shape for ranking-style queries */
-export function rankingUserSelect(now) {
-  return {
+/**
+ * Prisma select/include shape for ranking-style queries.
+ * @param {Date} now
+ * @param {{ includeAutoMiningV2?: boolean }} [opts] — set false when v2 tables are not migrated
+ */
+export function rankingUserSelect(now, opts = {}) {
+  const includeV2 = opts.includeAutoMiningV2 !== false;
+  const base = {
     id: true,
     username: true,
     name: true,
@@ -72,12 +77,15 @@ export function rankingUserSelect(now) {
     gpuAccess: {
       where: { isClaimed: true, expiresAt: { gt: now } },
       select: { gpuHashRate: true }
-    },
-    autoMiningV2Grants: {
-      where: { expiresAt: { gt: now } },
-      select: { hashRate: true }
     }
   };
+  if (includeV2) {
+    base.autoMiningV2Grants = {
+      where: { expiresAt: { gt: now } },
+      select: { hashRate: true }
+    };
+  }
+  return base;
 }
 
 /**

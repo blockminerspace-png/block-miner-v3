@@ -2,16 +2,18 @@ import express from "express";
 import prisma from "../src/db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { buildRankingRows, rankingUserSelect } from "../services/networkHashrateService.js";
+import { isAutoMiningV2SchemaAvailable } from "../services/autoMiningV2/autoMiningV2DbAvailability.js";
 
 export const rankingRouter = express.Router();
 
 rankingRouter.get("/", requireAuth, async (req, res) => {
   try {
     const now = new Date();
+    const v2Ok = await isAutoMiningV2SchemaAvailable();
 
     const users = await prisma.user.findMany({
       where: { isBanned: false },
-      select: rankingUserSelect(now)
+      select: rankingUserSelect(now, { includeAutoMiningV2: v2Ok })
     });
 
     const sortedRanking = buildRankingRows(users)

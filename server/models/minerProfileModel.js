@@ -1,5 +1,6 @@
 import prisma from '../src/db/prisma.js';
 import crypto from 'crypto';
+import { isAutoMiningV2SchemaAvailable } from '../services/autoMiningV2/autoMiningV2DbAvailability.js';
 
 export async function getOrCreateMinerProfile(user) {
   let dbUser = await prisma.user.findUnique({
@@ -49,6 +50,7 @@ export async function getOrCreateMinerProfile(user) {
 
   // Count active temporary powers (Games, YouTube & Auto Mining)
   const now = new Date();
+  const v2Ok = await isAutoMiningV2SchemaAvailable();
   const [gamePowers, ytPowers, gpuPowers, autoMiningV2Grants] = await Promise.all([
     prisma.userPowerGame.findMany({
       where: { userId: user.id, expiresAt: { gt: now } }
@@ -59,10 +61,12 @@ export async function getOrCreateMinerProfile(user) {
     prisma.autoMiningGpu.findMany({
       where: { userId: user.id, isClaimed: true, expiresAt: { gt: now } }
     }),
-    prisma.autoMiningV2PowerGrant.findMany({
-      where: { userId: user.id, expiresAt: { gt: now } },
-      select: { hashRate: true }
-    })
+    v2Ok
+      ? prisma.autoMiningV2PowerGrant.findMany({
+          where: { userId: user.id, expiresAt: { gt: now } },
+          select: { hashRate: true }
+        })
+      : Promise.resolve([])
   ]);
 
   const machineHashRate = activeMiners.reduce((sum, m) => {
@@ -114,15 +118,18 @@ export async function persistMinerProfile(miner) {
 
 export async function syncUserBaseHashRate(userId) {
   const now = new Date();
+  const v2Ok = await isAutoMiningV2SchemaAvailable();
   const [activeMiners, gamePowers, ytPowers, gpuPowers, autoMiningV2Grants] = await Promise.all([
     prisma.userMiner.findMany({ where: { userId, isActive: true } }),
     prisma.userPowerGame.findMany({ where: { userId, expiresAt: { gt: now } } }),
     prisma.youtubeWatchPower.findMany({ where: { userId, expiresAt: { gt: now } } }),
     prisma.autoMiningGpu.findMany({ where: { userId, isClaimed: true, expiresAt: { gt: now } } }),
-    prisma.autoMiningV2PowerGrant.findMany({
-      where: { userId, expiresAt: { gt: now } },
-      select: { hashRate: true }
-    })
+    v2Ok
+      ? prisma.autoMiningV2PowerGrant.findMany({
+          where: { userId, expiresAt: { gt: now } },
+          select: { hashRate: true }
+        })
+      : Promise.resolve([])
   ]);
 
   const machineHashRate = activeMiners.reduce((sum, m) => {

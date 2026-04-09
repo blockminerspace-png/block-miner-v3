@@ -31,11 +31,30 @@ export default function Dashboard() {
                 if (res.data.ok && res.data.balance !== undefined) {
                     const dbBalance = Number(res.data.balance);
                     setBlkBalance(Number(res.data.blkBalance ?? 0));
-                    useGameStore.setState(state => {
-                        if (!state.stats?.miner) return {};
-                        const engineBalance = state.stats.miner.balance;
+                    useGameStore.setState((state) => {
+                        const prev = state.stats;
+                        const prevMiner = prev?.miner;
+                        if (!prevMiner) {
+                            return {
+                                stats: {
+                                    ...(prev || {}),
+                                    networkHashRate: prev?.networkHashRate ?? 0,
+                                    miner: {
+                                        balance: dbBalance,
+                                        estimatedHashRate: 0,
+                                        referralCount: 0
+                                    }
+                                }
+                            };
+                        }
+                        const engineBalance = prevMiner.balance;
                         if (Math.abs(dbBalance - engineBalance) < 0.000001) return {};
-                        return { stats: { ...state.stats, miner: { ...state.stats.miner, balance: dbBalance } } };
+                        return {
+                            stats: {
+                                ...prev,
+                                miner: { ...prevMiner, balance: dbBalance }
+                            }
+                        };
                     });
                 }
             } catch { /* silencioso */ }

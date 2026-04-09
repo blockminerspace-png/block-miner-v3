@@ -8,6 +8,7 @@ import {
   computeUserRank,
   rankingUserSelect
 } from "../services/networkHashrateService.js";
+import { isAutoMiningV2SchemaAvailable } from "../services/autoMiningV2/autoMiningV2DbAvailability.js";
 
 const HISTORY_LOG_DAYS = 30;
 const BLK_CYCLE_HISTORY = 20;
@@ -29,6 +30,7 @@ export async function getPowerStats(req, res) {
   try {
     const userId = req.user.id;
     const now = new Date();
+    const v2SchemaOk = await isAutoMiningV2SchemaAvailable();
 
     const [
       userRow,
@@ -117,7 +119,7 @@ export async function getPowerStats(req, res) {
       computeCheckinStreak(userId),
       prisma.user.findMany({
         where: { isBanned: false },
-        select: rankingUserSelect(now)
+        select: rankingUserSelect(now, { includeAutoMiningV2: v2SchemaOk })
       }),
       prisma.user.count({
         where: {
@@ -130,17 +132,19 @@ export async function getPowerStats(req, res) {
       })
     ]);
 
-    const gpuV2Powers = await prisma.autoMiningV2PowerGrant.findMany({
-      where: { userId, expiresAt: { gt: now } },
-      orderBy: { expiresAt: "asc" },
-      select: {
-        id: true,
-        hashRate: true,
-        earnedAt: true,
-        expiresAt: true,
-        mode: true
-      }
-    });
+    const gpuV2Powers = v2SchemaOk
+      ? await prisma.autoMiningV2PowerGrant.findMany({
+          where: { userId, expiresAt: { gt: now } },
+          orderBy: { expiresAt: "asc" },
+          select: {
+            id: true,
+            hashRate: true,
+            earnedAt: true,
+            expiresAt: true,
+            mode: true
+          }
+        })
+      : [];
 
     if (!userRow) {
       return res.status(404).json({ ok: false, message: "User not found." });
