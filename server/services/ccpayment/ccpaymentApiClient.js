@@ -6,8 +6,16 @@
  * @see https://docs.ccpayment.com/ccpayment-v1.0-api/wallet-api-ccpayment/get-permanent-deposit-address-for-users
  */
 
-import { computeCcPaymentSign } from "./ccpaymentSignature.js";
+import { computeCcPaymentSign, computeCcPaymentOutboundSignV2 } from "./ccpaymentSignature.js";
 import { normalizeEnvString } from "./ccpaymentEnv.js";
+
+/**
+ * Outbound wallet API: "1" = legacy SHA-256 + POST (v1 doc); "2" = HMAC + GET + Api-Version header.
+ * New merchant accounts often require version 2 (error 225213 on v1-only calls).
+ */
+function outboundWalletApiVersion() {
+  return normalizeEnvString(process.env.CCPAYMENT_OUTBOUND_API_VERSION || "1").toLowerCase();
+}
 
 function getAppId() {
   return normalizeEnvString(process.env.CCPAYMENT_APP_ID || process.env.CCPAYMENT_API_KEY || "");
@@ -112,9 +120,71 @@ export function ccpaymentMerchantUserId(userId) {
 export async function getPermanentDepositAddress({ userId }) {
   const chain = String(process.env.CCPAYMENT_CHAIN || "POLYGON").trim();
   const notifyUrl = String(process.env.CCPAYMENT_NOTIFY_URL || process.env.CCPAYMENT_WEBHOOK_URL || "").trim();
+  const referenceId = ccpaymentMerchantUserId(userId);
+
+  if (outboundWalletApiVersion() === "2") {
+    const appId = getAppId();
+    const appSecret = getAppSecret();
+    if (!appId || !appSecret) {
+      throw new Error("CCPayment credentials not configured");
+    }
+    const params = new URLSearchParams();
+    params.set("referenceId", referenceId);
+    params.set("chain", chain);
+    if (notifyUrl) {
+      params.set("notify_url", notifyUrl);
+    }
+    const path = addressPath();
+    const qs = params.toString();
+    const url = `${baseUrl()}${path}?${qs}`;
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const rawBody = "";
+    const sign = computeCcPaymentOutboundSignV2(appId, appSecret, timestamp, rawBody);
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Appid: appId,
+        Timestamp: timestamp,
+        Sign: sign,
+        "Api-Version": "2"
+      },
+      signal: AbortSignal.timeout(timeoutMs())
+    });
+
+    const text = await res.text();
+    let parsed = null;
+    try {
+      parsed = text ? JSON.parse(text) : null;
+    } catch {
+      parsed = null;
+    }
+
+    if (!parsed || typeof parsed !== "object") {
+      throw new Error(`CCPayment invalid JSON (HTTP ${res.status})`);
+    }
+
+    if (Number(parsed.code) !== 10000) {
+      const msg = String(parsed.msg || "CCPayment request failed");
+      throw new Error(msg);
+    }
+
+    const data = parsed.data;
+    if (!data || typeof data !== "object") {
+      throw new Error("CCPayment empty data");
+    }
+    const address = String(data.address || "").trim();
+    if (!address) {
+      throw new Error("CCPayment response missing address");
+    }
+    return {
+      address,
+      memo: data.memo != null ? String(data.memo).trim() : ""
+    };
+  }
 
   const payload = {
-    user_id: ccpaymentMerchantUserId(userId),
+    user_id: referenceId,
     chain
   };
   if (notifyUrl) {

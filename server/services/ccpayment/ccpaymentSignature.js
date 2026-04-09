@@ -18,6 +18,21 @@ export function computeCcPaymentSign(appId, appSecret, timestamp, rawBody) {
 }
 
 /**
+ * Outbound API v2 signing (HMAC-SHA256). Used with header `Api-Version: 2`.
+ * Message: UTF-8(appId + timestamp + rawBody). For GET requests, rawBody is "".
+ *
+ * @param {string} appId
+ * @param {string} appSecret
+ * @param {string} timestamp Unix seconds string
+ * @param {string} rawBody Exact JSON body string, or "" if none
+ * @returns {string} Lowercase hex HMAC-SHA256
+ */
+export function computeCcPaymentOutboundSignV2(appId, appSecret, timestamp, rawBody) {
+  const msg = `${appId}${timestamp}${rawBody ?? ""}`;
+  return crypto.createHmac("sha256", appSecret).update(msg, "utf8").digest("hex");
+}
+
+/**
  * Verifies the Sign header using constant-time comparison.
  *
  * @param {{ appId: string, appSecret: string, timestamp: string, rawBody: string, signHeader: string }} params
