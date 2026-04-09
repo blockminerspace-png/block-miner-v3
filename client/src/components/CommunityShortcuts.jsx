@@ -1,5 +1,9 @@
 import { useTranslation } from 'react-i18next';
 
+/** Default community links; overridden at build time by VITE_DISCORD_URL / VITE_TELEGRAM_URL when set. */
+const DEFAULT_DISCORD_URL = 'https://discord.gg/7Ge9vd8E';
+const DEFAULT_TELEGRAM_URL = 'https://t.me/+KPgyUFtKCZ00Y2Vh';
+
 /**
  * Normalizes a user-provided URL for safe use in href.
  * @param {string | undefined} raw
@@ -35,13 +39,15 @@ const linkBaseClass =
   'inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl transition-all duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
 /**
- * External community links (Discord, Telegram). Renders nothing if URLs are not set in env.
+ * External community links (Discord, Telegram). Env vars override defaults when non-empty.
  * @param {{ gapClass?: string }} props
  */
 export default function CommunityShortcuts({ gapClass = 'gap-1' }) {
   const { t } = useTranslation();
-  const discordUrl = normalizeExternalUrl(import.meta.env.VITE_DISCORD_URL);
-  const telegramUrl = normalizeExternalUrl(import.meta.env.VITE_TELEGRAM_URL);
+  const discordUrl =
+    normalizeExternalUrl(import.meta.env.VITE_DISCORD_URL) || normalizeExternalUrl(DEFAULT_DISCORD_URL);
+  const telegramUrl =
+    normalizeExternalUrl(import.meta.env.VITE_TELEGRAM_URL) || normalizeExternalUrl(DEFAULT_TELEGRAM_URL);
 
   if (!discordUrl && !telegramUrl) return null;
 
