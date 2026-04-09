@@ -196,7 +196,8 @@ export function useWallet() {
     const openConnectModal = useCallback(async () => {
         setIsConnecting(true);
         try {
-            await open({ view: 'Connect' });
+            // Abre direto a grelha "All Wallets" (mesmo UX que Web3Modal / AppKit padrão no mobile).
+            await open({ view: 'AllWallets' });
         } catch (e) {
             console.error(e);
             toast.error(e?.message || 'Could not open wallet modal.');
