@@ -122,12 +122,14 @@ fi
 
     # Por último faz o build e restart (serviço típico: app → 127.0.0.1:3000)
     $orph = if ($RemoveOrphans) { ' --remove-orphans' } else { '' }
+    # --env-file .env.production: injects VITE_* into compose build args so WalletConnect project id ships in the SPA bundle.
+    $composeEnv = "docker compose --env-file .env.production"
     $buildStep = if ($NoDockerCache) {
-        "docker compose build --no-cache $ComposeService && docker compose up -d --no-deps$orph $ComposeService"
+        "$composeEnv build --no-cache $ComposeService && $composeEnv up -d --no-deps$orph $ComposeService"
     } else {
-        "docker compose up -d --build --no-deps$orph $ComposeService"
+        "$composeEnv up -d --build --no-deps$orph $ComposeService"
     }
-    $remoteBuildCmd = "set -e`ncd $RemotePath`n$buildStep`ndocker compose exec -T nginx nginx -s reload || true`ncurl -sS -o /dev/null -w 'health_http:%{http_code}\n' http://127.0.0.1:3000/health || true`n"
+    $remoteBuildCmd = "set -e`ncd $RemotePath`n$buildStep`n$composeEnv exec -T nginx nginx -s reload || true`ncurl -sS -o /dev/null -w 'health_http:%{http_code}\n' http://127.0.0.1:3000/health || true`n"
     Write-Host "==> docker compose build no VPS ($SshHost)..."
     & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" $remoteBuildCmd
 

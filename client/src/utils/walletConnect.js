@@ -1,11 +1,23 @@
 /**
- * Lazy WalletConnect v2 (EIP-1193) for Polygon — requires VITE_WALLETCONNECT_PROJECT_ID.
+ * WalletConnect v2 (EIP-1193) for Polygon — requires VITE_WALLETCONNECT_PROJECT_ID at build time.
+ *
+ * Mobile deep links + relay rely on stable https metadata.url (add same URL in WalletConnect Cloud).
  */
 
 let _instance = null;
 
 export function isWalletConnectConfigured() {
   return Boolean(String(import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || "").trim());
+}
+
+/** Canonical app URL for WalletConnect metadata (no trailing slash). */
+export function getWalletConnectMetadataUrl() {
+  const fromEnv = String(import.meta.env.VITE_PUBLIC_WALLET_APP_URL || "").trim().replace(/\/+$/, "");
+  if (fromEnv) return fromEnv;
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return String(window.location.origin).replace(/\/+$/, "");
+  }
+  return "https://blockminer.space";
 }
 
 /**
@@ -16,7 +28,7 @@ export async function getWalletConnectEthereumProvider() {
   if (!projectId) return null;
 
   const { default: EthereumProvider } = await import("@walletconnect/ethereum-provider");
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const metaUrl = getWalletConnectMetadataUrl();
   const rpcUrl =
     String(import.meta.env.VITE_POLYGON_RPC_URL || "").trim() || "https://polygon-rpc.com";
 
@@ -27,11 +39,21 @@ export async function getWalletConnectEthereumProvider() {
       optionalChains: [137],
       showQrModal: true,
       rpcMap: { 137: rpcUrl },
+      methods: ["eth_sendTransaction", "personal_sign"],
+      optionalMethods: [
+        "eth_accounts",
+        "eth_requestAccounts",
+        "eth_sendTransaction",
+        "personal_sign",
+        "wallet_switchEthereumChain",
+        "wallet_addEthereumChain"
+      ],
+      events: ["chainChanged", "accountsChanged"],
       metadata: {
         name: "BlockMiner",
-        description: "POL deposits on Polygon",
-        url: origin || "https://blockminer.space",
-        icons: origin ? [`${origin}/favicon.ico`] : []
+        description: "POL on Polygon — BlockMiner",
+        url: metaUrl,
+        icons: [`${metaUrl}/favicon.ico`]
       }
     });
     _instance.on("disconnect", () => {

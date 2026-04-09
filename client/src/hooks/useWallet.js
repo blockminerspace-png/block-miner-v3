@@ -38,6 +38,11 @@ async function switchNetworkFor(provider) {
     }
 }
 
+function isLikelyTouchMobile() {
+    if (typeof navigator === "undefined") return false;
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
 async function signOwnershipMessage(provider, userAccount) {
     const message = `Verify wallet ownership for Block Miner: ${userAccount}`;
     try {
@@ -101,52 +106,6 @@ export function useWallet() {
         await switchNetworkFor(getInjectedProvider());
     }, []);
 
-    const connect = useCallback(async () => {
-        await disconnectWalletConnectSession();
-        const provider = getInjectedProvider();
-        if (!provider) {
-            toast.error('Web3 Wallet not detected. Install a browser wallet or use WalletConnect.');
-            return;
-        }
-
-        setIsConnecting(true);
-        try {
-            const accounts = await provider.request({ method: 'eth_requestAccounts' });
-            const userAccount = accounts[0];
-
-            const currentChainId = await provider.request({ method: 'eth_chainId' });
-            setChainId(currentChainId);
-
-            if (currentChainId !== POLYGON_CHAIN_ID) {
-                await switchNetworkFor(provider);
-            }
-
-            const signature = await signOwnershipMessage(provider, userAccount);
-
-            const res = await api.post('/wallet/update-address', {
-                walletAddress: userAccount,
-                signature
-            });
-
-            if (res.data.ok) {
-                setAccount(userAccount);
-                setIsConnected(true);
-                toast.success('Wallet verified and connected!');
-            } else {
-                throw new Error(res.data.message || 'Verification failed');
-            }
-        } catch (error) {
-            console.error('Connection error:', error);
-            if (error.code === 4001) {
-                toast.error('Connection cancelled by user.');
-            } else {
-                toast.error(error.message || 'Failed to connect/verify wallet.');
-            }
-        } finally {
-            setIsConnecting(false);
-        }
-    }, [disconnectWalletConnectSession]);
-
     const connectWalletConnect = useCallback(async () => {
         if (!isWalletConnectConfigured()) {
             toast.error('WalletConnect is not configured (missing VITE_WALLETCONNECT_PROJECT_ID).');
@@ -163,7 +122,8 @@ export function useWallet() {
             }
             wcProviderRef.current = wc;
 
-            const accounts = await wc.request({ method: 'eth_requestAccounts' });
+            // enable() drives the official modal + mobile wallet deep links better than raw eth_requestAccounts
+            const accounts = await wc.enable();
             const userAccount = accounts[0];
             if (!userAccount) throw new Error('No account from WalletConnect.');
 
@@ -201,6 +161,61 @@ export function useWallet() {
             setIsConnecting(false);
         }
     }, [disconnectWalletConnectSession]);
+
+    const connect = useCallback(async () => {
+        await disconnectWalletConnectSession();
+        const injected = getInjectedProvider();
+        if (!injected) {
+            if (isWalletConnectConfigured()) {
+                await connectWalletConnect();
+                return;
+            }
+            toast.error(
+                'No browser wallet found. On your phone use WalletConnect, or open this site inside MetaMask / Trust in-app browser.'
+            );
+            return;
+        }
+
+        setIsConnecting(true);
+        try {
+            const accounts = await injected.request({ method: 'eth_requestAccounts' });
+            const userAccount = accounts[0];
+
+            const currentChainId = await injected.request({ method: 'eth_chainId' });
+            setChainId(currentChainId);
+
+            if (currentChainId !== POLYGON_CHAIN_ID) {
+                await switchNetworkFor(injected);
+            }
+
+            const signature = await signOwnershipMessage(injected, userAccount);
+
+            const res = await api.post('/wallet/update-address', {
+                walletAddress: userAccount,
+                signature
+            });
+
+            if (res.data.ok) {
+                setAccount(userAccount);
+                setIsConnected(true);
+                toast.success('Wallet verified and connected!');
+            } else {
+                throw new Error(res.data.message || 'Verification failed');
+            }
+        } catch (error) {
+            console.error('Connection error:', error);
+            if (error.code === 4001) {
+                toast.error('Connection cancelled by user.');
+            } else if (isWalletConnectConfigured() && isLikelyTouchMobile()) {
+                toast.info('Trying WalletConnect…');
+                await connectWalletConnect();
+            } else {
+                toast.error(error.message || 'Failed to connect/verify wallet.');
+            }
+        } finally {
+            setIsConnecting(false);
+        }
+    }, [disconnectWalletConnectSession, connectWalletConnect]);
 
     useEffect(() => {
         checkConnection();

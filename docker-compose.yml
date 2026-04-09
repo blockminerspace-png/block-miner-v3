@@ -19,6 +19,9 @@ services:
       args:
         VITE_DISCORD_URL: ${VITE_DISCORD_URL:-}
         VITE_TELEGRAM_URL: ${VITE_TELEGRAM_URL:-}
+        VITE_WALLETCONNECT_PROJECT_ID: ${VITE_WALLETCONNECT_PROJECT_ID:-}
+        VITE_PUBLIC_WALLET_APP_URL: ${VITE_PUBLIC_WALLET_APP_URL:-https://blockminer.space}
+        VITE_POLYGON_RPC_URL: ${VITE_POLYGON_RPC_URL:-}
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
