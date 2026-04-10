@@ -1,62 +1,153 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  ArrowRight,
+  CalendarDays,
   ChevronDown,
+  ChevronRight,
   Clock,
+  Coins,
+  Gamepad2,
   Gift,
+  Moon,
   Pickaxe,
+  Play,
+  Star,
+  Sun,
   TrendingUp,
-  Users,
   UserPlus,
+  Users,
   Wallet,
+  Youtube,
   Zap,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import BrandLogo from '../components/BrandLogo';
+import { normalizeExternalUrl } from '../components/CommunityShortcuts';
+import { calcRewards } from '../utils/calculatorEngine';
+import { formatHashrate } from '../utils/machine';
 
 const LAUNCH_DATE = new Date('2026-03-05T00:00:00.000Z');
+const EXAMPLE_POL_USD = 0.2;
+const HS_PER_ACTIVE_RIG = 4000;
+const MIN_NETWORK_HS = 800_000;
+const CALC_SLIDER_MIN = 10;
+const CALC_SLIDER_MAX = 1000;
+const STATS_POLL_MS = 30_000;
+const THEME_KEY = 'blockminer-landing-theme';
 
 function uptimeDays() {
   return Math.floor((Date.now() - LAUNCH_DATE.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function FaqItem({ question, answer }) {
+function estimateNetworkHashRate(publicStats) {
+  const rigs = publicStats?.activeMiners;
+  if (typeof rigs === 'number' && rigs > 0) {
+    return Math.max(rigs * HS_PER_ACTIVE_RIG, MIN_NETWORK_HS);
+  }
+  return MIN_NETWORK_HS;
+}
+
+function useInViewOnce() {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || visible) return undefined;
+    const obs = new IntersectionObserver(
+      ([e]) => {
+        if (e?.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.12 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [visible]);
+  return [ref, visible];
+}
+
+function useCountUp(end, enabled, decimals = 0) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    if (!enabled || !Number.isFinite(end)) return undefined;
+    let start = null;
+    const from = 0;
+    const dur = 1100;
+    let raf = 0;
+    const tick = (now) => {
+      if (start == null) start = now;
+      const t = Math.min((now - start) / dur, 1);
+      const eased = 1 - (1 - t) ** 3;
+      const next = from + (end - from) * eased;
+      setV(decimals > 0 ? Number(next.toFixed(decimals)) : Math.floor(next));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [end, enabled, decimals]);
+  return v;
+}
+
+function FaqItem({ id, question, answer, light }) {
   const [open, setOpen] = useState(false);
+  const card = light
+    ? 'rounded-[1.75rem] border border-slate-200 bg-white shadow-sm overflow-hidden'
+    : 'rounded-[1.75rem] border border-white/10 bg-slate-950/80 overflow-hidden';
+  const btn = light
+    ? 'text-slate-900 hover:bg-slate-50'
+    : 'text-white hover:bg-white/5';
+  const panel = light
+    ? 'text-slate-600 border-slate-200'
+    : 'text-slate-300 border-white/10';
   return (
-    <div className="rounded-[1.75rem] border border-white/10 bg-slate-950/80 overflow-hidden">
+    <div className={card}>
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left text-white font-semibold hover:bg-white/5 transition-colors"
+        id={`${id}-btn`}
         aria-expanded={open}
+        aria-controls={`${id}-panel`}
+        onClick={() => setOpen((o) => !o)}
+        className={`w-full flex items-center justify-between gap-4 px-6 py-5 text-left font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 ${btn}`}
       >
         <span>{question}</span>
         <ChevronDown
-          className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+          className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
           aria-hidden
         />
       </button>
-      {open && (
-        <div className="px-6 pb-6 text-sm leading-relaxed text-slate-300 border-t border-white/10">
+      {open ? (
+        <div
+          id={`${id}-panel`}
+          role="region"
+          aria-labelledby={`${id}-btn`}
+          className={`px-6 pb-6 text-sm leading-relaxed border-t ${panel}`}
+        >
           {answer}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
 
-function LanguageSwitch() {
+function LanguageSwitch({ shellClass = 'border-white/10 bg-slate-950/80', activeDark = true }) {
   const { t, i18n } = useTranslation();
   const raw = i18n.resolvedLanguage || i18n.language || 'en';
   const active = raw.startsWith('pt') ? 'pt-BR' : raw.startsWith('es') ? 'es' : 'en';
+  const activeCls = activeDark
+    ? 'bg-white/15 text-white'
+    : 'bg-sky-600 text-white';
+  const idleCls = activeDark ? 'text-slate-500 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800';
   const btn = (code, label) => (
     <button
       key={code}
       type="button"
       onClick={() => void i18n.changeLanguage(code)}
-      className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors ${
-        active === code ? 'bg-white/15 text-white' : 'text-slate-500 hover:text-slate-200'
+      className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 ${
+        active === code ? activeCls : idleCls
       }`}
     >
       {label}
@@ -64,7 +155,7 @@ function LanguageSwitch() {
   );
   return (
     <div
-      className="flex items-center gap-0.5 rounded-full border border-white/10 bg-slate-950/80 p-0.5"
+      className={`flex items-center gap-0.5 rounded-full border p-0.5 ${shellClass}`}
       role="group"
       aria-label={t('landing.nav.language_group')}
     >
@@ -75,68 +166,241 @@ function LanguageSwitch() {
   );
 }
 
+function LandingThemeSwitch({ light, onToggle, shellClass, activeDark }) {
+  const { t } = useTranslation();
+  const onCls = activeDark ? 'bg-white/15 text-white' : 'bg-sky-600 text-white';
+  const offCls = activeDark ? 'text-slate-500 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800';
+  return (
+    <div className={`flex items-center gap-0.5 rounded-full border p-0.5 ${shellClass}`} role="group" aria-label={t('landing.footer.theme_aria')}>
+      <button
+        type="button"
+        aria-pressed={!light}
+        onClick={() => onToggle(false)}
+        className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 ${
+          !light ? onCls : offCls
+        }`}
+      >
+        <span className="inline-flex items-center gap-1">
+          <Moon className="w-3.5 h-3.5" aria-hidden />
+          {t('landing.footer.theme_dark')}
+        </span>
+      </button>
+      <button
+        type="button"
+        aria-pressed={light}
+        onClick={() => onToggle(true)}
+        className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 ${
+          light ? onCls : offCls
+        }`}
+      >
+        <span className="inline-flex items-center gap-1">
+          <Sun className="w-3.5 h-3.5" aria-hidden />
+          {t('landing.footer.theme_light')}
+        </span>
+      </button>
+    </div>
+  );
+}
+
 export default function Landing() {
-  const { t, i18n: i18next } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const [publicStats, setPublicStats] = useState(null);
+  const [hashSlider, setHashSlider] = useState(100);
+  const [light, setLight] = useState(() => {
+    try {
+      return typeof localStorage !== 'undefined' && localStorage.getItem(THEME_KEY) === 'light';
+    } catch {
+      return false;
+    }
+  });
+
+  const loadStats = useCallback(() => {
+    fetch('/api/public-stats')
+      .then((res) => res.json())
+      .then((data) => (data.ok ? setPublicStats(data) : null))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    loadStats();
+    const id = window.setInterval(loadStats, STATS_POLL_MS);
+    return () => window.clearInterval(id);
+  }, [loadStats]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(THEME_KEY, light ? 'light' : 'dark');
+    } catch {
+      /* ignore */
+    }
+  }, [light]);
+
+  const networkHs = useMemo(() => estimateNetworkHashRate(publicStats), [publicStats]);
+  const calc = useMemo(
+    () => calcRewards(hashSlider, networkHs, EXAMPLE_POL_USD),
+    [hashSlider, networkHs],
+  );
+
+  const faqItems = useMemo(
+    () => [
+      { id: 'faq1', qKey: 'landing.faq.q1', aKey: 'landing.faq.a1' },
+      { id: 'faq2', qKey: 'landing.faq.q2', aKey: 'landing.faq.a2' },
+      { id: 'faq3', qKey: 'landing.faq.q3', aKey: 'landing.faq.a3' },
+      { id: 'faq4', qKey: 'landing.faq.q4', aKey: 'landing.faq.a4' },
+      { id: 'faq5', qKey: 'landing.faq.q5', aKey: 'landing.faq.a5' },
+    ],
+    [],
+  );
 
   useEffect(() => {
     document.title = t('landing.meta.title');
-    let metaTag = document.querySelector('meta[name="description"]');
-    if (!metaTag) {
-      metaTag = document.createElement('meta');
-      metaTag.name = 'description';
-      document.head.appendChild(metaTag);
-    }
-    metaTag.content = t('landing.meta.description');
+    const setMeta = (name, content) => {
+      let m = document.querySelector(`meta[name="${name}"]`);
+      if (!m) {
+        m = document.createElement('meta');
+        m.setAttribute('name', name);
+        document.head.appendChild(m);
+      }
+      m.setAttribute('content', content);
+    };
+    const setOg = (prop, content) => {
+      let m = document.querySelector(`meta[property="${prop}"]`);
+      if (!m) {
+        m = document.createElement('meta');
+        m.setAttribute('property', prop);
+        document.head.appendChild(m);
+      }
+      m.setAttribute('content', content);
+    };
+    const desc = t('landing.meta.description');
+    setMeta('description', desc);
+    setOg('og:title', t('landing.meta.title'));
+    setOg('og:description', desc);
+    setOg('og:type', 'website');
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://blockminer.space';
+    setOg('og:url', `${origin}/`);
+    setMeta('twitter:card', 'summary_large_image');
+    setMeta('twitter:title', t('landing.meta.title'));
+    setMeta('twitter:description', desc);
 
-    fetch('/api/public-stats')
-      .then((res) => res.json())
-      .then((data) => data.ok && setPublicStats(data))
-      .catch(() => {});
-  }, [t, i18next.language]);
+    const canonical = `${origin}/`;
+    let link = document.querySelector('link[rel="canonical"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.setAttribute('rel', 'canonical');
+      document.head.appendChild(link);
+    }
+    link.setAttribute('href', canonical);
+
+    const faqLd = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqItems.map((item) => ({
+        '@type': 'Question',
+        name: t(item.qKey),
+        acceptedAnswer: { '@type': 'Answer', text: t(item.aKey) },
+      })),
+    };
+    const orgLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'Block Miner',
+      url: origin,
+    };
+    const siteLd = {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'Block Miner',
+      url: origin,
+    };
+    const payload = [orgLd, siteLd, faqLd];
+    let script = document.querySelector('script[data-landing-jsonld]');
+    if (!script) {
+      script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.setAttribute('data-landing-jsonld', '1');
+      document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify(payload);
+    return () => {
+      document.querySelector('script[data-landing-jsonld]')?.remove();
+    };
+  }, [t, i18n.language, faqItems]);
+
+  const [statsRef, statsVisible] = useInViewOnce();
+  const days = uptimeDays();
+  const usersEnd = typeof publicStats?.users === 'number' ? publicStats.users : 0;
+  const minersEnd = typeof publicStats?.activeMiners === 'number' ? publicStats.activeMiners : 0;
+  const withdrawnEnd = typeof publicStats?.totalWithdrawn === 'number' ? publicStats.totalWithdrawn : 0;
+  const usersShown = useCountUp(usersEnd, statsVisible && usersEnd > 0, 0);
+  const minersShown = useCountUp(minersEnd, statsVisible && minersEnd > 0, 0);
+  const withdrawnShown = useCountUp(withdrawnEnd, statsVisible && withdrawnEnd > 0, 2);
+
+  const discordUrl =
+    normalizeExternalUrl(import.meta.env.VITE_DISCORD_URL) || 'https://discord.gg/7Ge9vd8E';
+  const telegramUrl =
+    normalizeExternalUrl(import.meta.env.VITE_TELEGRAM_URL) || 'https://t.me/+KPgyUFtKCZ00Y2Vh';
+  const twitterUrl = normalizeExternalUrl(import.meta.env.VITE_TWITTER_URL);
+  const youtubeUrl = normalizeExternalUrl(import.meta.env.VITE_YOUTUBE_URL);
 
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const days = uptimeDays();
-
-  const statsCards = [
-    {
-      icon: Users,
-      label: t('landing.stats.users_label'),
-      value: publicStats ? publicStats.users.toLocaleString() : '—',
-      sub: t('landing.stats.users_sub'),
-      iconColor: 'bg-sky-500/15 text-sky-300',
-    },
-    {
-      icon: Wallet,
-      label: t('landing.stats.withdrawn_label'),
-      value: publicStats ? `${Number(publicStats.totalWithdrawn).toLocaleString(undefined, { maximumFractionDigits: 2 })} POL` : '—',
-      sub: t('landing.stats.withdrawn_sub'),
-      iconColor: 'bg-emerald-500/15 text-emerald-300',
-    },
-    {
-      icon: Clock,
-      label: t('landing.stats.uptime_label'),
-      value: t('landing.stats.uptime_value', { count: days }),
-      sub: t('landing.stats.uptime_sub'),
-      iconColor: 'bg-violet-500/15 text-violet-300',
-    },
-    {
-      icon: Zap,
-      label: t('landing.stats.miners_label'),
-      value: publicStats ? publicStats.activeMiners.toLocaleString() : '—',
-      sub: t('landing.stats.miners_sub'),
-      iconColor: 'bg-amber-500/15 text-amber-300',
-    },
-  ];
+  const skin = light
+    ? {
+        page: 'relative min-h-screen overflow-x-hidden bg-slate-50 text-slate-900',
+        header: 'border-slate-200 bg-white/95 text-slate-900',
+        navLink: 'text-slate-600 hover:text-slate-900',
+        badge: 'border-slate-200 bg-white text-slate-600 shadow-sm',
+        dot: 'bg-emerald-500',
+        h1: 'text-slate-900',
+        body: 'text-slate-600',
+        sectionMuted: 'border-slate-200 bg-slate-100',
+        card: 'rounded-[1.75rem] border border-slate-200 bg-white shadow-md',
+        cardSoft: 'rounded-[2rem] border border-slate-200 bg-slate-50 shadow-sm',
+        iconBubble: 'bg-sky-500/15 text-sky-600',
+        borderSubtle: 'border-slate-200',
+        footer: 'border-slate-200 bg-slate-100 text-slate-600',
+        socialChip: 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
+        decoGrid: 'opacity-[0.12]',
+        langShell: 'border-slate-200 bg-white',
+        footerBar: 'border-slate-200',
+        trustCard: 'border-slate-200 bg-white',
+        statValue: 'text-slate-900',
+        statSub: 'text-slate-500',
+      }
+    : {
+        page: 'relative min-h-screen overflow-x-hidden bg-[#020511] text-slate-100',
+        header: 'border-white/10 bg-[#02070f]/95 text-slate-100',
+        navLink: 'text-slate-300 hover:text-white',
+        badge: 'border-white/10 bg-slate-900/70 text-slate-300',
+        dot: 'bg-emerald-400',
+        h1: 'text-white',
+        body: 'text-slate-300',
+        sectionMuted: 'border-white/10 bg-[#08101c]',
+        card: 'rounded-[1.75rem] border border-white/10 bg-slate-950/80 shadow-xl shadow-slate-950/20',
+        cardSoft: 'rounded-[2rem] border border-white/10 bg-[#0b1728] shadow-xl shadow-slate-950/20',
+        iconBubble: 'bg-slate-900/90 text-sky-400',
+        borderSubtle: 'border-white/10',
+        footer: 'border-white/10 bg-[#02070f] text-slate-500',
+        socialChip: 'border-white/10 bg-white/5 text-slate-200 hover:bg-white/10',
+        decoGrid: 'opacity-20',
+        langShell: 'border-white/10 bg-slate-950/80',
+        footerBar: 'border-white/10',
+        trustCard: 'border-white/10 bg-slate-950/70',
+        statValue: 'text-white',
+        statSub: 'text-slate-400',
+      };
 
   const featureCards = [
     { icon: Zap, titleKey: 'landing.features.f1_title', bodyKey: 'landing.features.f1_body' },
-    { icon: Wallet, titleKey: 'landing.features.f2_title', bodyKey: 'landing.features.f2_body' },
-    { icon: Gift, titleKey: 'landing.features.f3_title', bodyKey: 'landing.features.f3_body' },
+    { icon: Coins, titleKey: 'landing.features.f2_title', bodyKey: 'landing.features.f2_body' },
+    { icon: Gamepad2, titleKey: 'landing.features.f3_title', bodyKey: 'landing.features.f3_body' },
+    { icon: Gift, titleKey: 'landing.features.f4_title', bodyKey: 'landing.features.f4_body' },
+    { icon: Users, titleKey: 'landing.features.f5_title', bodyKey: 'landing.features.f5_body' },
+    { icon: Wallet, titleKey: 'landing.features.f6_title', bodyKey: 'landing.features.f6_body' },
   ];
 
   const howSteps = [
@@ -145,177 +409,589 @@ export default function Landing() {
     { icon: TrendingUp, titleKey: 'landing.how.step3_title', bodyKey: 'landing.how.step3_body' },
   ];
 
-  const faqItems = [
-    { qKey: 'landing.faq.q1', aKey: 'landing.faq.a1' },
-    { qKey: 'landing.faq.q2', aKey: 'landing.faq.a2' },
-    { qKey: 'landing.faq.q3', aKey: 'landing.faq.a3' },
-    { qKey: 'landing.faq.q4', aKey: 'landing.faq.a4' },
-  ];
+  const gradientBtn =
+    'inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-violet-600 px-8 py-4 text-sm font-bold text-white shadow-xl shadow-sky-500/25 transition-transform duration-200 hover:scale-[1.02] hover:shadow-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400';
+
+  const outlineBtn =
+    'inline-flex items-center justify-center rounded-full border px-8 py-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400';
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#020511] text-slate-100">
+    <div className={skin.page}>
+      <a
+        href="#main-content"
+        className="absolute left-4 top-0 z-[100] -translate-y-full rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition-transform focus:translate-y-4 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-white"
+      >
+        {t('landing.skip')}
+      </a>
+
       <div className="pointer-events-none fixed inset-0 opacity-90">
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-950 to-[#060a12]" />
-        <div className="absolute inset-x-0 top-0 h-[35vh] bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.18),transparent_45%)]" />
-        <div className="absolute inset-x-0 top-[48vh] bottom-0 bg-[linear-gradient(180deg,transparent,rgba(7,15,28,0.96))]" />
         <div
-          className="absolute inset-x-0 bottom-0 top-[46vh] opacity-20"
-          style={{
-            backgroundImage: `linear-gradient(rgba(56,189,248,0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.16) 1px, transparent 1px)`,
-            backgroundSize: '60px 60px',
-          }}
+          className={`absolute inset-0 bg-gradient-to-b ${light ? 'from-slate-100 via-white to-slate-100' : 'from-slate-950 via-slate-950 to-[#060a12]'}`}
         />
+        <div className="absolute inset-x-0 top-0 h-[38vh] bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.16),transparent_50%)]" />
+        {!light && (
+          <div
+            className={`absolute inset-x-0 bottom-0 top-[46vh] ${skin.decoGrid}`}
+            style={{
+              backgroundImage: `linear-gradient(rgba(56,189,248,0.14) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.14) 1px, transparent 1px)`,
+              backgroundSize: '56px 56px',
+            }}
+          />
+        )}
       </div>
 
-      <header className="relative z-10 border-b border-white/10 bg-[#02070f]/95 backdrop-blur-xl sticky top-0">
+      <header
+        className={`relative z-10 border-b backdrop-blur-xl sticky top-0 ${skin.header} ${skin.borderSubtle}`}
+      >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
-          <Link to="/" className="flex items-center gap-3 text-white" aria-label={t('landing.nav.brand_aria')}>
+          <Link to="/" className="flex items-center gap-3" aria-label={t('landing.nav.brand_aria')}>
             <BrandLogo variant="header" interactive />
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
-            <LanguageSwitch />
-            <Link to="/login" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+            <LanguageSwitch shellClass={skin.langShell} activeDark={!light} />
+            <Link
+              to="/login"
+              className={`hidden sm:inline text-sm font-medium transition-colors ${skin.navLink}`}
+            >
               {t('landing.nav.login')}
             </Link>
-            <Link
-              to="/register"
-              className="rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 hover:brightness-110 transition-all"
-            >
+            <Link to="/register" className={`${gradientBtn} !px-5 !py-2 !text-sm !font-semibold`}>
               {t('landing.nav.register')}
             </Link>
           </div>
         </div>
       </header>
 
-      <main className="relative z-10">
-        <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-14 pb-24 sm:pt-20 sm:pb-32">
-          <div className="text-center">
-            <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-slate-900/70 px-4 py-2 text-xs uppercase tracking-[0.25em] text-slate-300 shadow-[0_0_50px_rgba(15,23,42,0.25)]">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              {t('landing.hero.badge')}
-            </div>
-            <h1 className="mt-8 text-5xl font-black leading-[0.95] text-white sm:text-6xl lg:text-7xl">
-              {t('landing.hero.title')}{' '}
-              <span className="text-sky-400">{t('landing.hero.title_highlight')}</span>{' '}
-              {t('landing.hero.title_end')}
-            </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-              {t('landing.hero.subtitle')}
-            </p>
-            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-              <Link
-                to="/register"
-                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-8 py-4 text-sm font-bold text-white shadow-xl shadow-sky-500/25 transition-transform hover:-translate-y-0.5"
+      <main id="main-content" className="relative z-10">
+        <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-12 pb-16 sm:pt-16 sm:pb-24">
+          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+            <div>
+              <div
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs uppercase tracking-[0.22em] ${skin.badge}`}
               >
-                {t('landing.hero.cta_start')}
-              </Link>
-              <Link
-                to="/login"
-                className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-8 py-4 text-sm font-semibold text-slate-100 hover:bg-white/10 transition-colors"
-              >
-                {t('landing.hero.cta_login')}
-              </Link>
-            </div>
-          </div>
-
-          <div className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {statsCards.map(({ icon: Icon, label, value, sub, iconColor }) => (
-              <div key={label} className="rounded-[1.75rem] border border-white/10 bg-slate-950/80 p-5 shadow-xl shadow-slate-950/20">
-                <div className={`inline-flex h-12 w-12 items-center justify-center rounded-3xl ${iconColor}`}>
-                  <Icon className="h-5 w-5" aria-hidden />
-                </div>
-                <p className="mt-5 text-xs uppercase tracking-[0.24em] text-slate-400">{label}</p>
-                <p className="mt-4 text-3xl font-black text-white">{value}</p>
-                <p className="mt-2 text-sm text-slate-400">{sub}</p>
+                <span className={`h-2 w-2 rounded-full ${skin.dot}`} aria-hidden />
+                {t('landing.hero.badge')}
               </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="border-y border-white/10 bg-[#08101c] py-20">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8">
-            <div className="text-center mb-14">
-              <p className="text-sm uppercase tracking-[0.32em] text-sky-400">{t('landing.features.kicker')}</p>
-              <h2 className="mt-4 text-4xl font-black text-white">{t('landing.features.title')}</h2>
-              <p className="mt-3 text-slate-400 max-w-2xl mx-auto">{t('landing.features.subtitle')}</p>
-            </div>
-            <div className="grid gap-6 md:grid-cols-3">
-              {featureCards.map((card) => (
-                <div key={card.titleKey} className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-8 shadow-xl shadow-slate-950/25">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-slate-900/90 text-sky-400">
-                    <card.icon className="h-6 w-6" aria-hidden />
+              <h1 className={`mt-6 text-4xl font-black leading-[1.05] sm:text-5xl lg:text-6xl ${skin.h1}`}>
+                {t('landing.hero.headline')}
+              </h1>
+              <p className={`mt-5 max-w-xl text-base leading-relaxed sm:text-lg ${skin.body}`}>
+                {t('landing.hero.subheadline')}
+              </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Link to="/register" className={gradientBtn}>
+                  {t('landing.hero.cta_primary')}
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                </Link>
+                <a
+                  href="#how-it-works"
+                  className={`${outlineBtn} ${light ? 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50' : 'border-white/15 bg-white/5 text-slate-100 hover:bg-white/10'}`}
+                >
+                  {t('landing.hero.cta_secondary')}
+                </a>
+              </div>
+              <div className="mt-10 grid gap-3 sm:grid-cols-3">
+                {[
+                  {
+                    label: t('landing.hero.trust_miners'),
+                    value: publicStats ? publicStats.activeMiners.toLocaleString() : '—',
+                  },
+                  {
+                    label: t('landing.hero.trust_paid'),
+                    value: publicStats
+                      ? `${Number(publicStats.totalWithdrawn).toLocaleString(undefined, { maximumFractionDigits: 0 })} POL`
+                      : '—',
+                  },
+                  {
+                    label: t('landing.hero.trust_rating'),
+                    value: (
+                      <span className="inline-flex items-center gap-1 text-amber-400" aria-label={t('landing.hero.trust_stars_aria')}>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} className="h-4 w-4 fill-current" aria-hidden />
+                        ))}
+                      </span>
+                    ),
+                  },
+                ].map((row) => (
+                  <div key={row.label} className={`rounded-2xl border px-4 py-3 ${skin.trustCard}`}>
+                    <p className="text-[11px] uppercase tracking-wider text-slate-500">{row.label}</p>
+                    <p className="mt-1 text-lg font-bold text-sky-500">{row.value}</p>
                   </div>
-                  <h3 className="mt-6 text-xl font-semibold text-white">{t(card.titleKey)}</h3>
-                  <p className="mt-4 text-sm leading-relaxed text-slate-400">{t(card.bodyKey)}</p>
+                ))}
+              </div>
+            </div>
+            <div className="relative">
+              <div
+                className={`relative aspect-[4/3] overflow-hidden rounded-[2rem] border ${skin.borderSubtle} bg-gradient-to-br from-sky-500/20 via-violet-600/20 to-slate-900 shadow-2xl`}
+                role="img"
+                aria-label={t('landing.hero.visual_caption')}
+              >
+                <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8">
+                  <div className={`rounded-2xl border ${skin.borderSubtle} bg-black/40 p-4 backdrop-blur-md`}>
+                    <p className="text-xs font-mono text-sky-300">blockminer.space / dashboard</p>
+                    <p className="mt-2 text-sm text-white/90">{t('landing.hero.visual_caption')}</p>
+                    <div className="mt-4 flex gap-2">
+                      <span className="rounded-lg bg-emerald-500/20 px-2 py-1 text-xs text-emerald-300">
+                        +{formatHashrate(hashSlider)}
+                      </span>
+                      <span className="rounded-lg bg-violet-500/20 px-2 py-1 text-xs text-violet-200">
+                        POL / block
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-5 sm:px-8 py-20">
-          <div className="text-center mb-14">
-            <p className="text-sm uppercase tracking-[0.32em] text-sky-400">{t('landing.how.title')}</p>
-            <h2 className="mt-4 text-4xl font-black text-white">{t('landing.how.subtitle')}</h2>
-          </div>
-          <div className="grid gap-6 md:grid-cols-3">
-            {howSteps.map(({ icon: StepIcon, titleKey, bodyKey }) => (
-              <div key={titleKey} className="flex h-full flex-col rounded-[2rem] border border-white/10 bg-[#0b1728] p-8 shadow-xl shadow-slate-950/20">
-                <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-950/90 text-sky-400">
-                  <StepIcon className="h-7 w-7" aria-hidden />
-                </div>
-                <h3 className="mt-6 text-xl font-semibold text-white">{t(titleKey)}</h3>
-                <p className="mt-4 text-sm leading-relaxed text-slate-400">{t(bodyKey)}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="border-t border-white/10 bg-[#08101c] py-20">
+        <section id="how-it-works" className={`border-y py-16 sm:py-24 ${skin.sectionMuted} ${skin.borderSubtle}`}>
           <div className="mx-auto max-w-6xl px-5 sm:px-8">
             <div className="text-center mb-12">
-              <p className="text-sm uppercase tracking-[0.32em] text-sky-400">{t('landing.faq.title')}</p>
-              <h2 className="mt-4 text-4xl font-black text-white">{t('landing.faq.heading')}</h2>
+              <p className="text-sm uppercase tracking-[0.28em] text-sky-500">{t('landing.how.kicker')}</p>
+              <h2 className={`mt-3 text-3xl font-black sm:text-4xl ${skin.h1}`}>{t('landing.how.title')}</h2>
+              <p className={`mt-3 max-w-2xl mx-auto ${skin.body}`}>{t('landing.how.subtitle')}</p>
             </div>
-            <div className="grid gap-4 lg:grid-cols-2">
-              {faqItems.map(({ qKey, aKey }) => (
-                <FaqItem key={qKey} question={t(qKey)} answer={t(aKey)} />
+            <div className="grid gap-6 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-stretch">
+              {howSteps.map(({ icon: StepIcon, titleKey, bodyKey }, idx) => (
+                <div key={titleKey} className="contents md:contents">
+                  <div className={`flex h-full flex-col p-8 ${skin.cardSoft}`}>
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-500 text-sm font-black text-white">
+                        {idx + 1}
+                      </span>
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${skin.iconBubble}`}>
+                        <StepIcon className="h-6 w-6" aria-hidden />
+                      </div>
+                    </div>
+                    <h3 className={`mt-5 text-xl font-semibold ${skin.h1}`}>{t(titleKey)}</h3>
+                    <p className={`mt-3 text-sm leading-relaxed ${skin.body}`}>{t(bodyKey)}</p>
+                  </div>
+                  {idx < howSteps.length - 1 ? (
+                    <div className="hidden md:flex items-center justify-center text-sky-500/60" aria-hidden>
+                      <ChevronRight className="h-8 w-8" />
+                    </div>
+                  ) : null}
+                </div>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-5 sm:px-8 py-20">
-          <div className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-10 shadow-2xl shadow-slate-950/30">
-            <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-center">
-              <div>
-                <p className="text-sm uppercase tracking-[0.32em] text-sky-400">{t('landing.closing.kicker')}</p>
-                <h2 className="mt-4 text-4xl font-black text-white">{t('landing.closing.title')}</h2>
-                <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-400">{t('landing.closing.body')}</p>
-              </div>
-              <div className="flex flex-col gap-4">
-                <Link
-                  to="/register"
-                  className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-600 px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 hover:brightness-110 transition-all"
+        <section id="features" className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
+          <div className="text-center mb-14">
+            <p className="text-sm uppercase tracking-[0.28em] text-sky-500">{t('landing.features.kicker')}</p>
+            <h2 className={`mt-3 text-3xl font-black sm:text-4xl ${skin.h1}`}>{t('landing.features.title')}</h2>
+            <p className={`mt-3 max-w-2xl mx-auto ${skin.body}`}>{t('landing.features.subtitle')}</p>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {featureCards.map((card) => (
+              <div
+                key={card.titleKey}
+                className={`${skin.card} p-8 transition-transform duration-200 hover:-translate-y-1 hover:shadow-xl`}
+              >
+                <div
+                  className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500/30 to-violet-600/30 ${skin.iconBubble}`}
                 >
-                  {t('landing.closing.register')}
-                </Link>
-                <Link
-                  to="/login"
-                  className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-8 py-4 text-sm font-semibold text-slate-100 hover:bg-white/10 transition-colors"
-                >
-                  {t('landing.closing.login')}
-                </Link>
+                  <card.icon className="h-7 w-7" aria-hidden />
+                </div>
+                <h3 className={`mt-6 text-lg font-semibold ${skin.h1}`}>{t(card.titleKey)}</h3>
+                <p className={`mt-3 text-sm leading-relaxed ${skin.body}`}>{t(card.bodyKey)}</p>
               </div>
+            ))}
+          </div>
+        </section>
+
+        <section id="calculator" className={`border-y py-16 sm:py-24 ${skin.sectionMuted} ${skin.borderSubtle}`}>
+          <div className="mx-auto max-w-6xl px-5 sm:px-8">
+            <div className="text-center mb-10">
+              <h2 className={`text-3xl font-black sm:text-4xl ${skin.h1}`}>{t('landing.calculator.title')}</h2>
+              <p className={`mt-3 max-w-2xl mx-auto text-sm sm:text-base ${skin.body}`}>
+                {t('landing.calculator.subtitle')}
+              </p>
             </div>
+            <div className={`mx-auto max-w-xl ${skin.card} p-8`}>
+              <label htmlFor="landing-hash-slider" className={`block text-sm font-semibold ${skin.h1}`}>
+                {t('landing.calculator.slider_label')}
+              </label>
+              <input
+                id="landing-hash-slider"
+                type="range"
+                min={CALC_SLIDER_MIN}
+                max={CALC_SLIDER_MAX}
+                step={10}
+                value={hashSlider}
+                onChange={(e) => setHashSlider(Number(e.target.value))}
+                className="mt-4 w-full accent-sky-500"
+              />
+              <div className="mt-2 flex justify-between text-xs text-slate-500">
+                <span>{CALC_SLIDER_MIN} H/s</span>
+                <span className="font-mono text-sky-500">{formatHashrate(hashSlider)}</span>
+                <span>{CALC_SLIDER_MAX} H/s</span>
+              </div>
+              <p className="mt-4 text-xs text-slate-500">{t('landing.calculator.network_note')}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {t('landing.stats.network_label')}: <span className="font-mono">{formatHashrate(networkHs)}</span>
+              </p>
+              <dl className="mt-8 space-y-4">
+                <div className="flex justify-between gap-4">
+                  <dt className={skin.body}>{t('landing.calculator.per_day')}</dt>
+                  <dd className="font-mono font-semibold text-sky-400">
+                    {calc.perDay.toFixed(4)} POL
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className={skin.body}>{t('landing.calculator.per_week')}</dt>
+                  <dd className="font-mono font-semibold text-sky-400">
+                    {calc.perWeek.toFixed(4)} POL
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className={skin.body}>{t('landing.calculator.per_month')}</dt>
+                  <dd className="font-mono font-semibold text-sky-400">
+                    {calc.perMonth.toFixed(4)} POL
+                  </dd>
+                </div>
+              </dl>
+              <p className="mt-6 text-xs text-slate-500">
+                ~${calc.toUSD(calc.perDay)} USD / {t('landing.calculator.per_day').toLowerCase()} —{' '}
+                {t('landing.calculator.usd_note')}
+              </p>
+              <p className="mt-3 text-xs text-slate-500">{t('landing.calculator.disclaimer')}</p>
+              <Link to="/register" className={`${gradientBtn} mt-8 w-full sm:w-auto`}>
+                {t('landing.calculator.cta')}
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="community"
+          ref={statsRef}
+          className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24"
+        >
+          <div className="text-center mb-12">
+            <h2 className={`text-3xl font-black sm:text-4xl ${skin.h1}`}>{t('landing.community.title')}</h2>
+            <p className={`mt-3 ${skin.body}`}>{t('landing.community.subtitle')}</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                icon: Users,
+                label: t('landing.stats.users_label'),
+                value: publicStats ? usersShown.toLocaleString() : '—',
+                sub: t('landing.stats.users_sub'),
+                color: 'bg-sky-500/15 text-sky-300',
+              },
+              {
+                icon: Wallet,
+                label: t('landing.stats.withdrawn_label'),
+                value: publicStats
+                  ? `${withdrawnShown.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} POL`
+                  : '—',
+                sub: t('landing.stats.withdrawn_sub'),
+                color: 'bg-emerald-500/15 text-emerald-300',
+              },
+              {
+                icon: Clock,
+                label: t('landing.stats.uptime_label'),
+                value: t('landing.stats.uptime_value', { count: days }),
+                sub: t('landing.stats.uptime_sub'),
+                color: 'bg-violet-500/15 text-violet-300',
+              },
+              {
+                icon: Zap,
+                label: t('landing.stats.miners_label'),
+                value: publicStats ? minersShown.toLocaleString() : '—',
+                sub: t('landing.stats.miners_sub'),
+                color: 'bg-amber-500/15 text-amber-300',
+              },
+              {
+                icon: Pickaxe,
+                label: t('landing.stats.network_label'),
+                value: formatHashrate(networkHs),
+                sub: t('landing.stats.network_sub'),
+                color: 'bg-cyan-500/15 text-cyan-300',
+              },
+              {
+                icon: CalendarDays,
+                label: t('landing.stats.activity_label'),
+                value: t('landing.stats.activity_value'),
+                sub: t('landing.stats.activity_sub'),
+                color: 'bg-fuchsia-500/15 text-fuchsia-300',
+              },
+            ].map((row) => (
+              <div key={row.label} className={`${skin.card} p-6`}>
+                <div className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl ${row.color}`}>
+                  <row.icon className="h-5 w-5" aria-hidden />
+                </div>
+                <p className="mt-4 text-[11px] uppercase tracking-[0.2em] text-slate-500">{row.label}</p>
+                <p className={`mt-2 text-2xl font-black sm:text-3xl ${skin.statValue}`}>{row.value}</p>
+                <p className={`mt-2 text-sm ${skin.statSub}`}>{row.sub}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className={`border-y py-16 sm:py-24 ${skin.sectionMuted} ${skin.borderSubtle}`}>
+          <div className="mx-auto max-w-6xl px-5 sm:px-8">
+            <h2 className={`text-center text-3xl font-black sm:text-4xl ${skin.h1}`}>
+              {t('landing.testimonials.title')}
+            </h2>
+            <p className="mt-2 text-center text-xs text-slate-500">{t('landing.testimonials.disclaimer')}</p>
+            <div className="mt-10 grid gap-6 lg:grid-cols-3">
+              {[
+                {
+                  name: t('landing.testimonials.t1_name'),
+                  loc: t('landing.testimonials.t1_loc'),
+                  text: t('landing.testimonials.t1_text'),
+                },
+                {
+                  name: t('landing.testimonials.t2_name'),
+                  loc: t('landing.testimonials.t2_loc'),
+                  text: t('landing.testimonials.t2_text'),
+                },
+                {
+                  name: t('landing.testimonials.t3_name'),
+                  loc: t('landing.testimonials.t3_loc'),
+                  text: t('landing.testimonials.t3_text'),
+                },
+              ].map((item) => (
+                <figure key={item.name} className={`${skin.card} p-8`}>
+                  <div className="flex items-center gap-1 text-amber-400" aria-hidden>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-current" />
+                    ))}
+                  </div>
+                  <blockquote className={`mt-4 text-sm leading-relaxed ${skin.body}`}>“{item.text}”</blockquote>
+                  <figcaption className={`mt-6 text-sm font-semibold ${skin.h1}`}>
+                    {item.name}
+                    <span className="block text-xs font-normal text-slate-500">{item.loc}</span>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="games" className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
+          <div className="text-center mb-12">
+            <h2 className={`text-3xl font-black sm:text-4xl ${skin.h1}`}>{t('landing.games.title')}</h2>
+            <p className={`mt-3 max-w-2xl mx-auto ${skin.body}`}>{t('landing.games.subtitle')}</p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {[
+              {
+                title: t('landing.games.g1_name'),
+                desc: t('landing.games.g1_desc'),
+                gradient: 'from-cyan-500/40 to-sky-600/30',
+              },
+              {
+                title: t('landing.games.g2_name'),
+                desc: t('landing.games.g2_desc'),
+                gradient: 'from-violet-500/40 to-fuchsia-600/30',
+              },
+              {
+                title: t('landing.games.g3_name'),
+                desc: t('landing.games.g3_desc'),
+                gradient: 'from-amber-500/35 to-orange-600/30',
+              },
+            ].map((g) => (
+              <div key={g.title} className={`${skin.card} overflow-hidden p-0`}>
+                <div className={`h-36 bg-gradient-to-br ${g.gradient} flex items-center justify-center`}>
+                  <Gamepad2 className="h-14 w-14 text-white/90" aria-hidden />
+                </div>
+                <div className="p-6">
+                  <h3 className={`text-lg font-semibold ${skin.h1}`}>{g.title}</h3>
+                  <p className={`mt-2 text-sm ${skin.body}`}>{g.desc}</p>
+                  <p className="mt-2 text-xs text-slate-500">{t('landing.games.login_hint')}</p>
+                  <Link
+                    to="/games"
+                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-sky-400 hover:text-sky-300"
+                  >
+                    <Play className="h-4 w-4" aria-hidden />
+                    {t('landing.games.cta')}
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 text-center">
+            <Link
+              to="/games"
+              className="inline-flex items-center gap-2 text-sm font-bold text-sky-400 hover:underline"
+            >
+              {t('landing.games.view_all')}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </section>
+
+        <section className={`py-16 sm:py-20 ${skin.sectionMuted} ${skin.borderSubtle} border-y`}>
+          <div className="mx-auto max-w-6xl px-5 sm:px-8 text-center">
+            <h2 className={`text-2xl font-black sm:text-3xl ${skin.h1}`}>{t('landing.crypto.title')}</h2>
+            <p className={`mt-3 max-w-2xl mx-auto text-sm ${skin.body}`}>{t('landing.crypto.subtitle')}</p>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              {['POL', 'BTC', 'ETH', 'USDC'].map((sym) => (
+                <div
+                  key={sym}
+                  className={`rounded-2xl border px-6 py-3 text-sm font-bold tracking-wide ${skin.borderSubtle} ${sym === 'POL' ? 'bg-sky-500/20 text-sky-300' : 'bg-white/5 text-slate-500'}`}
+                >
+                  {sym}
+                  {sym !== 'POL' ? (
+                    <span className="ml-2 text-[10px] font-normal uppercase">{t('landing.crypto.soon')}</span>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            <p className="mt-6 text-xs text-slate-500">{t('landing.crypto.more')}</p>
+          </div>
+        </section>
+
+        <section id="faq" className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-24">
+          <div className="text-center mb-10">
+            <p className="text-sm uppercase tracking-[0.28em] text-sky-500">{t('landing.faq.title')}</p>
+            <h2 className={`mt-3 text-3xl font-black sm:text-4xl ${skin.h1}`}>{t('landing.faq.heading')}</h2>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {faqItems.map((item) => (
+              <FaqItem key={item.id} id={item.id} question={t(item.qKey)} answer={t(item.aKey)} light={light} />
+            ))}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-5 sm:px-8 pb-16 sm:pb-24">
+          <div
+            className={`rounded-[2rem] border p-10 sm:p-14 text-center ${light ? 'border-slate-200 bg-gradient-to-br from-sky-500/15 to-violet-600/15' : 'border-white/10 bg-gradient-to-br from-sky-500/20 to-violet-900/30'}`}
+          >
+            <h2 className={`text-3xl font-black sm:text-4xl ${skin.h1}`}>{t('landing.final_cta.title')}</h2>
+            <p className={`mt-4 max-w-xl mx-auto ${skin.body}`}>{t('landing.final_cta.subtitle')}</p>
+            <ul className="mt-6 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-4 text-sm text-slate-400">
+              <li>✓ {t('landing.final_cta.bullet1')}</li>
+              <li>✓ {t('landing.final_cta.bullet2')}</li>
+              <li>✓ {t('landing.final_cta.bullet3')}</li>
+            </ul>
+            <Link to="/register" className={`${gradientBtn} mt-8`}>
+              {t('landing.final_cta.primary')}
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-white/10 bg-[#02070f] py-10 px-5 sm:px-8">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-          <p>{t('landing.footer.copyright', { year: new Date().getFullYear() })}</p>
-          <p className="max-w-md">{t('landing.footer.tagline')}</p>
+      <footer className={`relative z-10 border-t py-14 px-5 sm:px-8 ${skin.footer} ${skin.borderSubtle}`}>
+        <div className="mx-auto grid max-w-6xl gap-10 md:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <BrandLogo variant="header" interactive />
+            <p className={`mt-4 text-sm ${skin.body}`}>{t('landing.footer.tagline')}</p>
+            <p className="mt-3 text-xs text-slate-500">{t('landing.footer.disclaimer')}</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <a
+                href={discordUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${skin.socialChip}`}
+              >
+                {t('landing.footer.social_discord')}
+              </a>
+              <a
+                href={telegramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${skin.socialChip}`}
+              >
+                {t('landing.footer.social_telegram')}
+              </a>
+              {twitterUrl ? (
+                <a
+                  href={twitterUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${skin.socialChip}`}
+                >
+                  {t('landing.footer.social_twitter')}
+                </a>
+              ) : null}
+              {youtubeUrl ? (
+                <a
+                  href={youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold ${skin.socialChip}`}
+                >
+                  <Youtube className="h-3.5 w-3.5" aria-hidden />
+                  {t('landing.footer.social_youtube')}
+                </a>
+              ) : null}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{t('landing.footer.col_product')}</p>
+            <ul className="mt-4 space-y-2 text-sm">
+              <li>
+                <a href="#how-it-works" className="hover:text-sky-400">
+                  {t('landing.footer.link_how')}
+                </a>
+              </li>
+              <li>
+                <Link to="/games" className="hover:text-sky-400">
+                  {t('landing.footer.link_games')}
+                </Link>
+              </li>
+              <li>
+                <Link to="/calculator" className="hover:text-sky-400">
+                  {t('landing.footer.link_calc')}
+                </Link>
+              </li>
+              <li>
+                <Link to="/transparency" className="hover:text-sky-400">
+                  {t('landing.footer.link_transparency')}
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{t('landing.footer.col_company')}</p>
+            <ul className="mt-4 space-y-2 text-sm">
+              <li>
+                <Link to="/roadmap" className="hover:text-sky-400">
+                  {t('landing.footer.link_roadmap')}
+                </Link>
+              </li>
+              <li>
+                <Link to="/manual" className="hover:text-sky-400">
+                  {t('landing.footer.link_manual')}
+                </Link>
+              </li>
+              <li>
+                <Link to="/register" className="hover:text-sky-400">
+                  {t('landing.nav.register')}
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{t('landing.footer.col_legal')}</p>
+            <ul className="mt-4 space-y-2 text-sm">
+              <li>
+                <Link to="/manual" className="hover:text-sky-400">
+                  {t('landing.footer.link_terms')}
+                </Link>
+              </li>
+              <li>
+                <Link to="/transparency" className="hover:text-sky-400">
+                  {t('landing.footer.link_privacy')}
+                </Link>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div className={`mx-auto mt-12 flex max-w-6xl flex-col gap-4 border-t pt-8 sm:flex-row sm:items-center sm:justify-between ${skin.footerBar}`}>
+          <p className="text-sm">{t('landing.footer.copyright', { year: new Date().getFullYear() })}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <LandingThemeSwitch light={light} onToggle={setLight} shellClass={skin.langShell} activeDark={!light} />
+            <LanguageSwitch shellClass={skin.langShell} activeDark={!light} />
+          </div>
         </div>
       </footer>
     </div>

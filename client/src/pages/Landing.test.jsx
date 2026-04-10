@@ -23,7 +23,17 @@ vi.mock("../components/BrandLogo", () => ({
   default: () => <div data-testid="brand-logo" />,
 }));
 
-// Mock fetch so public-stats call doesn't throw in jsdom
+global.IntersectionObserver = class {
+  constructor(cb) {
+    this.cb = cb;
+  }
+  observe() {
+    this.cb([{ isIntersecting: true }]);
+  }
+  disconnect() {}
+  unobserve() {}
+};
+
 global.fetch = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ ok: false }) }));
 
 const renderLanding = () =>
@@ -46,24 +56,21 @@ describe("Landing page", () => {
     renderLanding();
   });
 
-  it("shows brand logo", () => {
+  it("shows brand logo in header and footer", () => {
     renderLanding();
-    expect(screen.getByTestId("brand-logo")).toBeInTheDocument();
+    expect(screen.getAllByTestId("brand-logo").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("renders h1 hero title", () => {
+  it("renders skip link to main content", () => {
     renderLanding();
-    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+    const skip = screen.getByRole("link", { name: "landing.skip" });
+    expect(skip).toHaveAttribute("href", "#main-content");
   });
 
-  it("renders hero title i18n key", () => {
+  it("renders h1 hero headline", () => {
     renderLanding();
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("landing.hero.title");
-  });
-
-  it("renders hero highlighted text", () => {
-    renderLanding();
-    expect(screen.getByText("landing.hero.title_highlight")).toBeInTheDocument();
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(h1).toHaveTextContent("landing.hero.headline");
   });
 
   it("renders nav login link", () => {
@@ -76,16 +83,19 @@ describe("Landing page", () => {
     expect(screen.getAllByText("landing.nav.register").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("renders 4 stats cards with labels", () => {
+  it("renders community stats labels", () => {
     renderLanding();
     expect(screen.getByText("landing.stats.users_label")).toBeInTheDocument();
     expect(screen.getByText("landing.stats.withdrawn_label")).toBeInTheDocument();
     expect(screen.getByText("landing.stats.uptime_label")).toBeInTheDocument();
     expect(screen.getByText("landing.stats.miners_label")).toBeInTheDocument();
+    expect(screen.getByText("landing.stats.network_label")).toBeInTheDocument();
+    expect(screen.getByText("landing.stats.activity_label")).toBeInTheDocument();
   });
 
-  it("renders How it works section title", () => {
+  it("renders How it works kicker and title", () => {
     renderLanding();
+    expect(screen.getByText("landing.how.kicker")).toBeInTheDocument();
     expect(screen.getByText("landing.how.title")).toBeInTheDocument();
   });
 
@@ -96,16 +106,9 @@ describe("Landing page", () => {
     expect(screen.getByText("landing.how.step3_title")).toBeInTheDocument();
   });
 
-  it("renders 3 feature cards in the features grid", () => {
+  it("renders 6 feature cards in the features grid", () => {
     renderLanding();
-    for (let i = 1; i <= 3; i++) {
-      expect(screen.getByText(`landing.features.f${i}_title`)).toBeInTheDocument();
-    }
-  });
-
-  it("renders all feature titles", () => {
-    renderLanding();
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= 6; i++) {
       expect(screen.getByText(`landing.features.f${i}_title`)).toBeInTheDocument();
     }
   });
@@ -115,14 +118,19 @@ describe("Landing page", () => {
     expect(screen.getByText("landing.features.title")).toBeInTheDocument();
   });
 
+  it("renders calculator section title", () => {
+    renderLanding();
+    expect(screen.getByText("landing.calculator.title")).toBeInTheDocument();
+  });
+
   it("renders FAQ section title", () => {
     renderLanding();
     expect(screen.getByText("landing.faq.title")).toBeInTheDocument();
   });
 
-  it("renders 4 FAQ questions", () => {
+  it("renders 5 FAQ questions", () => {
     renderLanding();
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 1; i <= 5; i++) {
       expect(screen.getByText(`landing.faq.q${i}`)).toBeInTheDocument();
     }
   });
@@ -143,20 +151,14 @@ describe("Landing page", () => {
     expect(screen.queryByText("landing.faq.a1")).not.toBeInTheDocument();
   });
 
-  it("renders closing section title", () => {
+  it("renders final CTA title", () => {
     renderLanding();
-    expect(screen.getByText("landing.closing.title")).toBeInTheDocument();
+    expect(screen.getByText("landing.final_cta.title")).toBeInTheDocument();
   });
 
-  it("renders closing register button", () => {
+  it("renders final CTA primary button", () => {
     renderLanding();
-    expect(screen.getByText("landing.closing.register")).toBeInTheDocument();
-  });
-
-  it("closing login link points to login route", () => {
-    renderLanding();
-    const loginLinks = screen.getAllByText("landing.closing.login");
-    expect(loginLinks.some((el) => el.closest("a")?.getAttribute("href") === "/login")).toBe(true);
+    expect(screen.getByText("landing.final_cta.primary")).toBeInTheDocument();
   });
 
   it("renders footer tagline", () => {
@@ -177,10 +179,5 @@ describe("Landing page", () => {
   it("sets document title on mount", () => {
     renderLanding();
     expect(document.title).toBe("landing.meta.title");
-  });
-
-  it("renders hero title_end i18n key", () => {
-    renderLanding();
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("landing.hero.title_end");
   });
 });
