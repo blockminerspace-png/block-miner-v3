@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowRight,
@@ -27,6 +27,8 @@ import BrandLogo from '../components/BrandLogo';
 import { normalizeExternalUrl } from '../components/CommunityShortcuts';
 import { calcRewards } from '../utils/calculatorEngine';
 import { formatHashrate } from '../utils/machine';
+import { persistUtmParams, trackLandingEvent, initMetaPixel } from '../utils/landingAnalytics';
+import { useLandingScrollDepth } from '../hooks/useLandingScrollDepth';
 
 const LAUNCH_DATE = new Date('2026-03-05T00:00:00.000Z');
 const EXAMPLE_POL_USD = 0.2;
@@ -145,8 +147,13 @@ function LanguageSwitch({ shellClass = 'border-white/10 bg-slate-950/80', active
     <button
       key={code}
       type="button"
-      onClick={() => void i18n.changeLanguage(code)}
-      className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 ${
+      onClick={() => {
+        if (active !== code) {
+          trackLandingEvent('language_switch', { from_language: active, to_language: code });
+        }
+        void i18n.changeLanguage(code);
+      }}
+      className={`min-h-[44px] min-w-[44px] rounded-full px-2.5 py-2 text-[11px] font-bold uppercase tracking-wider transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 motion-safe:active:scale-[0.98] ${
         active === code ? activeCls : idleCls
       }`}
     >
@@ -204,6 +211,7 @@ function LandingThemeSwitch({ light, onToggle, shellClass, activeDark }) {
 
 export default function Landing() {
   const { t, i18n } = useTranslation();
+  const location = useLocation();
   const { isAuthenticated } = useAuthStore();
   const [publicStats, setPublicStats] = useState(null);
   const [hashSlider, setHashSlider] = useState(100);
@@ -227,6 +235,16 @@ export default function Landing() {
     const id = window.setInterval(loadStats, STATS_POLL_MS);
     return () => window.clearInterval(id);
   }, [loadStats]);
+
+  useLandingScrollDepth();
+
+  useEffect(() => {
+    persistUtmParams(location.search);
+  }, [location.search]);
+
+  useEffect(() => {
+    initMetaPixel();
+  }, []);
 
   useEffect(() => {
     try {
@@ -314,7 +332,21 @@ export default function Landing() {
       name: 'Block Miner',
       url: origin,
     };
-    const payload = [orgLd, siteLd, faqLd];
+    const appLd = {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: 'Block Miner',
+      applicationCategory: 'GameApplication',
+      operatingSystem: 'Web',
+      description: desc,
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+      url: origin,
+    };
+    const payload = [orgLd, siteLd, appLd, faqLd];
     let script = document.querySelector('script[data-landing-jsonld]');
     if (!script) {
       script = document.createElement('script');
@@ -410,10 +442,10 @@ export default function Landing() {
   ];
 
   const gradientBtn =
-    'inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-violet-600 px-8 py-4 text-sm font-bold text-white shadow-xl shadow-sky-500/25 transition-transform duration-200 hover:scale-[1.02] hover:shadow-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400';
+    'motion-safe:transition-transform motion-safe:duration-200 motion-safe:hover:scale-[1.02] inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-violet-600 px-8 py-3.5 text-sm font-bold text-white shadow-xl shadow-sky-500/25 motion-safe:hover:shadow-[0_0_28px_rgba(56,189,248,0.35)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 motion-reduce:hover:scale-100';
 
   const outlineBtn =
-    'inline-flex items-center justify-center rounded-full border px-8 py-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400';
+    'inline-flex min-h-[44px] items-center justify-center rounded-full border px-8 py-3.5 text-sm font-semibold motion-safe:transition-transform motion-safe:duration-200 motion-safe:hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 motion-reduce:hover:scale-100';
 
   return (
     <div className={skin.page}>
@@ -451,11 +483,16 @@ export default function Landing() {
             <LanguageSwitch shellClass={skin.langShell} activeDark={!light} />
             <Link
               to="/login"
-              className={`hidden sm:inline text-sm font-medium transition-colors ${skin.navLink}`}
+              className={`hidden min-h-[44px] items-center justify-center sm:inline-flex sm:text-sm font-medium transition-colors ${skin.navLink}`}
+              onClick={() => trackLandingEvent('landing_cta_click', { cta_id: 'nav_login', destination: '/login' })}
             >
               {t('landing.nav.login')}
             </Link>
-            <Link to="/register" className={`${gradientBtn} !px-5 !py-2 !text-sm !font-semibold`}>
+            <Link
+              to="/register"
+              className={`${gradientBtn} !min-h-[44px] !px-5 !py-2 !text-sm !font-semibold`}
+              onClick={() => trackLandingEvent('landing_cta_click', { cta_id: 'nav_register', destination: '/register' })}
+            >
               {t('landing.nav.register')}
             </Link>
           </div>
@@ -469,26 +506,37 @@ export default function Landing() {
               <div
                 className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs uppercase tracking-[0.22em] ${skin.badge}`}
               >
-                <span className={`h-2 w-2 rounded-full ${skin.dot}`} aria-hidden />
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${skin.dot} motion-safe:animate-pulse motion-reduce:animate-none`}
+                  aria-hidden
+                />
                 {t('landing.hero.badge')}
               </div>
-              <h1 className={`mt-6 text-4xl font-black leading-[1.05] sm:text-5xl lg:text-6xl ${skin.h1}`}>
+              <h1
+                className={`mt-6 max-w-[22ch] font-black leading-[1.05] ${skin.h1} text-[clamp(1.85rem,4.2vw+0.85rem,3.65rem)] sm:max-w-none lg:text-[clamp(2.25rem,3.5vw+1rem,3.75rem)]`}
+              >
                 {t('landing.hero.headline')}
               </h1>
               <p className={`mt-5 max-w-xl text-base leading-relaxed sm:text-lg ${skin.body}`}>
                 {t('landing.hero.subheadline')}
               </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <Link to="/register" className={gradientBtn}>
+              <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:items-center">
+                <Link
+                  to="/register"
+                  className={`${gradientBtn} w-full sm:w-auto`}
+                  aria-label={t('landing.hero.cta_primary')}
+                  onClick={() => trackLandingEvent('landing_cta_click', { cta_id: 'hero_primary', destination: '/register' })}
+                >
                   {t('landing.hero.cta_primary')}
-                  <ArrowRight className="h-4 w-4" aria-hidden />
                 </Link>
-                <a
-                  href="#how-it-works"
-                  className={`${outlineBtn} ${light ? 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50' : 'border-white/15 bg-white/5 text-slate-100 hover:bg-white/10'}`}
+                <Link
+                  to="/login"
+                  className={`${outlineBtn} w-full sm:w-auto ${light ? 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50' : 'border-white/15 bg-white/5 text-slate-100 hover:bg-white/10'}`}
+                  aria-label={t('landing.hero.cta_secondary')}
+                  onClick={() => trackLandingEvent('landing_cta_click', { cta_id: 'hero_secondary', destination: '/login' })}
                 >
                   {t('landing.hero.cta_secondary')}
-                </a>
+                </Link>
               </div>
               <div className="mt-10 grid gap-3 sm:grid-cols-3">
                 {[
@@ -658,7 +706,11 @@ export default function Landing() {
                 {t('landing.calculator.usd_note')}
               </p>
               <p className="mt-3 text-xs text-slate-500">{t('landing.calculator.disclaimer')}</p>
-              <Link to="/register" className={`${gradientBtn} mt-8 w-full sm:w-auto`}>
+              <Link
+                to="/register"
+                className={`${gradientBtn} mt-8 w-full sm:w-auto`}
+                onClick={() => trackLandingEvent('landing_cta_click', { cta_id: 'calculator_register', destination: '/register' })}
+              >
                 {t('landing.calculator.cta')}
               </Link>
             </div>
@@ -871,7 +923,11 @@ export default function Landing() {
               <li>✓ {t('landing.final_cta.bullet2')}</li>
               <li>✓ {t('landing.final_cta.bullet3')}</li>
             </ul>
-            <Link to="/register" className={`${gradientBtn} mt-8`}>
+            <Link
+              to="/register"
+              className={`${gradientBtn} mt-8`}
+              onClick={() => trackLandingEvent('landing_cta_click', { cta_id: 'final_cta_register', destination: '/register' })}
+            >
               {t('landing.final_cta.primary')}
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>

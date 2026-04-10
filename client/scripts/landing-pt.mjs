@@ -13,12 +13,12 @@ export const landingPt = {
     language_group: "Idioma",
   },
   hero: {
-    badge: "Ao vivo na Polygon — blocos fechando agora",
-    headline: "Ganhe poder de mineração sem comprar hardware",
+    badge: "Jogo online — blocos sendo minerados agora",
+    headline: "Jogue, Minere e Ganhe Cripto de Verdade",
     subheadline:
-      "BlockMiner é um jogo grátis no navegador: monte sua fazenda, jogue Memory Sync e Power Match para mais hashrate, faça tarefas e ganhe recompensas estilo POL na Polygon. Sem cartão para começar.",
-    cta_primary: "Começar a minerar agora — é grátis",
-    cta_secondary: "Como funciona",
+      "O jogo de mineração onde você monta sua farm, compra máquinas e ganha criptomoedas reais a cada bloco.",
+    cta_primary: "Jogar Agora — É Grátis →",
+    cta_secondary: "Já tenho conta",
     trust_miners: "Mineradores ativos",
     trust_paid: "POL sacado on-chain",
     trust_rating: "Feito para jogadores no mundo todo",

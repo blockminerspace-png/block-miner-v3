@@ -38,7 +38,8 @@ i18n
     // i18next v25+ logs a Locize promo to console unless this is false
     showSupportNotice: false,
     debug: Boolean(import.meta.env?.DEV),
-    fallbackLng: 'en', // Default language if browser language is not available
+    // Chain: English → Brazilian Portuguese → Spanish (explicit choice beats detector)
+    fallbackLng: ['en', 'pt-BR', 'es'],
     supportedLngs: ['en', 'pt-BR', 'pt', 'pt-PT', 'es', 'es-ES'],
     interpolation: {
       escapeValue: false, // react already safes from xss

@@ -20,6 +20,13 @@ export function useAnalytics() {
         window.dataLayer.push(arguments);
       };
       window.gtag('js', new Date());
+      const strictConsent = import.meta.env.VITE_GTAG_CONSENT_STRICT === '1';
+      window.gtag('consent', 'default', {
+        analytics_storage: strictConsent ? 'denied' : 'granted',
+        ad_storage: strictConsent ? 'denied' : 'granted',
+        ad_user_data: strictConsent ? 'denied' : 'granted',
+        ad_personalization: strictConsent ? 'denied' : 'granted',
+      });
       window.gtag('config', GA_MEASUREMENT_ID, {
         page_path: window.location.pathname + window.location.search,
         send_page_view: false, // We'll handle this manually on route changes

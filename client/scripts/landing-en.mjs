@@ -13,12 +13,12 @@ export const landingEn = {
     language_group: "Language",
   },
   hero: {
-    badge: "Live on Polygon — blocks closing now",
-    headline: "Mine crypto power without buying hardware",
+    badge: "Game online — blocks mining now",
+    headline: "Play, Mine & Earn Real Crypto",
     subheadline:
-      "BlockMiner is a free browser game: build your farm, play Memory Sync & Power Match for extra hashrate, complete tasks, and earn POL-style rewards on Polygon. No credit card to start.",
-    cta_primary: "Start mining now — it's free",
-    cta_secondary: "How it works",
+      "The mining game where you build your farm, buy machines, and earn real crypto every block.",
+    cta_primary: "Play now — it's free →",
+    cta_secondary: "I already have an account",
     trust_miners: "Active miners",
     trust_paid: "POL withdrawn on-chain",
     trust_rating: "Built for players worldwide",

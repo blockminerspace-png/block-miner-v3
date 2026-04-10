@@ -78,6 +78,12 @@ describe("Landing page", () => {
     expect(screen.getByText("landing.nav.login")).toBeInTheDocument();
   });
 
+  it("hero secondary CTA links to login", () => {
+    renderLanding();
+    const link = screen.getByRole("link", { name: "landing.hero.cta_secondary" });
+    expect(link).toHaveAttribute("href", "/login");
+  });
+
   it("renders nav register link at least once", () => {
     renderLanding();
     expect(screen.getAllByText("landing.nav.register").length).toBeGreaterThanOrEqual(1);
