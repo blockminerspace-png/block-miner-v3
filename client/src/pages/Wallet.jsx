@@ -26,8 +26,23 @@ import {
 } from 'lucide-react';
 import { api } from '../store/auth';
 import { parseEther, isAddress, getAddress } from 'ethers';
+import { useSendTransaction } from 'wagmi';
 import { useWallet } from '../hooks/useWallet';
 import { useGameStore } from '../store/game';
+
+function isUserRejectedTx(err) {
+    return (
+        err?.code === 4001 ||
+        err?.code === 'ACTION_REJECTED' ||
+        String(err?.message || '').toLowerCase().includes('user rejected')
+    );
+}
+
+function looksLikeGasOrProviderIssue(err) {
+    if (isUserRejectedTx(err)) return false;
+    const m = String(err?.message || err?.shortMessage || err || '').toLowerCase();
+    return /gas|estimate|execution reverted|intrinsic|unknown method|failed to submit|invalid request/i.test(m);
+}
 
 export default function Wallet() {
     const { t } = useTranslation();
@@ -43,6 +58,8 @@ export default function Wallet() {
         cancelWalletSession,
         kitConnected,
     } = useWallet();
+
+    const { mutateAsync: sendOnchainTx } = useSendTransaction();
 
     const showWalletSessionCancel =
         Boolean(kitConnected || isConnecting);
@@ -257,23 +274,56 @@ export default function Wallet() {
                 return;
             }
 
-            const eip1193 = getActiveEip1193();
-            if (!eip1193) {
-                toast.error(t('wallet.web3_deposit.no_wallet_for_send'));
-                return;
-            }
-            const accounts = await eip1193.request({ method: 'eth_accounts' });
-            const from = accounts[0];
-            const valueHex = '0x' + parseEther(amount.toString()).toString(16);
             const to = getAddress(systemDepositAddress);
+            const valueWei = parseEther(amount.toString());
 
             toast.info('Requesting transaction authorized...');
 
-            // Só from / to / value — gás, nonce e tipo de tx ficam a cargo da carteira.
-            const txHash = await eip1193.request({
-                method: 'eth_sendTransaction',
-                params: [{ from, to, value: valueHex }],
-            });
+            let txHash;
+            try {
+                txHash = await sendOnchainTx({ to, value: valueWei });
+            } catch (wagmiErr) {
+                if (isUserRejectedTx(wagmiErr)) throw wagmiErr;
+                console.warn('Deposit: wagmi send failed, trying EIP-1193', wagmiErr);
+                const eip1193 = getActiveEip1193();
+                if (!eip1193) {
+                    toast.error(t('wallet.web3_deposit.no_wallet_for_send'));
+                    throw wagmiErr;
+                }
+                const accounts = await eip1193.request({ method: 'eth_accounts' });
+                const from = accounts[0];
+                if (!from) {
+                    toast.error(t('wallet.web3_deposit.no_wallet_for_send'));
+                    throw wagmiErr;
+                }
+                const valueHex = `0x${valueWei.toString(16)}`;
+                try {
+                    txHash = await eip1193.request({
+                        method: 'eth_sendTransaction',
+                        params: [{ from, to, value: valueHex }],
+                    });
+                } catch (rawErr) {
+                    if (isUserRejectedTx(rawErr)) throw rawErr;
+                    if (!looksLikeGasOrProviderIssue(rawErr)) throw rawErr;
+                    let gasLimit = '0x5208';
+                    try {
+                        const estRes = await api.post('/wallet/deposit/estimate-gas', {
+                            from,
+                            to,
+                            valueHex,
+                        });
+                        if (estRes.data?.ok && estRes.data.gasLimit) {
+                            gasLimit = estRes.data.gasLimit;
+                        }
+                    } catch {
+                        /* use default */
+                    }
+                    txHash = await eip1193.request({
+                        method: 'eth_sendTransaction',
+                        params: [{ from, to, value: valueHex, gas: gasLimit }],
+                    });
+                }
+            }
 
             toast.info('Transação enviada! Registrando para verificação...');
 

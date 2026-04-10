@@ -1,22 +1,381 @@
 ---
-description: Deploy Block Miner to the production VPS and keep env/build aligned (Docker, WalletConnect).
-globs: deploy.py,scripts/deploy*.ps1,docker-compose.yml,Dockerfile,.env.production.example
-alwaysApply: false
+description: 
+alwaysApply: true
 ---
 
-# Block Miner — deploy na VM
+# 🔥 Tech Lead Engineering Standards v2 (Pragmatic & Executable)
 
-**Repositório oficial de produção (o que a VPS faz `git pull`):**  
-`https://github.com/blockminerspace-png/block-miner-v3.git` — remoto Git **`origin`**, branch **`main`**.  
-Fazer **push principal para `origin main`**. Outros remotos (ex.: `block-miner21`) só se o utilizador pedir explícito para sincronizar.
+---
 
-Quando o utilizador pedir **deploy**, **subir para produção**, ou **configurar a VM**:
+## 0. Non-Negotiables (Fail = Block PR)
 
-1. **Nunca** fazer commit de segredos: `deploy.py`, `deploy.secrets.local`, `.env.production`, `.env.production.vm-backup` estão no `.gitignore`.
-2. **Push** para **`origin`** (`block-miner-v3`) em `main` antes do deploy.
-3. **Windows:** na raiz do repo, `python deploy.py` (ou `python deploy.py --no-cache` para rebuild completo). Isto corre `scripts/deploy-vps-windows.ps1` (PuTTY `plink`/`pscp`).
-4. Garantir **`.env.production.vm-backup`** local com o mesmo conteúdo que a VM precisa; o script envia-o para `/root/block-miner/.env.production`.
-5. Para **WalletConnect / Reown AppKit** no cliente, o build Docker precisa de `VITE_WALLETCONNECT_PROJECT_ID` e idealmente `VITE_PUBLIC_WALLET_APP_URL` (https do site) nesse `.env.production` — o `docker-compose` passa-os como build args.
-6. Após deploy, verificar logs se algo falhar: na VM, `docker compose ps`, `docker compose logs nginx --tail 80`, `curl -sS http://127.0.0.1:3000/health`.
+- ❌ No tests → no merge
+- ❌ No input validation → no merge
+- ❌ Hidden side effects → no merge
+- ❌ Breaking API/contracts → no merge
+- ❌ Sensitive data in logs → no merge
+- ❌ Unreadable code → no merge
 
-Não alterar migrações Prisma na VPS sem pedido explícito do utilizador.
+---
+
+# 1. System Design
+
+## 1.1 Architecture Choice
+
+- Default: **Modular Monolith**
+- Microservices only if:
+  - Independent teams
+  - Real scaling needs
+  - Clear bounded contexts
+
+---
+
+## 1.2 Base Structure
+
+- Mandatory separation:
+  - Domain
+  - Application
+  - Infrastructure
+
+- Never mix business logic with infra
+
+---
+
+## 1.3 Core Design Rules
+
+- Enforce SRP
+- Prefer composition over inheritance
+- Apply Dependency Inversion (DIP)
+- Avoid cross-domain coupling
+- Define explicit contracts between layers
+
+---
+
+## 1.4 Domain-Driven Design (DDD)
+
+Use when:
+- Complex business rules
+
+Rules:
+- Aggregates with clear invariants
+- Avoid anemic models
+- Explicit use cases (Application layer)
+
+---
+
+## 1.5 Integrations
+
+- Use Anti-Corruption Layer
+- Version all contracts
+
+---
+
+# 2. Code Quality
+
+## 2.1 Structure
+
+- Functions:
+  - Single responsibility
+  - < 30 lines
+  - ≤ 3 nesting levels
+
+- Classes:
+  - Small
+  - Cohesive
+  - No God objects
+
+---
+
+## 2.2 Readability
+
+- Must be understandable in one pass
+
+Naming:
+- Booleans → `isActive`, `hasAccess`
+- Functions → `createUser`, `processPayment`
+
+---
+
+## 2.3 Critical Rules
+
+- ❌ Boolean flags
+- ❌ Magic numbers
+- ❌ Hidden mutations
+
+- ✅ Prefer:
+  - Early returns
+  - Pure functions
+  - Immutability
+
+---
+
+## 2.4 DRY vs Clarity
+
+- Clarity > DRY
+- Abstract only when:
+  - Real reuse
+  - Reduced complexity
+
+---
+
+# 3. Data & Domain Modeling
+
+- Use Value Objects
+- Make invalid states impossible
+- Validate at boundaries
+- Prefer immutability
+
+---
+
+# 4. Testing Strategy
+
+## Pyramid
+
+- Unit → majority
+- Integration → services
+- E2E → critical paths only
+
+---
+
+## Rules
+
+- Deterministic tests
+- No time/random dependency
+- Use DI for testability
+- Cover edge cases
+
+---
+
+## Advanced
+
+- Contract testing for APIs
+- CI must block on failures
+
+---
+
+# 5. Security
+
+- Always enforce Auth + Authorization
+- Mandatory input validation
+- Never expose:
+  - Tokens
+  - Secrets
+  - Sensitive data
+
+---
+
+## Protection
+
+- SQL/NoSQL Injection
+- XSS
+- CSRF / SSRF
+
+---
+
+## Infra
+
+- TLS required
+- Secret manager
+- Least privilege (IAM)
+
+---
+
+# 6. Error Handling
+
+- No generic errors
+- Use typed domain errors
+- Do not leak internals
+- Fail fast when needed
+
+---
+
+# 7. Observability
+
+- Structured logs
+- Mandatory traceId
+- Metrics:
+  - Latency
+  - Errors
+  - Throughput
+
+---
+
+## Production
+
+- Health checks
+- Dashboards
+- SLO-based alerts
+
+---
+
+# 8. Performance & Scaling
+
+- Avoid N+1 queries
+- Use pagination
+- Proper indexing
+
+---
+
+## Scaling
+
+- Prefer stateless services
+- Use caching when needed
+- Async via queues (Kafka/RabbitMQ)
+
+---
+
+## Rule
+
+> Do not optimize before measuring
+
+---
+
+# 9. Resilience
+
+- Mandatory timeouts
+- Retry with exponential backoff
+- Circuit breaker
+
+---
+
+## Rules
+
+- Idempotency
+- Handle concurrency
+- Graceful degradation
+
+---
+
+# 10. CI/CD & DevOps
+
+- Pipeline must include:
+  - Tests
+  - Lint
+  - Security checks
+
+---
+
+## Deployment
+
+- Feature flags
+- Canary / Blue-Green
+- Automatic rollback
+
+---
+
+# 11. API Design
+
+- Predictable APIs
+- Mandatory versioning
+- Idempotency
+- Pagination & filtering
+
+---
+
+## Contracts
+
+- OpenAPI
+- Schema validation
+
+---
+
+# 12. Data Management
+
+- Versioned migrations
+- Backward compatibility
+
+---
+
+## Rules
+
+- Clear data ownership
+- Defined retention policy
+- LGPD compliance
+
+---
+
+# 13. Reliability & SRE
+
+- Error budgets
+- Track MTTR / MTBF
+- Automate recovery
+
+---
+
+# 14. Cost Awareness
+
+- Monitor cost per feature
+- Avoid overengineering
+- Use autoscaling wisely
+
+---
+
+# 15. Team Process
+
+- Definition of Done required
+- Structured code reviews
+- Conventional commits
+
+---
+
+## Culture
+
+- Blameless environment
+- Clear ownership
+- Continuous knowledge sharing
+
+---
+
+# 16. Product Alignment
+
+- Engineering serves product
+- Validate assumptions early
+- Measure impact (KPIs)
+
+---
+
+# 17. Advanced Practices (Use When Justified)
+
+- Load testing
+- Chaos engineering
+- Dark launches
+- Feature toggles
+
+---
+
+# 18. Distributed Systems
+
+- Understand CAP trade-offs
+- Accept eventual consistency when needed
+
+---
+
+## Patterns
+
+- Saga
+- Outbox
+
+---
+
+## Guarantees
+
+- Idempotency
+- Safe reprocessing
+
+---
+
+# 19. Developer Experience (DX)
+
+- Fast local setup
+- Fast tests
+- High feedback loop
+
+---
+
+# 20. Guiding Principles
+
+- Simplicity > sophistication
+- Clarity > abstraction
+- Design for failure
+- Optimize for change
+- Make trade-offs explicit

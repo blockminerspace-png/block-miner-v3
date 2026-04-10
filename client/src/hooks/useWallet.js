@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import {
     useAppKit,
@@ -9,7 +10,10 @@ import {
 import { polygon } from '@reown/appkit/networks';
 import { useDisconnect, useSignMessage } from 'wagmi';
 import { api } from '../store/auth';
-import { getBrowserEthereumProvider } from '../utils/walletProvider.js';
+import {
+    getBrowserEthereumProvider,
+    getVerifiedBrowserEthereumProvider,
+} from '../utils/walletProvider.js';
 import { isWalletConnectConfigured } from '../utils/walletConnect.js';
 
 const POLYGON_CHAIN_ID = '0x89';
@@ -19,7 +23,19 @@ function getInjectedProvider() {
     return getBrowserEthereumProvider();
 }
 
-async function switchNetworkFor(provider) {
+function isUnknownMethodError(err) {
+    const code = err?.code;
+    const msg = String(err?.message || '').toLowerCase();
+    return (
+        code === -32601 ||
+        code === 4200 ||
+        msg.includes('unknown method') ||
+        msg.includes('does not exist') ||
+        msg.includes('not supported')
+    );
+}
+
+async function switchNetworkFor(provider, { onUnknownMethod } = {}) {
     if (!provider) return;
     try {
         await provider.request({
@@ -27,6 +43,10 @@ async function switchNetworkFor(provider) {
             params: [{ chainId: POLYGON_CHAIN_ID }],
         });
     } catch (switchError) {
+        if (isUnknownMethodError(switchError)) {
+            if (onUnknownMethod) onUnknownMethod();
+            return;
+        }
         if (switchError.code === 4902) {
             try {
                 await provider.request({
@@ -40,10 +60,15 @@ async function switchNetworkFor(provider) {
                     }],
                 });
             } catch (addError) {
+                if (isUnknownMethodError(addError) && onUnknownMethod) {
+                    onUnknownMethod();
+                    return;
+                }
                 console.error('Error adding network:', addError);
             }
+        } else {
+            console.error('Error switching network:', switchError);
         }
-        console.error('Error switching network:', switchError);
     }
 }
 
@@ -77,6 +102,7 @@ async function signOwnershipMessageWithProvider(provider, userAccount) {
 }
 
 export function useWallet() {
+    const { t } = useTranslation();
     const { open } = useAppKit();
     const { address: kitAddress, isConnected: kitConnected } = useAppKitAccount();
     const { chainId: kitChainId, switchNetwork: appKitSwitchNetwork } = useAppKitNetwork();
@@ -269,10 +295,15 @@ export function useWallet() {
 
     const connectInjectedAndVerify = useCallback(
         async () => {
-            const injected = getInjectedProvider();
+            const injected = await getVerifiedBrowserEthereumProvider();
             if (!injected) {
+                const hasSlot =
+                    typeof window !== 'undefined' &&
+                    (window.ethereum || window.trustwallet || window.trustWallet);
                 toast.error(
-                    'No browser wallet found. On your phone use WalletConnect, or open this site inside MetaMask / Trust in-app browser.'
+                    hasSlot
+                        ? t('wallet.web3_deposit.injected_unusable')
+                        : t('wallet.web3_deposit.no_browser_wallet')
                 );
                 return;
             }
@@ -290,7 +321,10 @@ export function useWallet() {
                 setChainId(currentChainId);
 
                 if (currentChainId !== POLYGON_CHAIN_ID) {
-                    await switchNetworkFor(injected);
+                    await switchNetworkFor(injected, {
+                        onUnknownMethod: () =>
+                            toast.error(t('wallet.web3_deposit.switch_chain_unsupported')),
+                    });
                 }
 
                 await verifyWithServer(userAccount, injected);
@@ -305,7 +339,7 @@ export function useWallet() {
                 setIsConnecting(false);
             }
         },
-        [kitConnected, disconnectAsync, verifyWithServer]
+        [kitConnected, disconnectAsync, verifyWithServer, t]
     );
 
     const openConnectModal = useCallback(async () => {
@@ -385,8 +419,12 @@ export function useWallet() {
             }
             return;
         }
-        await switchNetworkFor(getInjectedProvider());
-    }, [walletConnectConfigured, kitConnected, appKitSwitchNetwork]);
+        const p = await getVerifiedBrowserEthereumProvider();
+        await switchNetworkFor(p, {
+            onUnknownMethod: () =>
+                toast.error(t('wallet.web3_deposit.switch_chain_unsupported')),
+        });
+    }, [walletConnectConfigured, kitConnected, appKitSwitchNetwork, t]);
 
     useEffect(() => {
         if (!walletConnectConfigured || !kitConnected || !kitAddress) {
@@ -416,7 +454,7 @@ export function useWallet() {
     ]);
 
     const checkConnection = useCallback(async () => {
-        const provider = getInjectedProvider();
+        const provider = await getVerifiedBrowserEthereumProvider();
         if (!provider) return;
 
         try {

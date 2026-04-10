@@ -157,6 +157,39 @@ export async function requestWithdrawal(req, res) {
  * Registra um depósito para verificação assíncrona na blockchain.
  * O usuário envia o txHash e pode fechar a página — o sistema verifica em background.
  */
+const EVM_ADDR = /^0x[0-9a-fA-F]{40}$/;
+
+/**
+ * Server-side gas estimate for native POL transfers (Trust / some WC paths).
+ * Auth + same rate limit as other wallet writes.
+ */
+export async function postDepositEstimateGas(req, res) {
+  try {
+    const { from, to, valueHex } = req.body || {};
+    if (!from || !to || !valueHex || !EVM_ADDR.test(from) || !EVM_ADDR.test(to)) {
+      return res.status(400).json({ ok: false, message: "Invalid from, to, or value." });
+    }
+    if (!/^0x[0-9a-fA-F]+$/.test(valueHex)) {
+      return res.status(400).json({ ok: false, message: "Invalid valueHex." });
+    }
+    let value;
+    try {
+      value = BigInt(valueHex);
+    } catch {
+      return res.status(400).json({ ok: false, message: "Invalid valueHex." });
+    }
+    const provider = getSharedPolygonProvider();
+    const estimated = await provider.estimateGas({ from, to, value });
+    const padded = estimated + estimated / 5n;
+    const cap = 2_500_000n;
+    const gasLimit = padded > cap ? cap : padded;
+    res.json({ ok: true, gasLimit: `0x${gasLimit.toString(16)}` });
+  } catch (e) {
+    logger.warn("deposit estimate gas failed", { error: e.message });
+    res.status(200).json({ ok: true, gasLimit: "0x5208", fallback: true });
+  }
+}
+
 export async function submitDeposit(req, res) {
   try {
     const userId = req.user.id;

@@ -376,7 +376,10 @@
       "tx_reverted_hint": "Transação revertida na chain.",
       "tx_pending_mined": "À espera de ser minerada…",
       "no_treasury": "Endereço da tesouraria não configurado no servidor (DEPOSIT_WALLET_ADDRESS).",
-      "no_wallet_for_send": "Sem sessão de carteira. Conecte primeiro (navegador ou WalletConnect)."
+      "no_wallet_for_send": "Sem sessão de carteira. Conecte primeiro (navegador ou WalletConnect).",
+      "no_browser_wallet": "Nenhuma carteira no browser. No telemóvel usa WalletConnect (com VITE_WALLETCONNECT_PROJECT_ID) ou abre o site dentro do browser do MetaMask / Trust.",
+      "injected_unusable": "Uma extensão está a bloquear Ethereum (ex.: Bitwarden). Desativa para este site ou usa MetaMask / outra carteira. No telemóvel, WalletConnect.",
+      "switch_chain_unsupported": "Esta carteira não suporta mudar rede automaticamente. Abre a carteira e escolhe Polygon (rede 137) manualmente."
     },
     "express_mode_note": "EXPRESS: associe a carteira para assinar transferências na Polygon. O saldo atualiza após {{n}} confirmações de bloco."
   },

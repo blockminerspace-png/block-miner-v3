@@ -15,6 +15,7 @@ walletRouter.get("/transactions", requireAuth, walletLimiter, walletController.g
 walletRouter.get("/deposits", requireAuth, walletLimiter, walletController.getDeposits);
 walletRouter.post("/deposit", requireAuth, walletLimiter, walletController.requestDeposit);
 walletRouter.post("/deposit/submit", requireAuth, walletLimiter, walletController.submitDeposit);
+walletRouter.post("/deposit/estimate-gas", requireAuth, walletLimiter, walletController.postDepositEstimateGas);
 walletRouter.get("/deposit/pending", requireAuth, walletLimiter, walletController.getPendingDeposits);
 walletRouter.post("/update-address", requireAuth, walletLimiter, walletController.updateAddress);
 walletRouter.post("/withdraw", requireAuth, walletLimiter, walletController.requestWithdrawal);

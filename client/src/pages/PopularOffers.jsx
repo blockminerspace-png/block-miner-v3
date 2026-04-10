@@ -6,6 +6,7 @@ import { Loader2, Zap, TrendingUp, CheckCircle2, AlertTriangle, X, Sparkles, Cal
 import { api } from '../store/auth';
 import { useGameStore } from '../store/game';
 import { formatHashrate } from '../utils/machine';
+import AdBanner from '../components/AdBanner';
 
 function fmtDate(iso) {
     if (!iso) return '—';
@@ -88,6 +89,7 @@ export default function PopularOffers() {
 
     return (
         <div className="space-y-14 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <AdBanner size="300x250" />
             {events.map((ev) => (
                 <div key={ev.id} className="space-y-6">
                     {/* Cabeçalho do Evento */}
