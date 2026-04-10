@@ -267,63 +267,13 @@ export default function Wallet() {
             const valueHex = '0x' + parseEther(amount.toString()).toString(16);
             const to = getAddress(systemDepositAddress);
 
-            /** JSON-RPC quantity must be 0x + hex digits only (wallets reject prose e.g. API deprecation notices). */
-            const normalizeQuantity = (val, label) => {
-                if (typeof val === 'number' && Number.isFinite(val) && val >= 0 && Number.isInteger(val)) {
-                    return '0x' + BigInt(val).toString(16);
-                }
-                if (typeof val === 'string' && /^0x[0-9a-fA-F]+$/.test(val)) {
-                    return val;
-                }
-                throw new Error(
-                    `${label} inválido da rede. Troque de RPC na carteira ou tente novamente.`
-                );
-            };
-
             toast.info('Requesting transaction authorized...');
 
-            // Trust / WalletConnect: pedidos com `type`, nonce+gas pré-calculados ou `pending` às vezes devolvem
-            // "Unknown method(s) requested". Preferimos tx mínima e deixamos a carteira estimar gás.
-            const sendWithFallback = async () => {
-                try {
-                    return await eip1193.request({
-                        method: 'eth_sendTransaction',
-                        params: [{ from, to, value: valueHex }],
-                    });
-                } catch (firstErr) {
-                    if (firstErr?.code === 4001) throw firstErr;
-                    const msg = String(firstErr?.message || firstErr?.reason || '').toLowerCase();
-                    const tryLegacy =
-                        /unknown method|unsupported|not supported|invalid|gas|nonce|estimate|parse/i.test(msg) ||
-                        firstErr?.code === -32603;
-                    if (!tryLegacy) throw firstErr;
-
-                    const [nonceRaw, gasPriceRaw] = await Promise.all([
-                        eip1193.request({
-                            method: 'eth_getTransactionCount',
-                            params: [from, 'latest'],
-                        }),
-                        eip1193.request({ method: 'eth_gasPrice' }),
-                    ]);
-                    const nonce = normalizeQuantity(nonceRaw, 'Nonce');
-                    const gasPrice = normalizeQuantity(gasPriceRaw, 'Preço do gás');
-                    return await eip1193.request({
-                        method: 'eth_sendTransaction',
-                        params: [
-                            {
-                                from,
-                                to,
-                                value: valueHex,
-                                gas: '0x5208',
-                                gasPrice,
-                                nonce,
-                            },
-                        ],
-                    });
-                }
-            };
-
-            const txHash = await sendWithFallback();
+            // Só from / to / value — gás, nonce e tipo de tx ficam a cargo da carteira.
+            const txHash = await eip1193.request({
+                method: 'eth_sendTransaction',
+                params: [{ from, to, value: valueHex }],
+            });
 
             toast.info('Transação enviada! Registrando para verificação...');
 
