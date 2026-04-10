@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import axios from 'axios';
 import { generateSecurityPayload } from '../utils/security';
+import { clearWalletSessionClearedByUserFlag } from '../utils/walletSessionPreference.js';
 
 // Configure default axios behavior for our API
 export const api = axios.create({
@@ -80,6 +81,7 @@ export const useAuthStore = create((set) => ({
         try {
             await api.post('/auth/logout');
         } finally {
+            clearWalletSessionClearedByUserFlag();
             set({ user: null, isAuthenticated: false });
         }
     }

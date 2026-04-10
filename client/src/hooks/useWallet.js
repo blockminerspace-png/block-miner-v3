@@ -16,6 +16,11 @@ import {
 } from '../utils/walletProvider.js';
 import { isWalletConnectConfigured } from '../utils/walletConnect.js';
 import { subscribeInjectedEthereumEvents } from '../utils/eip1193ProviderEvents.js';
+import {
+    clearWalletSessionClearedByUserFlag,
+    isWalletSessionClearedByUser,
+    markWalletSessionClearedByUser,
+} from '../utils/walletSessionPreference.js';
 
 const POLYGON_CHAIN_ID = '0x89';
 const POLYGON_NUM = 137;
@@ -125,8 +130,6 @@ export function useWallet() {
     /** Bumped on user cancel so in-flight sync exits after awaits without toasting errors. */
     const linkOpIdRef = useRef(0);
     const openModalRef = useRef(false);
-    /** After explicit disconnect, do not auto-restore session from eth_accounts / checkConnection. */
-    const userDisconnectedRef = useRef(false);
 
     const kitChainNum = normalizeChainNum(kitChainId);
 
@@ -152,7 +155,7 @@ export function useWallet() {
     }, [walletProvider]);
 
     const cancelWalletSession = useCallback(async () => {
-        userDisconnectedRef.current = true;
+        markWalletSessionClearedByUser();
         linkOpIdRef.current += 1;
         openModalRef.current = false;
         Object.entries(walletLinkRejectRef.current).forEach(([, rej]) => {
@@ -235,7 +238,7 @@ export function useWallet() {
             const myOpId = linkOpIdRef.current;
 
             (async () => {
-                userDisconnectedRef.current = false;
+                clearWalletSessionClearedByUserFlag();
                 linkingRef.current = `busy:${addr}`;
                 setIsConnecting(true);
                 try {
@@ -300,7 +303,7 @@ export function useWallet() {
 
     const connectInjectedAndVerify = useCallback(
         async () => {
-            userDisconnectedRef.current = false;
+            clearWalletSessionClearedByUserFlag();
             const injected = await getVerifiedBrowserEthereumProvider();
             if (!injected) {
                 const hasSlot =
@@ -353,7 +356,7 @@ export function useWallet() {
             return;
         }
 
-        userDisconnectedRef.current = false;
+        clearWalletSessionClearedByUserFlag();
         openModalRef.current = true;
         setIsConnecting(true);
         try {
@@ -435,13 +438,20 @@ export function useWallet() {
         });
     }, [walletConnectConfigured, kitConnected, appKitSwitchNetwork, t]);
 
+    // WalletConnect can rehydrate a stored session on reload; honor explicit disconnect.
+    useEffect(() => {
+        if (!isWalletSessionClearedByUser()) return;
+        if (!walletConnectConfigured || !kitConnected) return;
+        disconnectAsync().catch(() => {});
+    }, [walletConnectConfigured, kitConnected, disconnectAsync]);
+
     useEffect(() => {
         if (!walletConnectConfigured || !kitConnected || !kitAddress) {
             if (!kitAddress) linkingRef.current = null;
             return;
         }
 
-        if (userDisconnectedRef.current) {
+        if (isWalletSessionClearedByUser()) {
             return;
         }
 
@@ -467,7 +477,7 @@ export function useWallet() {
     ]);
 
     const checkConnection = useCallback(async () => {
-        if (userDisconnectedRef.current) {
+        if (isWalletSessionClearedByUser()) {
             return;
         }
         const provider = await getVerifiedBrowserEthereumProvider();
@@ -502,7 +512,7 @@ export function useWallet() {
 
         const handleAccountsChanged = (accounts) => {
             if (kitConnected) return;
-            if (userDisconnectedRef.current) {
+            if (isWalletSessionClearedByUser()) {
                 setAccount(null);
                 setIsConnected(false);
                 return;
