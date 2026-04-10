@@ -494,6 +494,7 @@
       "injected_unusable": "Uma extensão está a bloquear Ethereum (ex.: Bitwarden). Desativa para este site ou usa MetaMask / outra carteira. No telemóvel, WalletConnect.",
       "switch_chain_unsupported": "Esta carteira não suporta mudar rede automaticamente. Abre a carteira e escolhe Polygon (rede 137) manualmente.",
       "smart_contract_hint": "Usa WalletConnect ou extensão no Polygon (137). Associa a mesma carteira ao perfil e envia POL pelo contrato de depósito — o servidor credita após as confirmações.",
+      "treasury_browser_hint": "Usa uma carteira no navegador (ex.: Rabby, MetaMask) na Polygon (137). Liga e assina a mensagem de verificação e depois usa o depósito expresso para enviar POL nativo para o endereço de tesouraria — o servidor credita após as confirmações.",
       "no_deposit_config": "Depósitos não configurados no servidor (defina SMART_CONTRACT_ADDRESS e/ou DEPOSIT_WALLET_ADDRESS).",
       "link_wallet_required_contract": "Associa a carteira ligada a esta conta (assina a mensagem de verificação) antes do depósito no contrato.",
       "tx_requesting": "A pedir aprovação da transação na carteira…",

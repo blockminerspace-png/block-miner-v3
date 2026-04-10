@@ -491,6 +491,7 @@
       "injected_unusable": "A browser extension is blocking Ethereum (e.g. Bitwarden). Disable it for this site or pick MetaMask / another wallet. On mobile, use WalletConnect.",
       "switch_chain_unsupported": "This wallet does not support automatic network switch. Open your wallet and select Polygon (chain 137) manually.",
       "smart_contract_hint": "Use WalletConnect or a browser wallet on Polygon (137). Link the same wallet to your profile, then send POL through the on-chain deposit contract — the server credits your balance after confirmations.",
+      "treasury_browser_hint": "Use a browser wallet (e.g. Rabby, MetaMask) on Polygon (137). Connect and sign the link message, then use Express deposit to send native POL to the platform treasury address — the server credits after confirmations.",
       "no_deposit_config": "Deposits are not configured on the server (set SMART_CONTRACT_ADDRESS and/or DEPOSIT_WALLET_ADDRESS).",
       "link_wallet_required_contract": "Link your connected wallet to this account (sign the verification message) before using the smart-contract deposit.",
       "tx_requesting": "Requesting transaction approval in your wallet…",

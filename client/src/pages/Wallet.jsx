@@ -30,6 +30,7 @@ import { BLOCK_MINER_DEPOSIT_ABI } from '../web3/blockMinerDepositAbi.js';
 import { useSendTransaction } from 'wagmi';
 import { useWallet } from '../hooks/useWallet';
 import { useGameStore } from '../store/game';
+import { canUseInjectedDepositChannel } from '../utils/depositChannel.js';
 
 function isUserRejectedTx(err) {
     return (
@@ -273,10 +274,11 @@ export default function Wallet() {
     }, [fetchWalletData, fetchPendingDeposits, stopPendingPoll]);
 
     useEffect(() => {
-        if (!systemContractAddress && walletConnectConfigured) {
+        const canInjected = canUseInjectedDepositChannel(systemContractAddress, systemDepositAddress);
+        if (!canInjected && walletConnectConfigured) {
             setDepositChannel('walletconnect');
         }
-    }, [systemContractAddress, walletConnectConfigured]);
+    }, [systemContractAddress, systemDepositAddress, walletConnectConfigured]);
 
     // Para de fazer poll quando não há mais pendentes
     useEffect(() => {
@@ -311,10 +313,10 @@ export default function Wallet() {
         setIsActionLoading(true);
         try {
             if (depositChannel === 'smart_contract') {
-                const hasContract =
-                    systemContractAddress && isAddress(systemContractAddress);
-                if (!hasContract) {
-                    toast.error(t('wallet.deposit_options.contract_required'));
+                const hasContract = systemContractAddress && isAddress(systemContractAddress);
+                const hasTreasury = systemDepositAddress && isAddress(systemDepositAddress);
+                if (!hasContract && !hasTreasury) {
+                    toast.error(t('wallet.web3_deposit.no_deposit_config'));
                     return;
                 }
             } else if (!walletConnectConfigured) {
@@ -597,16 +599,24 @@ export default function Wallet() {
                         <>
                             <button
                                 type="button"
-                                onClick={connect}
+                                onClick={() => {
+                                    const useWcOnly =
+                                        activeTab === 'deposit' &&
+                                        depositChannel === 'walletconnect' &&
+                                        walletConnectConfigured;
+                                    void (useWcOnly ? connect() : connect({ useBrowserExtension: true }));
+                                }}
                                 disabled={isConnecting}
                                 className="px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-2xl hover:opacity-95 active:scale-95 transition-all flex items-center justify-center gap-2 border border-indigo-400/30 shadow-lg shadow-indigo-900/20 disabled:opacity-50"
                             >
                                 <Smartphone className="w-4 h-4" />
                                 {isConnecting
                                     ? t('wallet.web3_deposit.connecting')
-                                    : walletConnectConfigured
-                                        ? t('wallet.web3_deposit.connect_wc')
-                                        : t('wallet.web3_deposit.connect_browser')}
+                                    : activeTab === 'deposit' &&
+                                        depositChannel === 'walletconnect' &&
+                                        walletConnectConfigured
+                                      ? t('wallet.web3_deposit.connect_wc')
+                                      : t('wallet.web3_deposit.connect_browser')}
                             </button>
                             {showWalletSessionCancel ? (
                                 <button
@@ -818,7 +828,12 @@ export default function Wallet() {
                                         <button
                                             type="button"
                                             onClick={() => setDepositChannel('smart_contract')}
-                                            disabled={!systemContractAddress}
+                                            disabled={
+                                                !canUseInjectedDepositChannel(
+                                                    systemContractAddress,
+                                                    systemDepositAddress,
+                                                )
+                                            }
                                             className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all ${
                                                 depositChannel === 'smart_contract'
                                                     ? 'border-primary bg-primary/15 text-white shadow-lg shadow-primary/10'
@@ -860,9 +875,13 @@ export default function Wallet() {
                                             </h4>
                                             <p className="text-[9px] text-slate-500 font-bold leading-relaxed">
                                                 {depositChannel === 'smart_contract'
-                                                    ? systemContractAddress
+                                                    ? systemContractAddress &&
+                                                      isAddress(systemContractAddress)
                                                         ? t('wallet.web3_deposit.smart_contract_hint')
-                                                        : t('wallet.deposit_options.contract_required')
+                                                        : systemDepositAddress &&
+                                                            isAddress(systemDepositAddress)
+                                                          ? t('wallet.web3_deposit.treasury_browser_hint')
+                                                          : t('wallet.web3_deposit.no_deposit_config')
                                                     : t('wallet.deposit_options.walletconnect_hint')}
                                             </p>
                                             {!walletConnectConfigured ? (
