@@ -25,7 +25,7 @@ import {
     LogOut
 } from 'lucide-react';
 import { api } from '../store/auth';
-import { parseEther, isAddress } from 'ethers';
+import { parseEther, isAddress, getAddress } from 'ethers';
 import { useWallet } from '../hooks/useWallet';
 import { useGameStore } from '../store/game';
 
@@ -265,6 +265,7 @@ export default function Wallet() {
             const accounts = await eip1193.request({ method: 'eth_accounts' });
             const from = accounts[0];
             const valueHex = '0x' + parseEther(amount.toString()).toString(16);
+            const to = getAddress(systemDepositAddress);
 
             /** JSON-RPC quantity must be 0x + hex digits only (wallets reject prose e.g. API deprecation notices). */
             const normalizeQuantity = (val, label) => {
@@ -279,23 +280,50 @@ export default function Wallet() {
                 );
             };
 
-            // Usa o mesmo RPC da carteira (Polygon). fetch() a um RPC público pode devolver HTML/erro de proxy
-            // e quebrar eth_sendTransaction com "gasPrice is not a valid hexadecimal string".
-            const [nonceRaw, gasPriceRaw] = await Promise.all([
-                eip1193.request({ method: 'eth_getTransactionCount', params: [from, 'pending'] }),
-                eip1193.request({ method: 'eth_gasPrice' }),
-            ]);
-            const nonce = normalizeQuantity(nonceRaw, 'Nonce');
-            const gasPrice = normalizeQuantity(gasPriceRaw, 'Preço do gás');
-
             toast.info('Requesting transaction authorized...');
 
-            // type: '0x0' = transação legada (Type 0). Impede o wallet de tentar
-            // buscar base fee EIP-1559, garantindo compatibilidade com Trust Wallet.
-            const txHash = await eip1193.request({
-                method: 'eth_sendTransaction',
-                params: [{ from, to: systemDepositAddress, value: valueHex, gas: '0x5208', gasPrice, nonce, type: '0x0' }]
-            });
+            // Trust / WalletConnect: pedidos com `type`, nonce+gas pré-calculados ou `pending` às vezes devolvem
+            // "Unknown method(s) requested". Preferimos tx mínima e deixamos a carteira estimar gás.
+            const sendWithFallback = async () => {
+                try {
+                    return await eip1193.request({
+                        method: 'eth_sendTransaction',
+                        params: [{ from, to, value: valueHex }],
+                    });
+                } catch (firstErr) {
+                    if (firstErr?.code === 4001) throw firstErr;
+                    const msg = String(firstErr?.message || firstErr?.reason || '').toLowerCase();
+                    const tryLegacy =
+                        /unknown method|unsupported|not supported|invalid|gas|nonce|estimate|parse/i.test(msg) ||
+                        firstErr?.code === -32603;
+                    if (!tryLegacy) throw firstErr;
+
+                    const [nonceRaw, gasPriceRaw] = await Promise.all([
+                        eip1193.request({
+                            method: 'eth_getTransactionCount',
+                            params: [from, 'latest'],
+                        }),
+                        eip1193.request({ method: 'eth_gasPrice' }),
+                    ]);
+                    const nonce = normalizeQuantity(nonceRaw, 'Nonce');
+                    const gasPrice = normalizeQuantity(gasPriceRaw, 'Preço do gás');
+                    return await eip1193.request({
+                        method: 'eth_sendTransaction',
+                        params: [
+                            {
+                                from,
+                                to,
+                                value: valueHex,
+                                gas: '0x5208',
+                                gasPrice,
+                                nonce,
+                            },
+                        ],
+                    });
+                }
+            };
+
+            const txHash = await sendWithFallback();
 
             toast.info('Transação enviada! Registrando para verificação...');
 
