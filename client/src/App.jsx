@@ -53,10 +53,12 @@ import AdminAnalytics from './pages/AdminAnalytics';
 import AdminBroadcast from './pages/AdminBroadcast';
 import AdminCheckinMilestones from './pages/AdminCheckinMilestones';
 import AdminReadEarn from './pages/AdminReadEarn';
+import AdminUserSidebar from './pages/AdminUserSidebar';
 import AdminMiniPass from './pages/AdminMiniPass';
 import AdminMiniPassSeason from './pages/AdminMiniPassSeason';
 import ReadEarn from './pages/ReadEarn';
 import MiniPass from './pages/MiniPass';
+import DailyTasks from './pages/DailyTasks';
 import BroadcastPopup from './components/BroadcastPopup';
 import Transparency from './pages/Transparency';
 import TransparencyErrorBoundary from './components/TransparencyErrorBoundary';
@@ -161,6 +163,7 @@ function App() {
           <Route path="/read-earn" element={<ReadEarn />} />
           <Route path="/mini-pass" element={<MiniPass />} />
           <Route path="/mini-pass/:seasonId" element={<MiniPass />} />
+          <Route path="/daily-tasks" element={<DailyTasks />} />
           <Route path="/youtube" element={<YouTubeWatch />} />
           <Route path="/auto-mining" element={<AutoMining />} />
           <Route path="/ranking" element={<Ranking />} />
@@ -196,6 +199,7 @@ function App() {
           <Route path="/admin/broadcast" element={<AdminBroadcast />} />
           <Route path="/admin/checkin-milestones" element={<AdminCheckinMilestones />} />
           <Route path="/admin/read-earn" element={<AdminReadEarn />} />
+          <Route path="/admin/user-sidebar" element={<AdminUserSidebar />} />
           <Route path="/admin/mini-pass" element={<AdminMiniPass />} />
           <Route path="/admin/mini-pass/new" element={<AdminMiniPassSeason />} />
           <Route path="/admin/mini-pass/:id" element={<AdminMiniPassSeason />} />

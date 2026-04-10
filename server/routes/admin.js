@@ -17,6 +17,7 @@ import * as blkWalletController from "../controllers/blkWalletController.js";
 import * as miningController from "../controllers/miningController.js";
 import * as adminCheckinMilestoneController from "../controllers/adminCheckinMilestoneController.js";
 import * as adminReadEarnController from "../controllers/adminReadEarnController.js";
+import * as sidebarNavController from "../controllers/sidebarNavController.js";
 import prisma from "../src/db/prisma.js";
 import path from "path";
 import fs from "fs/promises";
@@ -84,6 +85,10 @@ adminRouter.use((err, _req, res, _next) => {
     if (err?.message) return res.status(400).json({ ok: false, message: err.message });
     res.status(500).json({ ok: false, message: "Erro no upload." });
 });
+
+// User app sidebar (visibility / order / Rewards subgroup)
+adminRouter.get("/sidebar-nav", sidebarNavController.getAdminNav);
+adminRouter.put("/sidebar-nav", sidebarNavController.putAdminNav);
 
 // Dashboard Stats
 adminRouter.get("/stats", adminController.getStats);

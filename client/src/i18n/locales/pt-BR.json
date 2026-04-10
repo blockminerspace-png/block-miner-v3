@@ -628,6 +628,7 @@
     "checkin": "Check-in",
     "read_earn": "Ler e ganhar",
     "mini_pass": "Mini Pass",
+    "daily_tasks": "Tarefas diárias",
     "auto_mining": "Auto Mining",
     "youtube": "YouTube",
     "games": "Jogos",
@@ -641,6 +642,55 @@
       "main": "Principal",
       "earn": "Ganhar",
       "social": "Social & Fun"
+    }
+  },
+  "adminSidebar": {
+    "brand_admin": "Admin",
+    "brand_panel": "Painel",
+    "section_management": "Gestão do sistema",
+    "aria_main_nav": "Navegação principal",
+    "nav": {
+      "overview": "Resumo",
+      "users": "Usuários",
+      "miners": "Mineradoras",
+      "offers": "Ofertas",
+      "mini_pass": "Mini Pass",
+      "finance": "Financeiro",
+      "support": "Suporte",
+      "banners": "Banners",
+      "checkin_milestones": "Check-in marcos",
+      "read_earn": "Read & Earn",
+      "creators": "Criadores",
+      "transparency": "Transparência",
+      "deposit_tickets": "Dep. tickets",
+      "backups": "Backups",
+      "logs": "Logs",
+      "metrics": "Métricas",
+      "analytics": "Analytics",
+      "broadcast": "Notificações",
+      "user_app_sidebar": "Sidebar do usuário"
+    },
+    "logout": "Encerrar sessão"
+  },
+  "admin_user_sidebar": {
+    "title": "Sidebar do app (usuário)",
+    "subtitle": "Controle visibilidade, ordem e se itens de Ganhar ficam dentro de Recompensas ou no topo de Ganhar. Rótulos e rotas são fixos por segurança.",
+    "loading": "Carregando configuração…",
+    "save": "Salvar alterações",
+    "save_ok": "Configuração da sidebar salva.",
+    "error_load": "Não foi possível carregar a configuração da sidebar.",
+    "error_save": "Não foi possível salvar a configuração da sidebar.",
+    "col_visible": "Visível",
+    "col_item": "Item",
+    "col_section": "Seção",
+    "col_parent": "Pai (Ganhar)",
+    "col_order": "Ordem",
+    "parent_top": "Topo da seção",
+    "parent_rewards": "Dentro de Recompensas",
+    "locked": "fixo",
+    "badge_group": "pasta",
+    "validation": {
+      "generic": "Configuração inválida (código: {{code}})."
     }
   },
   "miniPass": {
@@ -668,6 +718,41 @@
       "claim_failed": "Falha ao resgatar",
       "insufficient_pol": "POL insuficiente",
       "purchase_failed": "Falha na compra"
+    }
+  },
+  "dailyTasks": {
+    "title": "Tarefas diárias",
+    "empty": "Não há tarefas diárias configuradas no momento.",
+    "subtitle": "Complete objetivos todos os dias e resgate recompensas. O progresso reinicia à meia-noite (horário de Brasília).",
+    "period_label": "Hoje",
+    "next_reset": "Próximo reset",
+    "progress": "{{current}} / {{target}}",
+    "claim": "Resgatar recompensa",
+    "claiming": "Resgatando…",
+    "status": {
+      "available": "Disponível",
+      "in_progress": "Em andamento",
+      "completed": "Pronto para resgatar",
+      "claimed": "Resgatado"
+    },
+    "reward": {
+      "blk": "+{{amount}} BLK",
+      "pol": "+{{amount}} POL",
+      "hashrate": "+{{hashRate}} H/s por {{days}}d"
+    },
+    "claim_ok": "Recompensa resgatada",
+    "errors": {
+      "load_failed": "Não foi possível carregar as tarefas diárias",
+      "network": "Erro de rede",
+      "claim_failed": "Não foi possível resgatar a recompensa",
+      "not_completed": "Conclua a tarefa primeiro",
+      "already_claimed": "Já resgatado hoje"
+    },
+    "tasks": {
+      "login": "Faça check-in hoje (confirme seu check-in diário)",
+      "mine_blk": "Ganhe {{target}} BLK do pool BLK por tempo hoje",
+      "play_games": "Vença {{target}} minijogos hoje",
+      "watch_youtube": "Resgate {{target}} recompensa do YouTube hoje"
     }
   },
   "readEarn": {
@@ -779,6 +864,8 @@
     "back_list": "Voltar à lista",
     "remove_file": "Remover arquivo",
     "attachment_alt": "Pré-visualização do anexo",
+    "attachment_open_full": "Abrir em tamanho real em uma nova aba",
+    "attachment_failed": "Não foi possível carregar a imagem. Abra o link em uma nova aba.",
     "reply_image_only": "(anexo de imagem)"
   },
   "admin_support": {

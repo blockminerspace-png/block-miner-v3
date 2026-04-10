@@ -33,6 +33,7 @@ import { roomsRouter } from "./routes/rooms.js";
 import { checkinRouter } from "./routes/checkin.js";
 import { offerEventsRouter } from "./routes/offer-events.js";
 import { miniPassRouter } from "./routes/mini-pass.js";
+import { dailyTasksRouter } from "./routes/daily-tasks.js";
 import { chatRouter } from "./routes/chat.js";
 import { rankingRouter } from "./routes/ranking.js";
 import { statsRouter } from "./routes/stats.js";
@@ -51,6 +52,7 @@ import { adminAuthRouter } from "./routes/admin-auth.js";
 import { adminAutoMiningRewardsRouter } from "./routes/admin-auto-mining-rewards.js";
 import supportRouter from "./routes/support.js";
 import userRouter from "./routes/user.js";
+import { sidebarNavRouter } from "./routes/sidebar-nav.js";
 import * as healthController from "./controllers/healthController.js";
 import * as bannerController from "./controllers/bannerController.js";
 import * as transparencyController from "./controllers/transparencyController.js";
@@ -71,19 +73,21 @@ import { getOrCreateMinerProfile, persistMinerProfile, syncUserBaseHashRate } fr
 import { ensureDefaultInternalReward } from "./models/shortlinkRewardModel.js";
 import { ensureFaucetReward } from "./src/bootstrap/ensureFaucetReward.js";
 import { auditContextMiddleware, startAuditOutboxWorker } from "./src/audit/index.js";
+import {
+  applyTrustProxy,
+  buildExpressCorsOptions,
+  buildSocketIoCorsConfig
+} from "./utils/corsConfig.js";
 
 const logger = loggerLib.child("Server");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+applyTrustProxy(app);
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(",") : "*",
-    methods: ["GET", "POST"],
-    credentials: true
-  }
+  cors: buildSocketIoCorsConfig()
 });
 
 function envFlag(name, defaultValue = false) {
@@ -211,14 +215,12 @@ app.use(helmet({
   crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
 }));
 app.use(createCspMiddleware());
-app.use(cors({
-  origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(",") : "*",
-  credentials: true
-}));
+app.use(cors(buildExpressCorsOptions()));
 
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-// app.use(createCsrfMiddleware());
+const JSON_BODY_LIMIT = process.env.JSON_BODY_LIMIT || "1mb";
+app.use(express.json({ limit: JSON_BODY_LIMIT }));
+app.use(express.urlencoded({ extended: true, limit: JSON_BODY_LIMIT }));
+app.use(createCsrfMiddleware());
 
 // Global Rate Limiter
 const globalLimiter = createRateLimiter({
@@ -260,6 +262,7 @@ app.use("/api/rooms", roomsRouter);
 app.use("/api/checkin", checkinRouter);
 app.use("/api/offer-events", offerEventsRouter);
 app.use("/api/mini-pass", miniPassRouter);
+app.use("/api/daily-tasks", dailyTasksRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/ranking", rankingRouter);
 app.use("/api/stats", statsRouter);
@@ -275,6 +278,7 @@ app.use("/api/broadcast", broadcastRouter);
 app.use("/api/swap", swapRouter);
 app.use("/api/support", supportRouter);
 app.use("/api/user", userRouter);
+app.use("/api/sidebar", sidebarNavRouter);
 // app.use("/api/ptp", ptpRouter);
 
 // 6. Admin Routes

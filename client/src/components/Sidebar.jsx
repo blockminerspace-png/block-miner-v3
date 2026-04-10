@@ -1,38 +1,27 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
-  ShoppingCart,
   Cpu,
   Wallet,
+  ShoppingCart,
   LogOut,
-  Gift,
-  Link as LinkIcon,
-  Calendar,
-  Youtube,
-  Trophy,
-  Gamepad2,
   ChevronRight,
-  Zap,
-  Tag,
-  Folder,
   Menu,
   X,
   Bell,
   MessageSquare,
-  Map,
-  Calculator,
-  Eye,
-  BookOpen,
-  BarChart3,
-  LifeBuoy,
-  Sparkles,
 } from 'lucide-react';
-import { useAuthStore } from '../store/auth';
+import { useAuthStore, api } from '../store/auth';
 import { useGameStore } from '../store/game';
 import BrandLogo from './BrandLogo';
 import CommunityShortcuts from './CommunityShortcuts';
+import defaultPublicSidebarNav from '../data/defaultPublicSidebarNav.json';
+import {
+  mapApiCategoriesToMenu,
+  normalizeMiniPassOutOfRewardsGroup,
+} from '../utils/sidebarNavMap';
 
 export default function Sidebar() {
   const { t } = useTranslation();
@@ -43,9 +32,42 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [earnOpen, setEarnOpen] = useState(true);
+  const [navCategoriesSource, setNavCategoriesSource] = useState(
+    () => defaultPublicSidebarNav
+  );
   const notifRef = useRef(null);
 
-  const unreadCount = (notifications || []).filter(n => !n.isRead).length;
+  const unreadCount = (notifications || []).filter((n) => !n.isRead).length;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.get('/sidebar/nav');
+        if (
+          !cancelled &&
+          res.data?.ok &&
+          Array.isArray(res.data.categories)
+        ) {
+          setNavCategoriesSource(res.data.categories);
+        }
+      } catch {
+        /* keep bundled default */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const categories = useMemo(
+    () =>
+      mapApiCategoriesToMenu(
+        normalizeMiniPassOutOfRewardsGroup(navCategoriesSource),
+        t
+      ),
+    [navCategoriesSource, t]
+  );
 
   useEffect(() => {
     const handler = (e) => {
@@ -56,50 +78,6 @@ export default function Sidebar() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
-
-  const categories = [
-    {
-      title: t('sidebar.categories.main', 'Principal'),
-      items: [
-        { icon: LayoutDashboard, label: t('sidebar.dashboard'), path: '/dashboard' },
-        { icon: BarChart3, label: t('sidebar.power_stats'), path: '/power-stats' },
-        { icon: Cpu, label: t('sidebar.machines'), path: '/inventory' },
-        { icon: ShoppingCart, label: t('sidebar.shop'), path: '/shop' },
-        { icon: Tag, label: t('sidebar.offers', 'Ofertas'), path: '/offers' },
-        { icon: Wallet, label: t('sidebar.wallet'), path: '/wallet' },
-        { icon: LifeBuoy, label: t('sidebar.support'), path: '/support' },
-      ]
-    },
-    {
-      title: t('sidebar.categories.earn', 'Ganhar'),
-      items: [
-        { icon: Calendar, label: t('sidebar.checkin', 'Check-in'), path: '/checkin' },
-        {
-          icon: Folder,
-          label: t('sidebar.rewards', 'Recompensas'),
-          children: [
-            { icon: Gift, label: t('sidebar.faucet'), path: '/faucet' },
-            { icon: LinkIcon, label: t('sidebar.shortlinks'), path: '/shortlinks' },
-            { icon: Zap, label: t('sidebar.auto_mining', 'Auto Mining'), path: '/auto-mining' },
-            { icon: Youtube, label: t('sidebar.youtube', 'YouTube'), path: '/youtube' },
-            { icon: Sparkles, label: t('sidebar.read_earn'), path: '/read-earn' },
-            { icon: Trophy, label: t('sidebar.mini_pass', 'Mini Pass'), path: '/mini-pass' },
-          ],
-        },
-      ]
-    },
-    {
-      title: t('sidebar.categories.social', 'Social & Fun'),
-      items: [
-        { icon: Gamepad2, label: t('sidebar.games', 'Jogos'), path: '/games' },
-        { icon: Calculator, label: t('sidebar.calculator', 'Calculadora'), path: '/calculator' },
-        { icon: BookOpen, label: t('sidebar.manual', 'Manual'), path: '/manual' },
-        { icon: Trophy, label: t('sidebar.ranking', 'Ranking'), path: '/ranking' },
-        { icon: Map, label: t('sidebar.roadmap', 'Roadmap'), path: '/roadmap' },
-        { icon: Eye, label: t('sidebar.transparency', 'Transparência'), path: '/transparency' },
-      ]
-    }
-  ];
 
   const bottomNavItems = [
     { icon: LayoutDashboard, label: 'Início', path: '/dashboard' },
@@ -118,26 +96,45 @@ export default function Sidebar() {
       <nav className="flex-1 overflow-y-auto px-4 space-y-8 scrollbar-hide py-6">
         {categories.map((category) => (
           <div key={category.title} className="space-y-2">
-            <h3 className="text-[9px] font-black text-gray-600 uppercase tracking-[0.3em] px-4 mb-4">{category.title}</h3>
+            <h3 className="text-[9px] font-black text-gray-600 uppercase tracking-[0.3em] px-4 mb-4">
+              {category.title}
+            </h3>
             <div className="space-y-1">
               {category.items.map((item) => {
-                if (item.children) {
-                  const isParentActive = item.children.some((child) => location.pathname === child.path);
+                if (item.type === 'group') {
+                  const isParentActive = item.children.some(
+                    (child) => location.pathname === child.path
+                  );
                   return (
-                    <div key={item.label} className="space-y-1">
+                    <div key={item.key} className="space-y-1">
                       <button
                         type="button"
                         onClick={() => setEarnOpen((v) => !v)}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 group ${isParentActive
-                          ? 'bg-primary/10 text-primary border border-primary/10'
-                          : 'text-gray-500 hover:text-white hover:bg-gray-800/40'
-                          }`}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 group ${
+                          isParentActive
+                            ? 'bg-primary/10 text-primary border border-primary/10'
+                            : 'text-gray-500 hover:text-white hover:bg-gray-800/40'
+                        }`}
                       >
                         <div className="flex items-center gap-3">
-                          <item.icon className={`w-4 h-4 transition-colors ${isParentActive ? 'text-primary' : 'group-hover:text-primary'}`} />
-                          <span className={`text-xs font-bold uppercase tracking-wide ${isParentActive ? 'text-white' : ''}`}>{item.label}</span>
+                          <item.Icon
+                            className={`w-4 h-4 transition-colors ${
+                              isParentActive ? 'text-primary' : 'group-hover:text-primary'
+                            }`}
+                          />
+                          <span
+                            className={`text-xs font-bold uppercase tracking-wide ${
+                              isParentActive ? 'text-white' : ''
+                            }`}
+                          >
+                            {item.label}
+                          </span>
                         </div>
-                        <ChevronRight className={`w-3 h-3 transition-transform ${earnOpen ? 'rotate-90' : ''} ${isParentActive ? 'text-primary' : 'text-gray-600'}`} />
+                        <ChevronRight
+                          className={`w-3 h-3 transition-transform ${earnOpen ? 'rotate-90' : ''} ${
+                            isParentActive ? 'text-primary' : 'text-gray-600'
+                          }`}
+                        />
                       </button>
                       {earnOpen && (
                         <div className="space-y-1 pl-8">
@@ -146,15 +143,27 @@ export default function Sidebar() {
                             return (
                               <button
                                 key={child.path}
+                                type="button"
                                 onClick={() => handleNav(child.path)}
-                                className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 group ${isChildActive
-                                  ? 'bg-primary/10 text-primary border border-primary/10'
-                                  : 'text-gray-500 hover:text-white hover:bg-gray-800/40'
-                                  }`}
+                                className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 group ${
+                                  isChildActive
+                                    ? 'bg-primary/10 text-primary border border-primary/10'
+                                    : 'text-gray-500 hover:text-white hover:bg-gray-800/40'
+                                }`}
                               >
                                 <div className="flex items-center gap-3">
-                                  <child.icon className={`w-4 h-4 transition-colors ${isChildActive ? 'text-primary' : 'group-hover:text-primary'}`} />
-                                  <span className={`text-xs font-bold uppercase tracking-wide ${isChildActive ? 'text-white' : ''}`}>{child.label}</span>
+                                  <child.Icon
+                                    className={`w-4 h-4 transition-colors ${
+                                      isChildActive ? 'text-primary' : 'group-hover:text-primary'
+                                    }`}
+                                  />
+                                  <span
+                                    className={`text-xs font-bold uppercase tracking-wide ${
+                                      isChildActive ? 'text-white' : ''
+                                    }`}
+                                  >
+                                    {child.label}
+                                  </span>
                                 </div>
                                 {isChildActive ? (
                                   <div className="w-1 h-4 bg-primary rounded-full shadow-glow" />
@@ -173,21 +182,33 @@ export default function Sidebar() {
                 const isActive = location.pathname === item.path;
                 return (
                   <button
-                    key={item.path}
+                    key={item.key}
+                    type="button"
                     onClick={() => handleNav(item.path)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 group ${isActive
-                      ? 'bg-primary/10 text-primary border border-primary/10'
-                      : 'text-gray-500 hover:text-white hover:bg-gray-800/40'
-                      }`}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 group ${
+                      isActive
+                        ? 'bg-primary/10 text-primary border border-primary/10'
+                        : 'text-gray-500 hover:text-white hover:bg-gray-800/40'
+                    }`}
                   >
                     <div className="flex items-center gap-3">
-                      <item.icon className={`w-4 h-4 transition-colors ${isActive ? 'text-primary' : 'group-hover:text-primary'}`} />
-                      <span className={`text-xs font-bold uppercase tracking-wide ${isActive ? 'text-white' : ''}`}>{item.label}</span>
+                      <item.Icon
+                        className={`w-4 h-4 transition-colors ${
+                          isActive ? 'text-primary' : 'group-hover:text-primary'
+                        }`}
+                      />
+                      <span
+                        className={`text-xs font-bold uppercase tracking-wide ${
+                          isActive ? 'text-white' : ''
+                        }`}
+                      >
+                        {item.label}
+                      </span>
                     </div>
                     {isActive ? (
-                        <div className="w-1 h-4 bg-primary rounded-full shadow-glow" />
+                      <div className="w-1 h-4 bg-primary rounded-full shadow-glow" />
                     ) : (
-                        <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all text-gray-600" />
+                      <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all text-gray-600" />
                     )}
                   </button>
                 );
@@ -197,9 +218,9 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Logout */}
       <div className="p-4 mt-auto border-t border-gray-800/50">
         <button
+          type="button"
           onClick={() => logout()}
           className="w-full flex items-center gap-3 px-4 py-4 text-gray-500 hover:text-red-400 hover:bg-red-400/5 rounded-2xl transition-all duration-300 group"
         >
@@ -212,13 +233,12 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* ── Mobile top bar ── */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-3 h-14 bg-surface border-b border-gray-800/50 shadow-lg">
         <BrandLogo variant="header" />
 
         <div className="flex items-center gap-0.5">
-          {/* Chat */}
           <button
+            type="button"
             onClick={toggleChat}
             className="p-2 text-gray-400 hover:text-white transition-colors relative"
             aria-label="Chat"
@@ -231,10 +251,10 @@ export default function Sidebar() {
 
           <CommunityShortcuts gapClass="gap-0" />
 
-          {/* Notifications */}
           <div className="relative" ref={notifRef}>
             <button
-              onClick={() => setNotifOpen(v => !v)}
+              type="button"
+              onClick={() => setNotifOpen((v) => !v)}
               className="p-2 text-gray-400 hover:text-white transition-colors relative"
               aria-label="Notificações"
             >
@@ -250,6 +270,7 @@ export default function Sidebar() {
                   <h3 className="text-xs font-black text-white uppercase tracking-widest">Notificações</h3>
                   {unreadCount > 0 && (
                     <button
+                      type="button"
                       onClick={() => markNotificationRead('all')}
                       className="text-[10px] font-bold text-primary hover:text-primary-hover uppercase tracking-tighter"
                     >
@@ -263,13 +284,25 @@ export default function Sidebar() {
                       Nenhuma notificação
                     </p>
                   ) : (
-                    (notifications || []).slice(0, 10).map(n => (
+                    (notifications || []).slice(0, 10).map((n) => (
                       <button
                         key={n.id}
-                        onClick={() => { markNotificationRead(n.id); setNotifOpen(false); }}
-                        className={`w-full text-left px-4 py-3 hover:bg-gray-800/30 transition-colors ${!n.isRead ? 'bg-primary/5' : ''}`}
+                        type="button"
+                        onClick={() => {
+                          markNotificationRead(n.id);
+                          setNotifOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-3 hover:bg-gray-800/30 transition-colors ${
+                          !n.isRead ? 'bg-primary/5' : ''
+                        }`}
                       >
-                        <p className={`text-xs font-bold truncate ${!n.isRead ? 'text-white' : 'text-gray-400'}`}>{n.title}</p>
+                        <p
+                          className={`text-xs font-bold truncate ${
+                            !n.isRead ? 'text-white' : 'text-gray-400'
+                          }`}
+                        >
+                          {n.title}
+                        </p>
                         <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-2">{n.message}</p>
                       </button>
                     ))
@@ -279,18 +312,21 @@ export default function Sidebar() {
             )}
           </div>
 
-          {/* User avatar → settings */}
           <button
-            onClick={() => { navigate('/settings'); setMobileOpen(false); }}
+            type="button"
+            onClick={() => {
+              navigate('/settings');
+              setMobileOpen(false);
+            }}
             className="w-8 h-8 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-white font-black border border-gray-700 text-xs mx-1 ring-1 ring-primary/20"
             aria-label="Configurações"
           >
             {user?.name?.charAt(0)?.toUpperCase() || '?'}
           </button>
 
-          {/* Hamburger */}
           <button
-            onClick={() => setMobileOpen(v => !v)}
+            type="button"
+            onClick={() => setMobileOpen((v) => !v)}
             className="p-2 text-gray-400 hover:text-white transition-colors"
             aria-label="Menu"
           >
@@ -299,28 +335,29 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Drawer overlay */}
       {mobileOpen && (
         <div
+          role="presentation"
           className="md:hidden fixed inset-0 z-30 bg-black/60 backdrop-blur-sm"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
-      {/* Mobile drawer — fica entre top bar e bottom nav */}
       <aside
-        className={`md:hidden fixed top-14 bottom-16 left-0 z-40 w-72 bg-surface border-r border-gray-800/50 flex flex-col shadow-2xl transition-transform duration-300 overflow-y-auto ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`md:hidden fixed top-14 bottom-16 left-0 z-40 w-72 bg-surface border-r border-gray-800/50 flex flex-col shadow-2xl transition-transform duration-300 overflow-y-auto ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
       >
         {menuContent}
       </aside>
 
-      {/* ── Bottom navigation bar ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-surface border-t border-gray-800/50 flex items-center justify-around px-1 shadow-2xl">
         {bottomNavItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <button
               key={item.path}
+              type="button"
               onClick={() => navigate(item.path)}
               className={`flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-xl transition-all duration-300 ${
                 isActive ? 'text-primary' : 'text-gray-500 hover:text-white'
@@ -332,6 +369,7 @@ export default function Sidebar() {
           );
         })}
         <button
+          type="button"
           onClick={() => setMobileOpen(true)}
           className="flex flex-col items-center justify-center gap-1 flex-1 py-2 rounded-xl transition-all text-gray-500 hover:text-white"
         >
@@ -340,7 +378,6 @@ export default function Sidebar() {
         </button>
       </nav>
 
-      {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex w-64 bg-surface border-r border-gray-800/50 shrink-0 flex-col h-full shadow-2xl relative z-20">
         <div className="p-8">
           <BrandLogo variant="sidebar" />

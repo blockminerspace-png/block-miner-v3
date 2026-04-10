@@ -628,6 +628,7 @@
     "checkin": "Check-in",
     "read_earn": "Read & Earn",
     "mini_pass": "Mini Pass",
+    "daily_tasks": "Daily Tasks",
     "auto_mining": "Auto Mining",
     "youtube": "YouTube",
     "games": "Games",
@@ -640,6 +641,55 @@
       "main": "Main",
       "earn": "Earn",
       "social": "Social & Fun"
+    }
+  },
+  "adminSidebar": {
+    "brand_admin": "Admin",
+    "brand_panel": "Panel",
+    "section_management": "System management",
+    "aria_main_nav": "Main navigation",
+    "nav": {
+      "overview": "Overview",
+      "users": "Users",
+      "miners": "Miners",
+      "offers": "Offers",
+      "mini_pass": "Mini Pass",
+      "finance": "Finance",
+      "support": "Support",
+      "banners": "Banners",
+      "checkin_milestones": "Check-in milestones",
+      "read_earn": "Read & Earn",
+      "creators": "Creators",
+      "transparency": "Transparency",
+      "deposit_tickets": "Deposit tickets",
+      "backups": "Backups",
+      "logs": "Logs",
+      "metrics": "Metrics",
+      "analytics": "Analytics",
+      "broadcast": "Notifications",
+      "user_app_sidebar": "User sidebar"
+    },
+    "logout": "Sign out"
+  },
+  "admin_user_sidebar": {
+    "title": "User app sidebar",
+    "subtitle": "Control visibility, order, and whether Earn items sit under Rewards or at the top of Earn. Paths and labels are fixed for security.",
+    "loading": "Loading configuration…",
+    "save": "Save changes",
+    "save_ok": "Sidebar configuration saved.",
+    "error_load": "Could not load sidebar configuration.",
+    "error_save": "Could not save sidebar configuration.",
+    "col_visible": "Visible",
+    "col_item": "Item",
+    "col_section": "Section",
+    "col_parent": "Parent (Earn)",
+    "col_order": "Order",
+    "parent_top": "Top of section",
+    "parent_rewards": "Under Rewards",
+    "locked": "fixed",
+    "badge_group": "folder",
+    "validation": {
+      "generic": "Invalid configuration (code: {{code}})."
     }
   },
   "miniPass": {
@@ -667,6 +717,41 @@
       "claim_failed": "Claim failed",
       "insufficient_pol": "Insufficient POL",
       "purchase_failed": "Purchase failed"
+    }
+  },
+  "dailyTasks": {
+    "title": "Daily Tasks",
+    "empty": "No daily tasks are configured right now.",
+    "subtitle": "Complete objectives every day and claim rewards. Progress resets at midnight (Brazil time).",
+    "period_label": "Today",
+    "next_reset": "Next reset",
+    "progress": "{{current}} / {{target}}",
+    "claim": "Claim reward",
+    "claiming": "Claiming…",
+    "status": {
+      "available": "Available",
+      "in_progress": "In progress",
+      "completed": "Ready to claim",
+      "claimed": "Claimed"
+    },
+    "reward": {
+      "blk": "+{{amount}} BLK",
+      "pol": "+{{amount}} POL",
+      "hashrate": "+{{hashRate}} H/s for {{days}}d"
+    },
+    "claim_ok": "Reward claimed",
+    "errors": {
+      "load_failed": "Could not load daily tasks",
+      "network": "Network error",
+      "claim_failed": "Could not claim reward",
+      "not_completed": "Finish the task first",
+      "already_claimed": "Already claimed today"
+    },
+    "tasks": {
+      "login": "Check in today (confirm your daily check-in)",
+      "mine_blk": "Earn {{target}} BLK from the BLK time pool today",
+      "play_games": "Win {{target}} mini-games today",
+      "watch_youtube": "Claim {{target}} YouTube watch reward today"
     }
   },
   "readEarn": {
@@ -778,6 +863,8 @@
     "back_list": "Back to list",
     "remove_file": "Remove file",
     "attachment_alt": "Attachment preview",
+    "attachment_open_full": "Open full size in a new tab",
+    "attachment_failed": "Image could not be loaded. Open link to try in a new tab.",
     "reply_image_only": "(image attachment)"
   },
   "admin_support": {

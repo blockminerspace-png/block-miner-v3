@@ -267,6 +267,7 @@
     "checkin": "Check-in",
     "read_earn": "Leer y ganar",
     "mini_pass": "Mini Pass",
+    "daily_tasks": "Tareas diarias",
     "auto_mining": "Auto Minería",
     "youtube": "YouTube",
     "games": "Juegos",
@@ -279,6 +280,55 @@
       "main": "Principal",
       "earn": "Ganar",
       "social": "Social & Fun"
+    }
+  },
+  "adminSidebar": {
+    "brand_admin": "Admin",
+    "brand_panel": "Panel",
+    "section_management": "Gestión del sistema",
+    "aria_main_nav": "Navegación principal",
+    "nav": {
+      "overview": "Resumen",
+      "users": "Usuarios",
+      "miners": "Granjas mineras",
+      "offers": "Ofertas",
+      "mini_pass": "Mini Pass",
+      "finance": "Finanzas",
+      "support": "Soporte",
+      "banners": "Banners",
+      "checkin_milestones": "Hitos de check-in",
+      "read_earn": "Read & Earn",
+      "creators": "Creadores",
+      "transparency": "Transparencia",
+      "deposit_tickets": "Tickets de depósito",
+      "backups": "Copias de seguridad",
+      "logs": "Registros",
+      "metrics": "Métricas",
+      "analytics": "Analíticas",
+      "broadcast": "Notificaciones",
+      "user_app_sidebar": "Barra lateral de usuario"
+    },
+    "logout": "Cerrar sesión"
+  },
+  "admin_user_sidebar": {
+    "title": "Barra lateral del usuario",
+    "subtitle": "Controla visibilidad, orden y si los ítems de Ganar van dentro de Recompensas o al inicio de Ganar. Las rutas y etiquetas son fijas por seguridad.",
+    "loading": "Cargando configuración…",
+    "save": "Guardar cambios",
+    "save_ok": "Configuración de la barra lateral guardada.",
+    "error_load": "No se pudo cargar la configuración.",
+    "error_save": "No se pudo guardar la configuración.",
+    "col_visible": "Visible",
+    "col_item": "Elemento",
+    "col_section": "Sección",
+    "col_parent": "Padre (Ganar)",
+    "col_order": "Orden",
+    "parent_top": "Inicio de sección",
+    "parent_rewards": "Dentro de Recompensas",
+    "locked": "fijo",
+    "badge_group": "carpeta",
+    "validation": {
+      "generic": "Configuración no válida (código: {{code}})."
     }
   },
   "miniPass": {
@@ -306,6 +356,41 @@
       "claim_failed": "Error al reclamar",
       "insufficient_pol": "POL insuficiente",
       "purchase_failed": "Error en la compra"
+    }
+  },
+  "dailyTasks": {
+    "title": "Tareas diarias",
+    "empty": "No hay tareas diarias configuradas en este momento.",
+    "subtitle": "Completa objetivos cada día y reclama recompensas. El progreso se reinicia a medianoche (hora de Brasilia).",
+    "period_label": "Hoy",
+    "next_reset": "Próximo reinicio",
+    "progress": "{{current}} / {{target}}",
+    "claim": "Reclamar recompensa",
+    "claiming": "Reclamando…",
+    "status": {
+      "available": "Disponible",
+      "in_progress": "En progreso",
+      "completed": "Listo para reclamar",
+      "claimed": "Reclamado"
+    },
+    "reward": {
+      "blk": "+{{amount}} BLK",
+      "pol": "+{{amount}} POL",
+      "hashrate": "+{{hashRate}} H/s durante {{days}}d"
+    },
+    "claim_ok": "Recompensa reclamada",
+    "errors": {
+      "load_failed": "No se pudieron cargar las tareas diarias",
+      "network": "Error de red",
+      "claim_failed": "No se pudo reclamar la recompensa",
+      "not_completed": "Completa la tarea primero",
+      "already_claimed": "Ya reclamado hoy"
+    },
+    "tasks": {
+      "login": "Haz check-in hoy (confirma tu check-in diario)",
+      "mine_blk": "Gana {{target}} BLK del pool BLK por tiempo hoy",
+      "play_games": "Gana {{target}} minijuegos hoy",
+      "watch_youtube": "Reclama {{target}} recompensa de YouTube hoy"
     }
   },
   "readEarn": {
@@ -417,6 +502,8 @@
     "back_list": "Volver a la lista",
     "remove_file": "Quitar archivo",
     "attachment_alt": "Vista previa del adjunto",
+    "attachment_open_full": "Abrir a tamaño completo en una pestaña nueva",
+    "attachment_failed": "No se pudo cargar la imagen. Abre el enlace en una pestaña nueva.",
     "reply_image_only": "(adjunto de imagen)"
   },
   "admin_support": {

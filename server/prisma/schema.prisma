@@ -103,8 +103,70 @@ model User {
   miniPassMissionProgress        UserMiniPassMissionProgress[]
   miniPassRewardClaims           UserMiniPassRewardClaim[]
   miniPassPurchases              UserMiniPassPurchase[]
+  dailyTaskProgress              UserDailyTaskProgress[]
 
   @@map("users")
+}
+
+/// Configurable daily objectives (Brazil calendar day; see daily task period helper).
+model DailyTaskDefinition {
+  id                   Int       @id @default(autoincrement())
+  slug                 String    @unique
+  taskType             String    @map("task_type")
+  targetValue          Decimal   @map("target_value") @db.Decimal(24, 8)
+  translationKey       String    @map("translation_key")
+  rewardKind           String    @map("reward_kind")
+  rewardMinerId        Int?      @map("reward_miner_id")
+  rewardEventMinerId   Int?      @map("reward_event_miner_id")
+  rewardHashRate       Float?    @map("reward_hash_rate")
+  rewardHashRateDays   Int?      @map("reward_hash_rate_days")
+  rewardBlkAmount      Decimal?  @map("reward_blk_amount") @db.Decimal(20, 8)
+  rewardPolAmount      Decimal?  @map("reward_pol_amount") @db.Decimal(20, 8)
+  gameSlug             String?   @map("game_slug")
+  sortOrder            Int       @default(0) @map("sort_order")
+  isActive             Boolean   @default(true) @map("is_active")
+  validFrom            DateTime? @map("valid_from")
+  validUntil           DateTime? @map("valid_until")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  progress    UserDailyTaskProgress[]
+  dedupeTicks UserDailyTaskDedupeTick[]
+
+  rewardMiner      Miner?      @relation(fields: [rewardMinerId], references: [id], onDelete: SetNull)
+  rewardEventMiner EventMiner? @relation(fields: [rewardEventMinerId], references: [id], onDelete: SetNull)
+
+  @@map("daily_task_definitions")
+}
+
+model UserDailyTaskProgress {
+  id               Int       @id @default(autoincrement())
+  userId           Int       @map("user_id")
+  taskDefinitionId Int       @map("task_definition_id")
+  periodKey        String    @map("period_key")
+  currentValue     Decimal   @default(0) @map("current_value") @db.Decimal(24, 8)
+  completedAt      DateTime? @map("completed_at")
+  rewardClaimedAt  DateTime? @map("reward_claimed_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task DailyTaskDefinition   @relation(fields: [taskDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, taskDefinitionId, periodKey])
+  @@index([userId, periodKey])
+  @@map("user_daily_task_progress")
+}
+
+model UserDailyTaskDedupeTick {
+  id               Int      @id @default(autoincrement())
+  taskDefinitionId Int      @map("task_definition_id")
+  dedupeKey        String   @map("dedupe_key")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  task DailyTaskDefinition @relation(fields: [taskDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([taskDefinitionId, dedupeKey])
+  @@map("user_daily_task_dedupe_ticks")
 }
 
 model Notification {
@@ -196,6 +258,7 @@ model Miner {
   faucetReward  FaucetReward?
   shortlinkRew  ShortlinkReward?
   miniPassLevelRewards MiniPassLevelReward[]
+  dailyTaskRewardDefs DailyTaskDefinition[]
 
   @@map("miners")
 }
@@ -1072,6 +1135,7 @@ model EventMiner {
   event     OfferEvent      @relation(fields: [eventId], references: [id], onDelete: Cascade)
   purchases EventPurchase[]
   miniPassLevelRewards MiniPassLevelReward[]
+  dailyTaskRewardDefs  DailyTaskDefinition[]
 
   @@index([eventId])
   @@map("event_miners")
@@ -1414,4 +1478,13 @@ model TransparencyEntry {
   @@index([category])
   @@index([type])
   @@map("transparency_entries")
+}
+
+/// Singleton (id = 1): user app sidebar visibility, order, and nesting under Rewards group.
+model SidebarNavConfig {
+  id        Int      @id @default(1)
+  entries   Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("sidebar_nav_config")
 }
