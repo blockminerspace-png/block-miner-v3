@@ -16,7 +16,8 @@
  *  - recharts            — lightweight stubs (avoids SVG layout errors)
  *  - lucide-react        — replaced with simple <span> stubs
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Transparency from './Transparency';
@@ -150,6 +151,7 @@ describe('Transparency page', () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
   });
 

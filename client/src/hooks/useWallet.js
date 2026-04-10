@@ -15,6 +15,7 @@ import {
     getVerifiedBrowserEthereumProvider,
 } from '../utils/walletProvider.js';
 import { isWalletConnectConfigured } from '../utils/walletConnect.js';
+import { subscribeInjectedEthereumEvents } from '../utils/eip1193ProviderEvents.js';
 
 const POLYGON_CHAIN_ID = '0x89';
 const POLYGON_NUM = 137;
@@ -482,31 +483,27 @@ export function useWallet() {
         checkConnection();
 
         const provider = getInjectedProvider();
-        if (provider) {
-            const handleAccountsChanged = (accounts) => {
-                if (kitConnected) return;
-                if (accounts.length > 0) {
-                    setAccount(accounts[0]);
-                    setIsConnected(true);
-                } else {
-                    setAccount(null);
-                    setIsConnected(false);
-                }
-            };
+        if (!provider) return undefined;
 
-            const handleChainChanged = (newChainId) => {
-                setChainId(newChainId);
-            };
+        const handleAccountsChanged = (accounts) => {
+            if (kitConnected) return;
+            if (accounts.length > 0) {
+                setAccount(accounts[0]);
+                setIsConnected(true);
+            } else {
+                setAccount(null);
+                setIsConnected(false);
+            }
+        };
 
-            provider.on('accountsChanged', handleAccountsChanged);
-            provider.on('chainChanged', handleChainChanged);
+        const handleChainChanged = (newChainId) => {
+            setChainId(newChainId);
+        };
 
-            return () => {
-                provider.removeListener('accountsChanged', handleAccountsChanged);
-                provider.removeListener('chainChanged', handleChainChanged);
-            };
-        }
-        return undefined;
+        return subscribeInjectedEthereumEvents(provider, {
+            onAccountsChanged: handleAccountsChanged,
+            onChainChanged: handleChainChanged,
+        });
     }, [checkConnection, kitConnected]);
 
     const isCorrectNetwork =

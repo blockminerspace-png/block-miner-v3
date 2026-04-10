@@ -14,6 +14,10 @@ const resources = {
   'pt-BR': {
     translation: translationPT,
   },
+  /** Browsers often report `pt` without region — map to the same bundle as pt-BR */
+  pt: {
+    translation: translationPT,
+  },
   es: {
     translation: translationES,
   },
@@ -29,9 +33,9 @@ i18n
     resources,
     // i18next v25+ logs a Locize promo to console unless this is false
     showSupportNotice: false,
-    debug: false,
+    debug: Boolean(import.meta.env?.DEV),
     fallbackLng: 'en', // Default language if browser language is not available
-    supportedLngs: ['en', 'pt-BR', 'es', 'es-ES'],
+    supportedLngs: ['en', 'pt-BR', 'pt', 'es', 'es-ES'],
     interpolation: {
       escapeValue: false, // react already safes from xss
     },
@@ -42,5 +46,11 @@ i18n
       lookupQuerystring: 'lng',
     },
   });
+
+i18n.on('languageChanged', (lng) => {
+  if (typeof document === 'undefined') return;
+  const map = { en: 'en', pt: 'pt-BR', 'pt-BR': 'pt-BR', es: 'es', 'es-ES': 'es-ES' };
+  document.documentElement.lang = map[lng] || lng || 'en';
+});
 
 export default i18n;

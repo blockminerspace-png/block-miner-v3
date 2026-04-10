@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Lock, Plus, Zap, Trash2, Box, AlertCircle, X } from "lucide-react";
 import { api } from "../store/auth";
 import { formatHashrate, DEFAULT_MINER_IMAGE_URL, getMachineDescriptor } from "../utils/machine";
+import { dedupeOccupiedSlotsForDismantle } from "../utils/inventoryRackUtils.js";
 import RackMachineTooltipPortal from "../components/inventory/RackMachineTooltipPortal.jsx";
 
 const RACK_TOOLTIP_SHOW_MS = 120;
@@ -166,7 +167,7 @@ function SlotModal({ slot, inventory, onInstall, onRemove, onClose }) {
   const groupedInventory = useMemo(() => {
     const groups = {};
     for (const item of inventory) {
-      const key = `${item.minerName}_${item.level}_${item.hashRate}`;
+      const key = `${item.minerName}_${item.level}_${item.hashRate}_${item.slotSize ?? 0}_${item.minerId ?? ""}`;
       if (!groups[key]) groups[key] = { ...item, quantity: 1, items: [item] };
       else { groups[key].quantity += 1; groups[key].items.push(item); }
     }
@@ -552,7 +553,7 @@ export default function Inventory() {
    */
   const handleRemoveRackSlots = useCallback(
     async (slots) => {
-      const occupied = (slots || []).filter((s) => s?.miner && Number.isInteger(s.id));
+      const occupied = dedupeOccupiedSlotsForDismantle(slots || []);
       if (occupied.length === 0) return;
 
       setRackDismantleLoading(true);
@@ -583,7 +584,7 @@ export default function Inventory() {
   const groupedInventory = useMemo(() => {
     const groups = {};
     for (const item of inventory) {
-      const key = `${item.minerName}_${item.level}_${item.hashRate}`;
+      const key = `${item.minerName}_${item.level}_${item.hashRate}_${item.slotSize ?? 0}_${item.minerId ?? ""}`;
       if (!groups[key]) groups[key] = { ...item, quantity: 1, items: [item] };
       else { groups[key].quantity += 1; groups[key].items.push(item); }
     }

@@ -309,7 +309,16 @@ export default function Checkin() {
                 await fetchStatus();
             }
         } catch (err) {
-            toast.error(err.response?.data?.message || t('common.error'));
+            const code = err.response?.data?.code;
+            if (code === 'CHECKIN_ALREADY_TODAY') {
+                toast.error(t('checkin.error_already_today'));
+            } else if (code === 'CHECKIN_BALANCE_INSUFFICIENT') {
+                toast.error(t('checkin.error_balance_insufficient'));
+            } else if (code === 'CHECKIN_BALANCE_FAILED') {
+                toast.error(t('checkin.error_balance_failed'));
+            } else {
+                toast.error(err.response?.data?.message || t('common.error'));
+            }
         } finally {
             setIsPaying(false);
         }

@@ -1,15 +1,22 @@
-﻿import { render, screen, fireEvent } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useAuthStore } from "../store/auth";
 import Landing from "./Landing";
+
+const mockI18n = vi.hoisted(() => ({
+  language: "en",
+  resolvedLanguage: "en",
+  changeLanguage: vi.fn(() => Promise.resolve()),
+}));
 
 vi.mock("../store/auth", () => ({
   useAuthStore: vi.fn(() => ({ isAuthenticated: false })),
 }));
 
 vi.mock("react-i18next", () => ({
-  useTranslation: () => ({ t: (key) => key }),
+  useTranslation: () => ({ t: (key) => key, i18n: mockI18n }),
 }));
 
 vi.mock("../components/BrandLogo", () => ({
@@ -31,6 +38,10 @@ describe("Landing page", () => {
     useAuthStore.mockReturnValue({ isAuthenticated: false });
   });
 
+  afterEach(() => {
+    cleanup();
+  });
+
   it("renders without crashing", () => {
     renderLanding();
   });
@@ -47,7 +58,7 @@ describe("Landing page", () => {
 
   it("renders hero title i18n key", () => {
     renderLanding();
-    expect(screen.getByText("landing.hero.title")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("landing.hero.title");
   });
 
   it("renders hero highlighted text", () => {
@@ -85,14 +96,16 @@ describe("Landing page", () => {
     expect(screen.getByText("landing.how.step3_title")).toBeInTheDocument();
   });
 
-  it("renders 6 feature cards as articles", () => {
+  it("renders 3 feature cards in the features grid", () => {
     renderLanding();
-    expect(screen.getAllByRole("article").length).toBeGreaterThanOrEqual(6);
+    for (let i = 1; i <= 3; i++) {
+      expect(screen.getByText(`landing.features.f${i}_title`)).toBeInTheDocument();
+    }
   });
 
-  it("renders all 6 feature titles", () => {
+  it("renders all feature titles", () => {
     renderLanding();
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 3; i++) {
       expect(screen.getByText(`landing.features.f${i}_title`)).toBeInTheDocument();
     }
   });
@@ -130,26 +143,25 @@ describe("Landing page", () => {
     expect(screen.queryByText("landing.faq.a1")).not.toBeInTheDocument();
   });
 
-  it("renders CTA title", () => {
+  it("renders closing section title", () => {
     renderLanding();
-    expect(screen.getByText("landing.cta.title")).toBeInTheDocument();
+    expect(screen.getByText("landing.closing.title")).toBeInTheDocument();
   });
 
-  it("renders CTA register button", () => {
+  it("renders closing register button", () => {
     renderLanding();
-    expect(screen.getByText("landing.cta.register")).toBeInTheDocument();
+    expect(screen.getByText("landing.closing.register")).toBeInTheDocument();
   });
 
-  it("CTA explore link points to polygonscan.com", () => {
+  it("closing login link points to login route", () => {
     renderLanding();
-    expect(
-      screen.getByText("landing.cta.explore").closest("a")
-    ).toHaveAttribute("href", "https://polygonscan.com/");
+    const loginLinks = screen.getAllByText("landing.closing.login");
+    expect(loginLinks.some((el) => el.closest("a")?.getAttribute("href") === "/login")).toBe(true);
   });
 
-  it("renders footer disclaimer", () => {
+  it("renders footer tagline", () => {
     renderLanding();
-    expect(screen.getByText("landing.footer.disclaimer")).toBeInTheDocument();
+    expect(screen.getByText("landing.footer.tagline")).toBeInTheDocument();
   });
 
   it("redirects authenticated users (renders nothing)", () => {
@@ -164,11 +176,11 @@ describe("Landing page", () => {
 
   it("sets document title on mount", () => {
     renderLanding();
-    expect(document.title).toContain("Block Miner");
+    expect(document.title).toBe("landing.meta.title");
   });
 
   it("renders hero title_end i18n key", () => {
     renderLanding();
-    expect(screen.getByText("landing.hero.title_end")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("landing.hero.title_end");
   });
 });

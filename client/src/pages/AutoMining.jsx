@@ -137,7 +137,7 @@ export default function AutoMining() {
       const target = nextClaimRef.current;
       if (!target) return;
       const remain = Math.max(0, Math.ceil((new Date(target).getTime() - Date.now()) / 1000));
-      if (remain > 0) return;
+      if (remain > 5) return;
       if (turboFetchedForRef.current === target) return;
       turboFetchedForRef.current = target;
       setTurboBannerLoading(true);
@@ -359,7 +359,7 @@ export default function AutoMining() {
                       <button
                         type="button"
                         onClick={handleClaimTurbo}
-                        disabled={actionBusy || !bannerTracked || !turboImpression}
+                        disabled={actionBusy || !bannerTracked || !turboImpression?.id}
                         className="w-full py-4 rounded-[2rem] font-black text-xs uppercase tracking-widest bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-30 transition-all"
                       >
                         {t("autoMiningGpuPage.claim_turbo")}

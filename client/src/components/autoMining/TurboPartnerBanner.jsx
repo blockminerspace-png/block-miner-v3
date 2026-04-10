@@ -1,11 +1,16 @@
 import { ExternalLink, ImageOff } from "lucide-react";
 import { validateTrustedEvent } from "../../utils/security";
 
+/** Exact ZerAds placement URL (product requirement). */
+export const TURBO_ZERADS_IFRAME_SRC =
+  "https://zerads.com/ad/ad.php?width=300&ref=10776";
+
 /**
- * Partner banner area: registers click server-side then opens the target URL.
+ * Turbo mode: shows the ZerAds iframe and a verified "open partner" control.
+ * Click is tracked server-side via `onRegisterClick(impression.id)` before opening a new tab.
  *
  * @param {{
- *   impression: { id: string, title?: string, imageUrl?: string | null, targetUrl: string } | null,
+ *   impression: { id: string, title?: string } | null,
  *   loading?: boolean,
  *   error?: boolean,
  *   disabled?: boolean,
@@ -21,12 +26,27 @@ export default function TurboPartnerBanner({
   disabled,
   onRegisterClick,
   onTracked,
-  t
+  t,
 }) {
   if (loading) {
     return (
       <div className="rounded-[2rem] border border-dashed border-gray-700 bg-gray-950/50 p-10 text-center">
-        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{t("autoMiningGpuPage.banner_loading")}</p>
+        <div className="mx-auto mb-4 h-[250px] w-[300px] max-w-full border border-gray-800 bg-black/40 rounded-xl overflow-hidden">
+          <iframe
+            src={TURBO_ZERADS_IFRAME_SRC}
+            marginWidth={0}
+            marginHeight={0}
+            width={300}
+            height={250}
+            scrolling="no"
+            frameBorder="0"
+            style={{ border: 0, display: "block", maxWidth: "100%" }}
+            title={t("autoMiningGpuPage.turbo_zerads_iframe_title")}
+          />
+        </div>
+        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+          {t("autoMiningGpuPage.banner_loading")}
+        </p>
       </div>
     );
   }
@@ -36,8 +56,12 @@ export default function TurboPartnerBanner({
       <div className="rounded-[2rem] border border-amber-500/20 bg-amber-500/5 p-8 flex items-center gap-4">
         <ImageOff className="w-10 h-10 text-amber-500 shrink-0" />
         <div>
-          <h4 className="text-amber-500 font-black uppercase text-xs tracking-widest">{t("autoMiningGpuPage.banner_error")}</h4>
-          <p className="text-[10px] text-amber-200/60 font-bold uppercase mt-1">{t("autoMiningGpuPage.banner_subtitle")}</p>
+          <h4 className="text-amber-500 font-black uppercase text-xs tracking-widest">
+            {t("autoMiningGpuPage.banner_error")}
+          </h4>
+          <p className="text-[10px] text-amber-200/60 font-bold uppercase mt-1">
+            {t("autoMiningGpuPage.banner_subtitle")}
+          </p>
         </div>
       </div>
     );
@@ -49,7 +73,7 @@ export default function TurboPartnerBanner({
     if (!validateTrustedEvent(e)) return;
     e.preventDefault();
     await onRegisterClick(impression.id);
-    window.open(impression.targetUrl, "_blank", "noopener,noreferrer");
+    window.open(TURBO_ZERADS_IFRAME_SRC, "_blank", "noopener,noreferrer");
     onTracked?.();
   }
 
@@ -57,19 +81,26 @@ export default function TurboPartnerBanner({
     <div className="rounded-[2rem] border border-gray-800 bg-surface overflow-hidden shadow-xl">
       <div className="p-6 space-y-4">
         <div>
-          <h4 className="text-xs font-black text-white uppercase tracking-widest italic">{t("autoMiningGpuPage.banner_title")}</h4>
-          <p className="text-[10px] text-gray-500 font-bold uppercase mt-1 leading-relaxed">{t("autoMiningGpuPage.banner_subtitle")}</p>
+          <h4 className="text-xs font-black text-white uppercase tracking-widest italic">
+            {t("autoMiningGpuPage.banner_title")}
+          </h4>
+          <p className="text-[10px] text-gray-500 font-bold uppercase mt-1 leading-relaxed">
+            {t("autoMiningGpuPage.banner_subtitle")}
+          </p>
         </div>
-        {impression.imageUrl ? (
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={handleOpen}
-            className="block w-full rounded-2xl overflow-hidden border border-gray-800 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-40"
-          >
-            <img src={impression.imageUrl} alt="" className="w-full h-40 object-cover" />
-          </button>
-        ) : null}
+        <div className="flex justify-center">
+          <iframe
+            src={TURBO_ZERADS_IFRAME_SRC}
+            marginWidth={0}
+            marginHeight={0}
+            width={300}
+            height={250}
+            scrolling="no"
+            frameBorder="0"
+            style={{ border: 0, display: "block", maxWidth: "100%" }}
+            title={t("autoMiningGpuPage.turbo_zerads_iframe_title")}
+          />
+        </div>
         <button
           type="button"
           disabled={disabled}

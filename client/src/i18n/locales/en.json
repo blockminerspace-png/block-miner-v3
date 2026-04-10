@@ -352,6 +352,13 @@
     "ticket_status_credited": "Credited",
     "ticket_status_rejected": "Rejected",
     "ticket_status_approved": "Approved",
+    "deposit_options": {
+      "smart_contract": "Smart contract deposit",
+      "walletconnect": "WalletConnect (QR code)",
+      "hint": "Choose how you connect your wallet, then sign the POL transfer.",
+      "contract_required": "Smart contract deposit is not available in this environment. Use WalletConnect with the treasury address or contact support.",
+      "walletconnect_hint": "Open WalletConnect to scan the QR code on your phone, stay on Polygon (137), then use Express deposit to sign."
+    },
     "web3_deposit": {
       "title": "Polygon POL deposit",
       "hint": "Open the wallet picker (WalletConnect on mobile or extension on desktop), stay on Polygon (137). Then use Express deposit to sign sending POL — the server credits after on-chain confirmations.",
@@ -480,6 +487,9 @@
     "free_hint": "No POL payment — one tap per day keeps your streak.",
     "server_note_free": "When you reopen the site, streak and history load from the database.",
     "server_note": "The server validates amount, recipient, and sender on-chain. Pending transactions are rechecked automatically in the background.",
+    "error_already_today": "You have already checked in today. Come back tomorrow.",
+    "error_balance_insufficient": "Not enough POL balance for this check-in (0.02 POL required).",
+    "error_balance_failed": "Balance check-in could not be completed. Try again or use the wallet option.",
     "payment_options": {
       "title": "Choose Payment Method",
       "wallet_option": "Pay with Wallet (0.01 POL)",
@@ -735,6 +745,9 @@
     "notes_blocks": "{{blocks}} blocks/day · rewards proportional to hash",
     "notes_estimate": "Estimate does not account for network fluctuations"
   },
+  "games": {
+    "temporary_power_label": "Temporary power"
+  },
   "minerGames": {
     "temporary_power_title": "Temporary game power",
     "temporary_power_tooltip": "Hash rate earned from Arena minigames (Memory Sync, Power Match). It expires after the configured duration and does not replace rack machines.",
@@ -774,6 +787,7 @@
     "banner_fallback": "Sponsored link",
     "banner_open": "Open partner",
     "banner_loading": "Loading offer…",
+    "turbo_zerads_iframe_title": "Partner banner",
     "banner_error": "Could not load an offer. Retry or check back later.",
     "claim_turbo": "Claim +20 H/s",
     "claim_turbo_hint": "Open the partner link first, then claim here.",

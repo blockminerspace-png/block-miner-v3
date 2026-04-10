@@ -460,7 +460,11 @@ export async function checkinBalance(req, res) {
     });
 
     if (existing?.status === "confirmed") {
-      return res.json({ ok: false, message: "Already checked in today." });
+      return res.status(400).json({
+        ok: false,
+        code: "CHECKIN_ALREADY_TODAY",
+        message: "Already checked in today."
+      });
     }
 
     // Atomic deduction
@@ -470,7 +474,8 @@ export async function checkinBalance(req, res) {
         select: { polBalance: true }
       });
 
-      if (!user || user.polBalance < amount) {
+      const bal = user ? Number(user.polBalance) : 0;
+      if (!user || !(bal >= amount)) {
         throw new Error("Insufficient POL balance.");
       }
 
@@ -504,6 +509,11 @@ export async function checkinBalance(req, res) {
     await applyStreakMilestoneRewards(userId);
     const streak = await computeCheckinStreak(userId);
 
+    const userAfter = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { polBalance: true }
+    });
+
     // Audit log
     await prisma.auditLog.create({
       data: {
@@ -519,13 +529,22 @@ export async function checkinBalance(req, res) {
       ok: true,
       message: "Check-in confirmed via balance.",
       streak,
-      txHash: result.txHash
+      txHash: result.txHash,
+      newBalance: userAfter ? Number(userAfter.polBalance) : undefined
     });
   } catch (e) {
     console.error("Checkin balance error", { error: e.message, userId: req.user.id });
     if (e.message === "Insufficient POL balance.") {
-      return res.status(400).json({ ok: false, message: "Insufficient POL balance." });
+      return res.status(400).json({
+        ok: false,
+        code: "CHECKIN_BALANCE_INSUFFICIENT",
+        message: "Insufficient POL balance."
+      });
     }
-    res.status(500).json({ ok: false, message: "Balance check-in failed." });
+    res.status(500).json({
+      ok: false,
+      code: "CHECKIN_BALANCE_FAILED",
+      message: "Balance check-in failed."
+    });
   }
 }

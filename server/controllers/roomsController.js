@@ -33,8 +33,10 @@ export async function listRooms(req, res) {
         racks: {
           orderBy: { position: "asc" },
           include: {
-            userMiner: true,
-          },
+            userMiner: {
+              include: { miner: true }
+            }
+          }
         },
       },
       orderBy: { roomNumber: "asc" },
@@ -60,6 +62,7 @@ export async function listRooms(req, res) {
               ? {
                   id: rack.userMiner.id,
                   minerId: rack.userMiner.minerId,
+                  minerName: rack.userMiner.miner?.name ?? null,
                   hashRate: rack.userMiner.hashRate,
                   imageUrl: rack.userMiner.imageUrl,
                   level: rack.userMiner.level,

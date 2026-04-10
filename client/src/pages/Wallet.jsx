@@ -120,6 +120,7 @@ export default function Wallet() {
         walletConnectConfigured,
         cancelWalletSession,
         kitConnected,
+        connectWalletConnect,
     } = useWallet();
 
     const { mutateAsync: sendOnchainTx } = useSendTransaction();
@@ -148,6 +149,7 @@ export default function Wallet() {
         amount: ''
     });
     const [depositForm, setDepositForm] = useState({ amount: '' });
+    const [depositChannel, setDepositChannel] = useState('smart_contract');
     const [polPrice, setPolPrice] = useState(0);
     const [minDepositPol, setMinDepositPol] = useState(0.01);
     const [blockConfirmations, setBlockConfirmations] = useState(3);
@@ -270,6 +272,12 @@ export default function Wallet() {
         };
     }, [fetchWalletData, fetchPendingDeposits, stopPendingPoll]);
 
+    useEffect(() => {
+        if (!systemContractAddress && walletConnectConfigured) {
+            setDepositChannel('walletconnect');
+        }
+    }, [systemContractAddress, walletConnectConfigured]);
+
     // Para de fazer poll quando não há mais pendentes
     useEffect(() => {
         const hasPending = pendingDeposits.some(d => d.status === 'pending_verification');
@@ -302,9 +310,25 @@ export default function Wallet() {
     const handleAutoDeposit = async () => {
         setIsActionLoading(true);
         try {
+            if (depositChannel === 'smart_contract') {
+                const hasContract =
+                    systemContractAddress && isAddress(systemContractAddress);
+                if (!hasContract) {
+                    toast.error(t('wallet.deposit_options.contract_required'));
+                    return;
+                }
+            } else if (!walletConnectConfigured) {
+                toast.error(t('wallet.web3_deposit.wc_missing_build'));
+                return;
+            }
+
             if (!isConnected) {
                 try {
-                    await connect();
+                    if (depositChannel === 'walletconnect') {
+                        await connectWalletConnect();
+                    } else {
+                        await connect();
+                    }
                 } catch (e) {
                     if (e?.code === 'CANCELLED') {
                         toast.info(t('wallet.web3_deposit.connection_cancelled'));
@@ -419,7 +443,7 @@ export default function Wallet() {
                 fetchPendingDeposits();
                 startPendingPoll();
             } else {
-                toast.error(res.data.message || 'Erro ao registrar depósito');
+                toast.error(res.data.message || t('common.error'));
             }
         } catch (error) {
             console.error("Deposit error", error);
@@ -789,15 +813,46 @@ export default function Wallet() {
 
                             {activeTab === 'deposit' && (
                                 <form onSubmit={(e) => e.preventDefault()} className="space-y-6 sm:space-y-8">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setDepositChannel('smart_contract')}
+                                            disabled={!systemContractAddress}
+                                            className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all ${
+                                                depositChannel === 'smart_contract'
+                                                    ? 'border-primary bg-primary/15 text-white shadow-lg shadow-primary/10'
+                                                    : 'border-slate-700 text-slate-400 hover:border-slate-600'
+                                            } disabled:opacity-40 disabled:cursor-not-allowed`}
+                                        >
+                                            {t('wallet.deposit_options.smart_contract')}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setDepositChannel('walletconnect')}
+                                            disabled={!walletConnectConfigured}
+                                            className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all ${
+                                                depositChannel === 'walletconnect'
+                                                    ? 'border-primary bg-primary/15 text-white shadow-lg shadow-primary/10'
+                                                    : 'border-slate-700 text-slate-400 hover:border-slate-600'
+                                            } disabled:opacity-40 disabled:cursor-not-allowed`}
+                                        >
+                                            {t('wallet.deposit_options.walletconnect')}
+                                        </button>
+                                    </div>
+                                    <p className="text-[9px] text-slate-600 font-bold text-center leading-relaxed">
+                                        {t('wallet.deposit_options.hint')}
+                                    </p>
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-stretch">
                                         <div className="p-5 sm:p-6 rounded-3xl border border-indigo-500/25 bg-indigo-950/20 flex flex-col gap-4 min-h-[280px]">
                                             <h4 className="text-xs font-black uppercase tracking-widest text-indigo-300">
                                                 {t('wallet.web3_deposit.title')}
                                             </h4>
                                             <p className="text-[9px] text-slate-500 font-bold leading-relaxed">
-                                                {systemContractAddress
-                                                    ? t('wallet.web3_deposit.smart_contract_hint')
-                                                    : t('wallet.web3_deposit.hint')}
+                                                {depositChannel === 'smart_contract'
+                                                    ? systemContractAddress
+                                                        ? t('wallet.web3_deposit.smart_contract_hint')
+                                                        : t('wallet.deposit_options.contract_required')
+                                                    : t('wallet.deposit_options.walletconnect_hint')}
                                             </p>
                                             {!walletConnectConfigured ? (
                                                 <p className="text-[9px] text-amber-300/90 font-bold leading-relaxed">
@@ -808,7 +863,11 @@ export default function Wallet() {
                                                 <div className="flex flex-col sm:flex-row gap-2">
                                                     <button
                                                         type="button"
-                                                        onClick={connect}
+                                                        onClick={() =>
+                                                            void (depositChannel === 'walletconnect'
+                                                                ? connectWalletConnect()
+                                                                : connect())
+                                                        }
                                                         disabled={isConnecting}
                                                         className="flex-1 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:opacity-95 transition-opacity disabled:opacity-50"
                                                     >

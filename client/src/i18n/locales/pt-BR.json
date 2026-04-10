@@ -355,6 +355,13 @@
     "ticket_status_credited": "Creditado",
     "ticket_status_rejected": "Rejeitado",
     "ticket_status_approved": "Aprovado",
+    "deposit_options": {
+      "smart_contract": "Depósito via contrato inteligente",
+      "walletconnect": "WalletConnect (código QR)",
+      "hint": "Escolhe como ligar a carteira e depois assina o envio de POL.",
+      "contract_required": "Depósito por contrato não está disponível neste ambiente. Usa WalletConnect com a tesouraria ou contacta o suporte.",
+      "walletconnect_hint": "Abre o WalletConnect para ler o QR no telemóvel, mantém a Polygon (137) e usa o depósito expresso para assinar."
+    },
     "web3_deposit": {
       "title": "Depósito POL (Polygon)",
       "hint": "Abra o seletor de carteiras (WalletConnect no telemóvel ou extensão no PC), rede Polygon (137). Depois use «Depósito expresso» para assinar o envio de POL — o servidor credita após confirmações na chain.",
@@ -485,6 +492,9 @@
     "free_hint": "Sem pagamento em POL — um toque por dia mantém a sequência.",
     "server_note_free": "Ao reabrir o site, o estado vem da base de dados (sequência + dias anteriores).",
     "server_note": "O servidor valida valor, destino e remetente na blockchain. Transações pendentes são verificadas automaticamente em segundo plano.",
+    "error_already_today": "Já fizeste check-in hoje. Volta amanhã.",
+    "error_balance_insufficient": "Saldo POL insuficiente para este check-in (são necessários 0,02 POL).",
+    "error_balance_failed": "O check-in por saldo falhou. Tenta outra vez ou usa a opção com carteira.",
     "payment_options": {
       "title": "Escolha o Método de Pagamento",
       "wallet_option": "Pagar com Carteira (0.01 POL)",
@@ -740,6 +750,9 @@
     "notes_blocks": "{{blocks}} blocos/dia · ganhos proporcionais ao hash",
     "notes_estimate": "Estimativa não considera variações de rede"
   },
+  "games": {
+    "temporary_power_label": "Poder temporário"
+  },
   "minerGames": {
     "temporary_power_title": "Poder temporário dos jogos",
     "temporary_power_tooltip": "Hash rate ganho nos minigames da Arena (Memory Sync, Power Match). Expira após o tempo configurado e não substitui máquinas no rack.",
@@ -779,6 +792,7 @@
     "banner_fallback": "Link patrocinado",
     "banner_open": "Abrir parceiro",
     "banner_loading": "Carregando oferta…",
+    "turbo_zerads_iframe_title": "Banner do parceiro",
     "banner_error": "Não foi possível carregar uma oferta. Tente de novo mais tarde.",
     "claim_turbo": "Reivindicar +20 H/s",
     "claim_turbo_hint": "Abra o link do parceiro primeiro e reivindique aqui.",
