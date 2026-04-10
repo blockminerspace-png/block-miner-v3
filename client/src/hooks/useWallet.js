@@ -203,12 +203,8 @@ export function useWallet() {
         openModalRef.current = true;
         setIsConnecting(true);
         try {
-            if (kitConnected) {
-                await disconnectAsync().catch(() => {});
-                linkingRef.current = null;
-                setAccount(null);
-                setIsConnected(false);
-            }
+            // Nunca desligar aqui só porque kitConnected — isso mata a sessão WC logo após o telemóvel
+            // aprovar (kitConnected=true mas isConnected ainda false) ou se o utilizador toca "Conectar" outra vez.
 
             // Abre direto a grelha "All Wallets" (mesmo UX que Web3Modal / AppKit padrão no mobile).
             await open({ view: 'AllWallets' });
@@ -224,7 +220,7 @@ export function useWallet() {
             openModalRef.current = false;
             setIsConnecting(false);
         }
-    }, [open, kitConnected, disconnectAsync]);
+    }, [open]);
 
     const connect = useCallback(async () => {
         if (walletConnectConfigured) {
@@ -232,11 +228,60 @@ export function useWallet() {
                 toast.info('Wallet already connected. Disconnect first to choose another wallet.');
                 return;
             }
+            // Sessão WC ativa mas ainda sem assinatura / sync com o servidor — completar em vez de reabrir modal.
+            if (kitConnected && kitAddress && !isConnected) {
+                if (linkingRef.current === `busy:${kitAddress}`) {
+                    toast.info('Finishing wallet link…');
+                    return;
+                }
+                linkingRef.current = `busy:${kitAddress}`;
+                setIsConnecting(true);
+                try {
+                    const bal = await api.get('/wallet/balance');
+                    if (
+                        bal.data?.ok &&
+                        bal.data.walletAddress &&
+                        bal.data.walletAddress.toLowerCase() === kitAddress.toLowerCase()
+                    ) {
+                        setAccount(kitAddress);
+                        setIsConnected(true);
+                        linkingRef.current = `done:${kitAddress}`;
+                        toast.success('Wallet verified and connected!');
+                        return;
+                    }
+                    await verifyWithServer(kitAddress, getActiveEip1193());
+                    linkingRef.current = `done:${kitAddress}`;
+                } catch (e) {
+                    const rejected =
+                        e?.code === 4001 ||
+                        e?.cause?.code === 4001 ||
+                        String(e?.message || '').toLowerCase().includes('user rejected');
+                    if (rejected) {
+                        linkingRef.current = `rejected:${kitAddress}`;
+                        toast.error('Signature cancelled. Tap Connect again when you are ready to sign.');
+                    } else {
+                        linkingRef.current = null;
+                        toast.error(e?.message || 'Failed to verify wallet.');
+                    }
+                } finally {
+                    setIsConnecting(false);
+                }
+                return;
+            }
             await openConnectModal();
             return;
         }
         await connectInjectedAndVerify();
-    }, [walletConnectConfigured, kitConnected, isConnected, openConnectModal, connectInjectedAndVerify]);
+    }, [
+        walletConnectConfigured,
+        kitConnected,
+        isConnected,
+        kitAddress,
+        openConnectModal,
+        connectInjectedAndVerify,
+        verifyWithServer,
+        getActiveEip1193,
+    ]);
 
     const connectWalletConnect = useCallback(async () => {
         if (!walletConnectConfigured) {
@@ -245,8 +290,8 @@ export function useWallet() {
             );
             return;
         }
-        await openConnectModal();
-    }, [walletConnectConfigured, openConnectModal]);
+        await connect();
+    }, [walletConnectConfigured, connect]);
 
     const switchNetwork = useCallback(async () => {
         if (walletConnectConfigured && kitConnected) {
@@ -268,7 +313,8 @@ export function useWallet() {
         }
 
         const n = normalizeChainNum(kitChainId);
-        if (n !== POLYGON_NUM) {
+        // chainId por vezes vem tarde no mobile; null !== 137 pedia switch à toa e bloqueava a verificação
+        if (n != null && n !== POLYGON_NUM) {
             appKitSwitchNetwork(polygon).catch((e) => console.error('AppKit switch network', e));
             return;
         }
