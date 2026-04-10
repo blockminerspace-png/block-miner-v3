@@ -14,10 +14,14 @@ export const landingEn = {
   },
   hero: {
     badge: "Game online — blocks mining now",
-    headline: "Play, Mine & Earn Real Crypto",
-    subheadline:
-      "The mining game where you build your farm, buy machines, and earn real crypto every block.",
-    cta_primary: "Play now — it's free →",
+    headline_line1: "Play, Mine &",
+    headline_highlight: "Earn Real Crypto",
+    headline_line2: "For Real",
+    subheadline_before:
+      "The mining game where you build your farm, buy machines, and earn ",
+    subheadline_emphasis: "real cryptocurrencies",
+    subheadline_after: " every block.",
+    cta_primary: "Play now — it's free",
     cta_secondary: "I already have an account",
     trust_miners: "Active miners",
     trust_paid: "POL withdrawn on-chain",

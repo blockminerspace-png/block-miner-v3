@@ -10,6 +10,7 @@ import {
   Coins,
   Gamepad2,
   Gift,
+  Globe,
   Moon,
   Pickaxe,
   Play,
@@ -94,6 +95,49 @@ function useCountUp(end, enabled, decimals = 0) {
   return v;
 }
 
+const HERO_DIAMONDS = [
+  { top: '4%', left: '2%', size: 52, rot: 14 },
+  { top: '18%', left: '8%', size: 36, rot: -10 },
+  { top: '8%', right: '6%', size: 44, rot: 22 },
+  { top: '28%', right: '2%', size: 28, rot: -18 },
+  { bottom: '22%', left: '4%', size: 40, rot: 8 },
+  { bottom: '12%', left: '14%', size: 24, rot: -25 },
+  { bottom: '18%', right: '8%', size: 48, rot: 16 },
+  { bottom: '8%', right: '3%', size: 32, rot: -8 },
+];
+
+function HeroBackdrop({ light }) {
+  const tileCls = light
+    ? 'rounded-lg border border-slate-400/25 bg-slate-500/[0.06]'
+    : 'rounded-lg border border-sky-400/20 bg-sky-500/[0.07]';
+  const glowCls = light
+    ? 'bg-[radial-gradient(ellipse_at_center,rgba(14,165,233,0.14),transparent_72%)]'
+    : 'bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.32),transparent_70%)]';
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+      <div
+        className={`absolute left-1/2 top-[32%] h-[min(55vh,480px)] w-[min(95vw,760px)] -translate-x-1/2 -translate-y-1/2 ${glowCls}`}
+      />
+      {HERO_DIAMONDS.map((d, i) => (
+        <div
+          key={i}
+          className={`absolute ${tileCls}`}
+          style={{
+            top: d.top,
+            bottom: d.bottom,
+            left: d.left,
+            right: d.right,
+            width: d.size,
+            height: d.size,
+            transform: `rotate(${d.rot}deg)`,
+            opacity: light ? 0.45 : 0.85,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function FaqItem({ id, question, answer, light }) {
   const [open, setOpen] = useState(false);
   const card = light
@@ -143,6 +187,7 @@ function LanguageSwitch({ shellClass = 'border-white/10 bg-slate-950/80', active
     ? 'bg-white/15 text-white'
     : 'bg-sky-600 text-white';
   const idleCls = activeDark ? 'text-slate-500 hover:text-slate-200' : 'text-slate-500 hover:text-slate-800';
+  const globeCls = activeDark ? 'text-slate-400' : 'text-slate-500';
   const btn = (code, label) => (
     <button
       key={code}
@@ -161,14 +206,17 @@ function LanguageSwitch({ shellClass = 'border-white/10 bg-slate-950/80', active
     </button>
   );
   return (
-    <div
-      className={`flex items-center gap-0.5 rounded-full border p-0.5 ${shellClass}`}
-      role="group"
-      aria-label={t('landing.nav.language_group')}
-    >
-      {btn('en', 'EN')}
-      {btn('pt-BR', 'PT')}
-      {btn('es', 'ES')}
+    <div className="flex items-center gap-2">
+      <Globe className={`h-4 w-4 shrink-0 ${globeCls}`} aria-hidden />
+      <div
+        className={`flex items-center gap-0.5 rounded-full border p-0.5 ${shellClass}`}
+        role="group"
+        aria-label={t('landing.nav.language_group')}
+      >
+        {btn('en', 'EN')}
+        {btn('pt-BR', 'PT')}
+        {btn('es', 'ES')}
+      </div>
     </div>
   );
 }
@@ -442,7 +490,7 @@ export default function Landing() {
   ];
 
   const gradientBtn =
-    'motion-safe:transition-transform motion-safe:duration-200 motion-safe:hover:scale-[1.02] inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-gradient-to-r from-sky-500 to-violet-600 px-8 py-3.5 text-sm font-bold text-white shadow-xl shadow-sky-500/25 motion-safe:hover:shadow-[0_0_28px_rgba(56,189,248,0.35)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 motion-reduce:hover:scale-100';
+    'motion-safe:transition-transform motion-safe:duration-200 motion-safe:hover:scale-[1.02] inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-sky-500 px-8 py-3.5 text-sm font-bold text-white shadow-xl shadow-blue-500/30 motion-safe:hover:shadow-[0_0_36px_rgba(59,130,246,0.45)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 motion-reduce:hover:scale-100';
 
   const outlineBtn =
     'inline-flex min-h-[44px] items-center justify-center rounded-full border px-8 py-3.5 text-sm font-semibold motion-safe:transition-transform motion-safe:duration-200 motion-safe:hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400 motion-reduce:hover:scale-100';
@@ -500,95 +548,79 @@ export default function Landing() {
       </header>
 
       <main id="main-content" className="relative z-10">
-        <section className="mx-auto max-w-6xl px-5 sm:px-8 pt-12 pb-16 sm:pt-16 sm:pb-24">
-          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
-            <div>
-              <div
-                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs uppercase tracking-[0.22em] ${skin.badge}`}
-              >
-                <span
-                  className={`h-2 w-2 shrink-0 rounded-full ${skin.dot} motion-safe:animate-pulse motion-reduce:animate-none`}
-                  aria-hidden
-                />
-                {t('landing.hero.badge')}
-              </div>
-              <h1
-                className={`mt-6 max-w-[22ch] font-black leading-[1.05] ${skin.h1} text-[clamp(1.85rem,4.2vw+0.85rem,3.65rem)] sm:max-w-none lg:text-[clamp(2.25rem,3.5vw+1rem,3.75rem)]`}
-              >
-                {t('landing.hero.headline')}
-              </h1>
-              <p className={`mt-5 max-w-xl text-base leading-relaxed sm:text-lg ${skin.body}`}>
-                {t('landing.hero.subheadline')}
-              </p>
-              <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:items-center">
-                <Link
-                  to="/register"
-                  className={`${gradientBtn} w-full sm:w-auto`}
-                  aria-label={t('landing.hero.cta_primary')}
-                  onClick={() => trackLandingEvent('landing_cta_click', { cta_id: 'hero_primary', destination: '/register' })}
-                >
-                  {t('landing.hero.cta_primary')}
-                </Link>
-                <Link
-                  to="/login"
-                  className={`${outlineBtn} w-full sm:w-auto ${light ? 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50' : 'border-white/15 bg-white/5 text-slate-100 hover:bg-white/10'}`}
-                  aria-label={t('landing.hero.cta_secondary')}
-                  onClick={() => trackLandingEvent('landing_cta_click', { cta_id: 'hero_secondary', destination: '/login' })}
-                >
-                  {t('landing.hero.cta_secondary')}
-                </Link>
-              </div>
-              <div className="mt-10 grid gap-3 sm:grid-cols-3">
-                {[
-                  {
-                    label: t('landing.hero.trust_miners'),
-                    value: publicStats ? publicStats.activeMiners.toLocaleString() : '—',
-                  },
-                  {
-                    label: t('landing.hero.trust_paid'),
-                    value: publicStats
-                      ? `${Number(publicStats.totalWithdrawn).toLocaleString(undefined, { maximumFractionDigits: 0 })} POL`
-                      : '—',
-                  },
-                  {
-                    label: t('landing.hero.trust_rating'),
-                    value: (
-                      <span className="inline-flex items-center gap-1 text-amber-400" aria-label={t('landing.hero.trust_stars_aria')}>
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star key={i} className="h-4 w-4 fill-current" aria-hidden />
-                        ))}
-                      </span>
-                    ),
-                  },
-                ].map((row) => (
-                  <div key={row.label} className={`rounded-2xl border px-4 py-3 ${skin.trustCard}`}>
-                    <p className="text-[11px] uppercase tracking-wider text-slate-500">{row.label}</p>
-                    <p className="mt-1 text-lg font-bold text-sky-500">{row.value}</p>
-                  </div>
-                ))}
-              </div>
+        <section className="relative mx-auto max-w-6xl px-5 sm:px-8 pt-12 pb-16 sm:pt-16 sm:pb-24">
+          <HeroBackdrop light={light} />
+          <div className="relative z-[1] flex flex-col items-center text-center">
+            <div
+              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs uppercase tracking-[0.22em] ${skin.badge}`}
+            >
+              <span
+                className={`h-2 w-2 shrink-0 rounded-full ${skin.dot} motion-safe:animate-pulse motion-reduce:animate-none`}
+                aria-hidden
+              />
+              {t('landing.hero.badge')}
             </div>
-            <div className="relative">
-              <div
-                className={`relative aspect-[4/3] overflow-hidden rounded-[2rem] border ${skin.borderSubtle} bg-gradient-to-br from-sky-500/20 via-violet-600/20 to-slate-900 shadow-2xl`}
-                role="img"
-                aria-label={t('landing.hero.visual_caption')}
+            <h1 className="mt-8 max-w-[22ch] font-black leading-[1.08] sm:max-w-4xl text-[clamp(1.85rem,4.2vw+0.85rem,3.65rem)] lg:text-[clamp(2.35rem,3.8vw+1rem,4rem)]">
+              <span className={`block ${skin.h1}`}>{t('landing.hero.headline_line1')}</span>
+              <span className="block bg-gradient-to-r from-sky-300 via-cyan-300 to-sky-400 bg-clip-text text-transparent">
+                {t('landing.hero.headline_highlight')}
+              </span>
+              <span className={`block ${skin.h1}`}>{t('landing.hero.headline_line2')}</span>
+            </h1>
+            <p className={`mt-5 max-w-2xl text-base leading-relaxed sm:text-lg ${skin.body}`}>
+              {t('landing.hero.subheadline_before')}
+              <strong className={light ? 'font-semibold text-slate-900' : 'font-semibold text-white'}>
+                {t('landing.hero.subheadline_emphasis')}
+              </strong>
+              {t('landing.hero.subheadline_after')}
+            </p>
+            <div className="mt-9 flex w-full max-w-lg flex-col items-stretch justify-center gap-3 sm:max-w-none sm:flex-row sm:items-center">
+              <Link
+                to="/register"
+                className={`${gradientBtn} w-full sm:w-auto`}
+                aria-label={t('landing.hero.cta_primary')}
+                onClick={() => trackLandingEvent('landing_cta_click', { cta_id: 'hero_primary', destination: '/register' })}
               >
-                <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8">
-                  <div className={`rounded-2xl border ${skin.borderSubtle} bg-black/40 p-4 backdrop-blur-md`}>
-                    <p className="text-xs font-mono text-sky-300">blockminer.space / dashboard</p>
-                    <p className="mt-2 text-sm text-white/90">{t('landing.hero.visual_caption')}</p>
-                    <div className="mt-4 flex gap-2">
-                      <span className="rounded-lg bg-emerald-500/20 px-2 py-1 text-xs text-emerald-300">
-                        +{formatHashrate(hashSlider)}
-                      </span>
-                      <span className="rounded-lg bg-violet-500/20 px-2 py-1 text-xs text-violet-200">
-                        POL / block
-                      </span>
-                    </div>
-                  </div>
+                {t('landing.hero.cta_primary')}
+                <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+              </Link>
+              <Link
+                to="/login"
+                className={`${outlineBtn} w-full sm:w-auto ${light ? 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50' : 'border-white/15 bg-white/5 text-slate-100 hover:bg-white/10'}`}
+                aria-label={t('landing.hero.cta_secondary')}
+                onClick={() => trackLandingEvent('landing_cta_click', { cta_id: 'hero_secondary', destination: '/login' })}
+              >
+                {t('landing.hero.cta_secondary')}
+              </Link>
+            </div>
+            <div className="mt-12 grid w-full max-w-3xl gap-3 sm:grid-cols-3">
+              {[
+                {
+                  label: t('landing.hero.trust_miners'),
+                  value: publicStats ? publicStats.activeMiners.toLocaleString() : '—',
+                },
+                {
+                  label: t('landing.hero.trust_paid'),
+                  value: publicStats
+                    ? `${Number(publicStats.totalWithdrawn).toLocaleString(undefined, { maximumFractionDigits: 0 })} POL`
+                    : '—',
+                },
+                {
+                  label: t('landing.hero.trust_rating'),
+                  value: (
+                    <span className="inline-flex items-center gap-1 text-amber-400" aria-label={t('landing.hero.trust_stars_aria')}>
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star key={i} className="h-4 w-4 fill-current" aria-hidden />
+                      ))}
+                    </span>
+                  ),
+                },
+              ].map((row) => (
+                <div key={row.label} className={`rounded-2xl border px-4 py-3 text-center sm:text-left ${skin.trustCard}`}>
+                  <p className="text-[11px] uppercase tracking-wider text-slate-500">{row.label}</p>
+                  <p className="mt-1 flex justify-center text-lg font-bold text-sky-500 sm:justify-start">{row.value}</p>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
         </section>

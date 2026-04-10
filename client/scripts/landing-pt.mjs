@@ -14,10 +14,14 @@ export const landingPt = {
   },
   hero: {
     badge: "Jogo online — blocos sendo minerados agora",
-    headline: "Jogue, Minere e Ganhe Cripto de Verdade",
-    subheadline:
-      "O jogo de mineração onde você monta sua farm, compra máquinas e ganha criptomoedas reais a cada bloco.",
-    cta_primary: "Jogar Agora — É Grátis →",
+    headline_line1: "Jogue, Minere e",
+    headline_highlight: "Ganhe Cripto",
+    headline_line2: "de Verdade",
+    subheadline_before:
+      "O jogo de mineração onde você monta sua farm, compra máquinas e ganha ",
+    subheadline_emphasis: "criptomoedas reais",
+    subheadline_after: " a cada bloco.",
+    cta_primary: "Jogar Agora — É Grátis",
     cta_secondary: "Já tenho conta",
     trust_miners: "Mineradores ativos",
     trust_paid: "POL sacado on-chain",

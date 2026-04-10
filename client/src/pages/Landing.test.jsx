@@ -67,10 +67,12 @@ describe("Landing page", () => {
     expect(skip).toHaveAttribute("href", "#main-content");
   });
 
-  it("renders h1 hero headline", () => {
+  it("renders h1 hero headline parts", () => {
     renderLanding();
     const h1 = screen.getByRole("heading", { level: 1 });
-    expect(h1).toHaveTextContent("landing.hero.headline");
+    expect(h1).toHaveTextContent("landing.hero.headline_line1");
+    expect(h1).toHaveTextContent("landing.hero.headline_highlight");
+    expect(h1).toHaveTextContent("landing.hero.headline_line2");
   });
 
   it("renders nav login link", () => {
