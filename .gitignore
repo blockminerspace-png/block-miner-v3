@@ -15,8 +15,7 @@ contracts/artifacts/
 deploy.md
 # Ficheiro único de deploy (host/user/password) — ler deploy.secrets.example
 deploy.secrets.local
-# Credenciais + wrapper de deploy na raiz (nunca commitar)
-deploy.py
+# deploy.py na raiz é versionado (sem segredos); segredos só em deploy.secrets.local ou BLOCKMINER_VPS_PW
 scripts/vm_config_secret.py
 scripts/deploy_credentials.local.py
 .deploy-pw.txt
