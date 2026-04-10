@@ -93,6 +93,10 @@ export function useWallet() {
     const linkingRef = useRef(null);
     /** Same-address link in flight — deposit + effect share one Promise (no early return while busy). */
     const walletLinkInflightRef = useRef({});
+    /** reject fn per address — cancel can unblock await syncKitWalletWithServer */
+    const walletLinkRejectRef = useRef({});
+    /** Bumped on user cancel so in-flight sync exits after awaits without toasting errors. */
+    const linkOpIdRef = useRef(0);
     const openModalRef = useRef(false);
 
     const kitChainNum = normalizeChainNum(kitChainId);
@@ -118,8 +122,20 @@ export function useWallet() {
         return walletProvider || getInjectedProvider();
     }, [walletProvider]);
 
-    const disconnectWalletConnectSession = useCallback(async () => {
+    const cancelWalletSession = useCallback(async () => {
+        linkOpIdRef.current += 1;
+        openModalRef.current = false;
+        Object.entries(walletLinkRejectRef.current).forEach(([, rej]) => {
+            try {
+                rej(Object.assign(new Error('cancelled'), { code: 'CANCELLED' }));
+            } catch {
+                /* ignore */
+            }
+        });
+        walletLinkRejectRef.current = {};
+        walletLinkInflightRef.current = {};
         linkingRef.current = null;
+        setIsConnecting(false);
         try {
             await disconnectAsync();
         } catch {
@@ -128,6 +144,10 @@ export function useWallet() {
         setAccount(null);
         setIsConnected(false);
     }, [disconnectAsync]);
+
+    const disconnectWalletConnectSession = useCallback(async () => {
+        await cancelWalletSession();
+    }, [cancelWalletSession]);
 
     const verifyWithServer = useCallback(
         async (userAccount, eip1193Provider) => {
@@ -179,12 +199,22 @@ export function useWallet() {
                 rejectLink = reject;
             });
             walletLinkInflightRef.current[key] = promise;
+            walletLinkRejectRef.current[key] = rejectLink;
+
+            linkOpIdRef.current += 1;
+            const myOpId = linkOpIdRef.current;
 
             (async () => {
                 linkingRef.current = `busy:${addr}`;
                 setIsConnecting(true);
                 try {
                     const bal = await api.get('/wallet/balance');
+                    if (myOpId !== linkOpIdRef.current) {
+                        delete walletLinkInflightRef.current[key];
+                        delete walletLinkRejectRef.current[key];
+                        setIsConnecting(false);
+                        return;
+                    }
                     if (
                         bal.data?.ok &&
                         bal.data.walletAddress &&
@@ -193,13 +223,27 @@ export function useWallet() {
                         setAccount(addr);
                         setIsConnected(true);
                         linkingRef.current = `done:${addr}`;
+                        delete walletLinkRejectRef.current[key];
                         resolveLink();
                         return;
                     }
                     await verifyWithServer(addr, getActiveEip1193());
+                    if (myOpId !== linkOpIdRef.current) {
+                        delete walletLinkInflightRef.current[key];
+                        delete walletLinkRejectRef.current[key];
+                        setIsConnecting(false);
+                        return;
+                    }
                     linkingRef.current = `done:${addr}`;
+                    delete walletLinkRejectRef.current[key];
                     resolveLink();
                 } catch (e) {
+                    delete walletLinkRejectRef.current[key];
+                    if (e?.code === 'CANCELLED') {
+                        linkingRef.current = null;
+                        rejectLink(e);
+                        return;
+                    }
                     const rejected =
                         e?.code === 4001 ||
                         e?.cause?.code === 4001 ||
@@ -301,8 +345,9 @@ export function useWallet() {
             if (kitConnected && kitAddress && !isConnected) {
                 try {
                     await syncKitWalletWithServer(kitAddress, { forceRetry: true });
-                } catch {
-                    /* toasts inside sync */
+                } catch (e) {
+                    if (e?.code === 'CANCELLED') throw e;
+                    /* other errors: toasts inside sync */
                 }
                 return;
             }
@@ -441,5 +486,8 @@ export function useWallet() {
         getActiveEip1193,
         walletConnectConfigured,
         disconnectWalletConnectSession,
+        cancelWalletSession,
+        kitConnected,
+        kitAddress,
     };
 }

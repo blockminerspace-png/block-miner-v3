@@ -21,7 +21,8 @@ import {
     Send,
     HelpCircle,
     Loader2,
-    Banknote
+    Banknote,
+    LogOut
 } from 'lucide-react';
 import { api } from '../store/auth';
 import { parseEther, isAddress } from 'ethers';
@@ -38,8 +39,13 @@ export default function Wallet() {
         connect,
         switchNetwork,
         getActiveEip1193,
-        walletConnectConfigured
+        walletConnectConfigured,
+        cancelWalletSession,
+        kitConnected,
     } = useWallet();
+
+    const showWalletSessionCancel =
+        Boolean(kitConnected || isConnecting);
 
     const [balance, setBalance] = useState({
         amount: 0,
@@ -213,7 +219,15 @@ export default function Wallet() {
         setIsActionLoading(true);
         try {
             if (!isConnected) {
-                await connect();
+                try {
+                    await connect();
+                } catch (e) {
+                    if (e?.code === 'CANCELLED') {
+                        toast.info(t('wallet.web3_deposit.connection_cancelled'));
+                        return;
+                    }
+                    throw e;
+                }
 
                 const walletReady = await waitForWalletConnected(45000);
                 if (!walletReady) {
@@ -418,36 +432,58 @@ export default function Wallet() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end">
                     {isConnected ? (
-                        <div className="flex items-center gap-3 p-1.5 bg-slate-900/50 border border-slate-800 rounded-2xl backdrop-blur-xl">
-                            <div className="flex items-center gap-2 pl-3 pr-4">
-                                <div className={`w-2 h-2 rounded-full animate-pulse ${isCorrectNetwork ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                                <span className="text-[10px] font-black text-slate-300 uppercase truncate max-w-[100px] font-mono">
-                                    {account.slice(0, 6)}...{account.slice(-4)}
-                                </span>
+                        <>
+                            <div className="flex items-center gap-3 p-1.5 bg-slate-900/50 border border-slate-800 rounded-2xl backdrop-blur-xl">
+                                <div className="flex items-center gap-2 pl-3 pr-4">
+                                    <div className={`w-2 h-2 rounded-full animate-pulse ${isCorrectNetwork ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                    <span className="text-[10px] font-black text-slate-300 uppercase truncate max-w-[100px] font-mono">
+                                        {account.slice(0, 6)}...{account.slice(-4)}
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => copyToClipboard(account)}
+                                    className="p-2 hover:bg-slate-800 rounded-xl transition-colors text-slate-500 hover:text-white"
+                                >
+                                    <Copy className="w-4 h-4" />
+                                </button>
                             </div>
                             <button
-                                onClick={() => copyToClipboard(account)}
-                                className="p-2 hover:bg-slate-800 rounded-xl transition-colors text-slate-500 hover:text-white"
+                                type="button"
+                                onClick={() => void cancelWalletSession()}
+                                className="px-4 py-3 bg-slate-900/80 border border-slate-600 text-slate-200 font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-800 hover:border-slate-500 transition-all flex items-center justify-center gap-2"
                             >
-                                <Copy className="w-4 h-4" />
+                                <LogOut className="w-4 h-4" />
+                                {t('wallet.web3_deposit.disconnect')}
                             </button>
-                        </div>
+                        </>
                     ) : (
-                        <button
-                            type="button"
-                            onClick={connect}
-                            disabled={isConnecting}
-                            className="px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-2xl hover:opacity-95 active:scale-95 transition-all flex items-center justify-center gap-2 border border-indigo-400/30 shadow-lg shadow-indigo-900/20"
-                        >
-                            <Smartphone className="w-4 h-4" />
-                            {isConnecting
-                                ? t('wallet.web3_deposit.connecting')
-                                : walletConnectConfigured
-                                    ? t('wallet.web3_deposit.connect_wc')
-                                    : t('wallet.web3_deposit.connect_browser')}
-                        </button>
+                        <>
+                            <button
+                                type="button"
+                                onClick={connect}
+                                disabled={isConnecting}
+                                className="px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-2xl hover:opacity-95 active:scale-95 transition-all flex items-center justify-center gap-2 border border-indigo-400/30 shadow-lg shadow-indigo-900/20 disabled:opacity-50"
+                            >
+                                <Smartphone className="w-4 h-4" />
+                                {isConnecting
+                                    ? t('wallet.web3_deposit.connecting')
+                                    : walletConnectConfigured
+                                        ? t('wallet.web3_deposit.connect_wc')
+                                        : t('wallet.web3_deposit.connect_browser')}
+                            </button>
+                            {showWalletSessionCancel ? (
+                                <button
+                                    type="button"
+                                    onClick={() => void cancelWalletSession()}
+                                    className="px-4 py-3 bg-transparent border border-slate-600 text-slate-300 font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-2xl hover:bg-slate-800/80 transition-all"
+                                >
+                                    {t('wallet.web3_deposit.cancel_connection')}
+                                </button>
+                            ) : null}
+                        </>
                     )}
 
                     <button
@@ -655,22 +691,45 @@ export default function Wallet() {
                                                     {t('wallet.web3_deposit.wc_missing_build')}
                                                 </p>
                                             ) : null}
-                                            <button
-                                                type="button"
-                                                onClick={connect}
-                                                disabled={isConnecting}
-                                                className="w-full py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:opacity-95 transition-opacity disabled:opacity-50"
-                                            >
-                                                {isConnecting
-                                                    ? t('wallet.web3_deposit.connecting')
-                                                    : walletConnectConfigured
-                                                        ? t('wallet.web3_deposit.connect_wc')
-                                                        : t('wallet.web3_deposit.connect_browser')}
-                                            </button>
+                                            <div className="flex flex-col gap-2">
+                                                <div className="flex flex-col sm:flex-row gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={connect}
+                                                        disabled={isConnecting}
+                                                        className="flex-1 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:opacity-95 transition-opacity disabled:opacity-50"
+                                                    >
+                                                        {isConnecting
+                                                            ? t('wallet.web3_deposit.connecting')
+                                                            : walletConnectConfigured
+                                                                ? t('wallet.web3_deposit.connect_wc')
+                                                                : t('wallet.web3_deposit.connect_browser')}
+                                                    </button>
+                                                    {showWalletSessionCancel ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => void cancelWalletSession()}
+                                                            className="sm:min-w-[140px] py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-slate-600 text-slate-300 hover:bg-slate-800/80 transition-colors"
+                                                        >
+                                                            {t('wallet.web3_deposit.cancel_connection')}
+                                                        </button>
+                                                    ) : null}
+                                                </div>
+                                            </div>
                                             {isConnected && account ? (
-                                                <p className="text-[10px] text-emerald-300/90 font-mono font-bold break-all">
-                                                    {t('wallet.web3_deposit.linked_label')}: {account}
-                                                </p>
+                                                <div className="space-y-2">
+                                                    <p className="text-[10px] text-emerald-300/90 font-mono font-bold break-all">
+                                                        {t('wallet.web3_deposit.linked_label')}: {account}
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => void cancelWalletSession()}
+                                                        className="w-full py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest border border-rose-500/40 text-rose-300/90 hover:bg-rose-950/40 transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                        <LogOut className="w-3.5 h-3.5" />
+                                                        {t('wallet.web3_deposit.disconnect')}
+                                                    </button>
+                                                </div>
                                             ) : (
                                                 <p className="text-[9px] text-slate-600 font-bold">
                                                     {t('wallet.web3_deposit.link_prompt')}
