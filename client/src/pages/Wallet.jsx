@@ -75,7 +75,7 @@ export default function Wallet() {
         walletConnectedRef.current = isConnected;
     }, [isConnected]);
 
-    const waitForWalletConnected = async (timeoutMs = 15000) => {
+    const waitForWalletConnected = async (timeoutMs = 45000) => {
         const start = Date.now();
         while (Date.now() - start < timeoutMs) {
             if (walletConnectedRef.current) {
@@ -215,7 +215,7 @@ export default function Wallet() {
             if (!isConnected) {
                 await connect();
 
-                const walletReady = await waitForWalletConnected(10000);
+                const walletReady = await waitForWalletConnected(45000);
                 if (!walletReady) {
                     toast.error('Não foi possível conectar a carteira. Tente novamente.');
                     return;

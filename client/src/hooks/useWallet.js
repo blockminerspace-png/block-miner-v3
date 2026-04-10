@@ -91,6 +91,8 @@ export function useWallet() {
 
     const walletConnectConfigured = isWalletConnectConfigured();
     const linkingRef = useRef(null);
+    /** Same-address link in flight — deposit + effect share one Promise (no early return while busy). */
+    const walletLinkInflightRef = useRef({});
     const openModalRef = useRef(false);
 
     const kitChainNum = normalizeChainNum(kitChainId);
@@ -152,6 +154,73 @@ export function useWallet() {
             throw new Error(res.data.message || 'Verification failed');
         },
         [signMessageAsync]
+    );
+
+    const syncKitWalletWithServer = useCallback(
+        async (addr, options = {}) => {
+            const { forceRetry = false } = options;
+            if (!addr || !walletConnectConfigured) return;
+
+            const key = addr.toLowerCase();
+            if (linkingRef.current === `done:${addr}`) return;
+
+            if (!forceRetry && linkingRef.current === `rejected:${addr}`) return;
+            if (forceRetry && linkingRef.current === `rejected:${addr}`) {
+                linkingRef.current = null;
+            }
+
+            const inflight = walletLinkInflightRef.current[key];
+            if (inflight) return inflight;
+
+            let resolveLink;
+            let rejectLink;
+            const promise = new Promise((resolve, reject) => {
+                resolveLink = resolve;
+                rejectLink = reject;
+            });
+            walletLinkInflightRef.current[key] = promise;
+
+            (async () => {
+                linkingRef.current = `busy:${addr}`;
+                setIsConnecting(true);
+                try {
+                    const bal = await api.get('/wallet/balance');
+                    if (
+                        bal.data?.ok &&
+                        bal.data.walletAddress &&
+                        bal.data.walletAddress.toLowerCase() === key
+                    ) {
+                        setAccount(addr);
+                        setIsConnected(true);
+                        linkingRef.current = `done:${addr}`;
+                        resolveLink();
+                        return;
+                    }
+                    await verifyWithServer(addr, getActiveEip1193());
+                    linkingRef.current = `done:${addr}`;
+                    resolveLink();
+                } catch (e) {
+                    const rejected =
+                        e?.code === 4001 ||
+                        e?.cause?.code === 4001 ||
+                        String(e?.message || '').toLowerCase().includes('user rejected');
+                    if (rejected) {
+                        linkingRef.current = `rejected:${addr}`;
+                        toast.error('Signature cancelled. Tap Connect again when you are ready to sign.');
+                    } else {
+                        linkingRef.current = null;
+                        toast.error(e?.message || 'Failed to verify wallet.');
+                    }
+                    rejectLink(e);
+                } finally {
+                    delete walletLinkInflightRef.current[key];
+                    setIsConnecting(false);
+                }
+            })();
+
+            return promise;
+        },
+        [walletConnectConfigured, verifyWithServer, getActiveEip1193]
     );
 
     const connectInjectedAndVerify = useCallback(
@@ -228,43 +297,12 @@ export function useWallet() {
                 toast.info('Wallet already connected. Disconnect first to choose another wallet.');
                 return;
             }
-            // Sessão WC ativa mas ainda sem assinatura / sync com o servidor — completar em vez de reabrir modal.
+            // Sessão WC ativa mas ainda sem assinatura / sync — espera a mesma Promise que o useEffect (ex.: depósito).
             if (kitConnected && kitAddress && !isConnected) {
-                if (linkingRef.current === `busy:${kitAddress}`) {
-                    toast.info('Finishing wallet link…');
-                    return;
-                }
-                linkingRef.current = `busy:${kitAddress}`;
-                setIsConnecting(true);
                 try {
-                    const bal = await api.get('/wallet/balance');
-                    if (
-                        bal.data?.ok &&
-                        bal.data.walletAddress &&
-                        bal.data.walletAddress.toLowerCase() === kitAddress.toLowerCase()
-                    ) {
-                        setAccount(kitAddress);
-                        setIsConnected(true);
-                        linkingRef.current = `done:${kitAddress}`;
-                        toast.success('Wallet verified and connected!');
-                        return;
-                    }
-                    await verifyWithServer(kitAddress, getActiveEip1193());
-                    linkingRef.current = `done:${kitAddress}`;
-                } catch (e) {
-                    const rejected =
-                        e?.code === 4001 ||
-                        e?.cause?.code === 4001 ||
-                        String(e?.message || '').toLowerCase().includes('user rejected');
-                    if (rejected) {
-                        linkingRef.current = `rejected:${kitAddress}`;
-                        toast.error('Signature cancelled. Tap Connect again when you are ready to sign.');
-                    } else {
-                        linkingRef.current = null;
-                        toast.error(e?.message || 'Failed to verify wallet.');
-                    }
-                } finally {
-                    setIsConnecting(false);
+                    await syncKitWalletWithServer(kitAddress, { forceRetry: true });
+                } catch {
+                    /* toasts inside sync */
                 }
                 return;
             }
@@ -279,8 +317,7 @@ export function useWallet() {
         kitAddress,
         openConnectModal,
         connectInjectedAndVerify,
-        verifyWithServer,
-        getActiveEip1193,
+        syncKitWalletWithServer,
     ]);
 
     const connectWalletConnect = useCallback(async () => {
@@ -319,58 +356,18 @@ export function useWallet() {
             return;
         }
 
-        let cancelled = false;
         const addr = kitAddress;
+        if (linkingRef.current === `done:${addr}`) return;
+        if (linkingRef.current === `rejected:${addr}`) return;
 
-        (async () => {
-            if (linkingRef.current === `done:${addr}`) return;
-            if (linkingRef.current === `busy:${addr}`) return;
-            if (linkingRef.current === `rejected:${addr}`) return;
-
-            linkingRef.current = `busy:${addr}`;
-            try {
-                const bal = await api.get('/wallet/balance');
-                if (cancelled) return;
-                if (
-                    bal.data?.ok &&
-                    bal.data.walletAddress &&
-                    bal.data.walletAddress.toLowerCase() === addr.toLowerCase()
-                ) {
-                    setAccount(addr);
-                    setIsConnected(true);
-                    linkingRef.current = `done:${addr}`;
-                    return;
-                }
-
-                await verifyWithServer(addr, getActiveEip1193());
-                if (cancelled) return;
-                linkingRef.current = `done:${addr}`;
-            } catch (e) {
-                const rejected =
-                    e?.code === 4001 ||
-                    e?.cause?.code === 4001 ||
-                    String(e?.message || '').toLowerCase().includes('user rejected');
-                if (rejected) {
-                    linkingRef.current = `rejected:${addr}`;
-                    toast.error('Signature cancelled. Connect again when you are ready to sign.');
-                } else {
-                    linkingRef.current = null;
-                    console.error('Wallet link error:', e);
-                    toast.error(e?.message || 'Failed to verify wallet.');
-                }
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-        };
+        syncKitWalletWithServer(addr).catch(() => {});
     }, [
         walletConnectConfigured,
         kitConnected,
         kitAddress,
         kitChainId,
         appKitSwitchNetwork,
-        verifyWithServer,
+        syncKitWalletWithServer,
     ]);
 
     const checkConnection = useCallback(async () => {
