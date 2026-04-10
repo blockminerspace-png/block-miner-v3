@@ -140,6 +140,7 @@ function App() {
           <Route path="/offers" element={<PopularOffers />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/wallet" element={<Wallet />} />
+          <Route path="/wallets" element={<Navigate to="/wallet" replace />} />
           <Route path="/faucet" element={<Faucet />} />
           <Route path="/shortlinks" element={<Shortlinks />} />
           <Route path="/checkin" element={<Checkin />} />

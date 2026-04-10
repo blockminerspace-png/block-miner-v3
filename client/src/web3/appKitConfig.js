@@ -2,15 +2,11 @@ import { createAppKit } from '@reown/appkit/react';
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 import { polygon } from '@reown/appkit/networks';
 import { QueryClient } from '@tanstack/react-query';
-import { getWalletConnectMetadataUrl } from '../utils/walletConnect.js';
+import { getWalletConnectMetadataUrl, getWalletConnectProjectId } from '../utils/walletConnect.js';
 
 export const queryClient = new QueryClient();
 
-const envProjectId = String(import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '').trim();
-
-const projectId =
-  envProjectId ||
-  '00000000000000000000000000000000';
+const projectId = getWalletConnectProjectId() || '00000000000000000000000000000000';
 
 export const networks = [polygon];
 
