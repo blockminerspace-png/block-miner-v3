@@ -44,6 +44,61 @@ function looksLikeGasOrProviderIssue(err) {
     return /gas|estimate|execution reverted|intrinsic|unknown method|failed to submit|invalid request/i.test(m);
 }
 
+/**
+ * Native POL transfer via EIP-1193 only (from / to / value, optional gas).
+ * Matches the “wallet signs, minimal RPC” pattern used in lightweight wagmi v2 demos;
+ * avoids viem/wagmi sending fee estimation RPCs through WalletConnect v2 (Unknown method).
+ */
+async function sendNativePolDepositEip1193({
+    getActiveEip1193,
+    to,
+    valueWei,
+    t,
+    looksLikeGasOrProviderIssue,
+    isUserRejectedTx,
+}) {
+    const eip1193 = getActiveEip1193();
+    if (!eip1193) {
+        throw Object.assign(new Error(t('wallet.web3_deposit.no_wallet_for_send')), {
+            code: 'NO_EIP1193',
+        });
+    }
+    const accounts = await eip1193.request({ method: 'eth_accounts' });
+    const from = accounts[0];
+    if (!from) {
+        throw Object.assign(new Error(t('wallet.web3_deposit.no_wallet_for_send')), {
+            code: 'NO_EIP1193',
+        });
+    }
+    const valueHex = `0x${valueWei.toString(16)}`;
+    try {
+        return await eip1193.request({
+            method: 'eth_sendTransaction',
+            params: [{ from, to, value: valueHex }],
+        });
+    } catch (rawErr) {
+        if (isUserRejectedTx(rawErr)) throw rawErr;
+        if (!looksLikeGasOrProviderIssue(rawErr)) throw rawErr;
+        let gasLimit = '0x5208';
+        try {
+            const estRes = await api.post('/wallet/deposit/estimate-gas', {
+                from,
+                to,
+                valueHex,
+            });
+            if (estRes.data?.ok && estRes.data.gasLimit) {
+                gasLimit = estRes.data.gasLimit;
+            }
+        } catch {
+            /* use default */
+        }
+        return await eip1193.request({
+            method: 'eth_sendTransaction',
+            params: [{ from, to, value: valueHex, gas: gasLimit }],
+        });
+    }
+}
+
 export default function Wallet() {
     const { t } = useTranslation();
     const {
@@ -280,48 +335,38 @@ export default function Wallet() {
             toast.info('Requesting transaction authorized...');
 
             let txHash;
-            try {
-                txHash = await sendOnchainTx({ to, value: valueWei });
-            } catch (wagmiErr) {
-                if (isUserRejectedTx(wagmiErr)) throw wagmiErr;
-                console.warn('Deposit: wagmi send failed, trying EIP-1193', wagmiErr);
-                const eip1193 = getActiveEip1193();
-                if (!eip1193) {
-                    toast.error(t('wallet.web3_deposit.no_wallet_for_send'));
-                    throw wagmiErr;
-                }
-                const accounts = await eip1193.request({ method: 'eth_accounts' });
-                const from = accounts[0];
-                if (!from) {
-                    toast.error(t('wallet.web3_deposit.no_wallet_for_send'));
-                    throw wagmiErr;
-                }
-                const valueHex = `0x${valueWei.toString(16)}`;
+            // AppKit / WalletConnect: never use wagmi sendTransaction first — viem may call
+            // eth_gasPrice / simulation on the WC provider and trigger "Unknown method(s) requested".
+            if (kitConnected) {
+                txHash = await sendNativePolDepositEip1193({
+                    getActiveEip1193,
+                    to,
+                    valueWei,
+                    t,
+                    looksLikeGasOrProviderIssue,
+                    isUserRejectedTx,
+                });
+            } else {
                 try {
-                    txHash = await eip1193.request({
-                        method: 'eth_sendTransaction',
-                        params: [{ from, to, value: valueHex }],
-                    });
-                } catch (rawErr) {
-                    if (isUserRejectedTx(rawErr)) throw rawErr;
-                    if (!looksLikeGasOrProviderIssue(rawErr)) throw rawErr;
-                    let gasLimit = '0x5208';
+                    txHash = await sendOnchainTx({ to, value: valueWei });
+                } catch (wagmiErr) {
+                    if (isUserRejectedTx(wagmiErr)) throw wagmiErr;
+                    console.warn('Deposit: wagmi send failed, trying EIP-1193', wagmiErr);
                     try {
-                        const estRes = await api.post('/wallet/deposit/estimate-gas', {
-                            from,
+                        txHash = await sendNativePolDepositEip1193({
+                            getActiveEip1193,
                             to,
-                            valueHex,
+                            valueWei,
+                            t,
+                            looksLikeGasOrProviderIssue,
+                            isUserRejectedTx,
                         });
-                        if (estRes.data?.ok && estRes.data.gasLimit) {
-                            gasLimit = estRes.data.gasLimit;
+                    } catch (e2) {
+                        if (e2?.code === 'NO_EIP1193') {
+                            toast.error(t('wallet.web3_deposit.no_wallet_for_send'));
                         }
-                    } catch {
-                        /* use default */
+                        throw e2;
                     }
-                    txHash = await eip1193.request({
-                        method: 'eth_sendTransaction',
-                        params: [{ from, to, value: valueHex, gas: gasLimit }],
-                    });
                 }
             }
 
