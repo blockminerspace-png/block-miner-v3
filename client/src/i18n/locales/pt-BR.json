@@ -465,7 +465,7 @@
       "title": "Depósito POL (Polygon)",
       "hint": "Abra o seletor de carteiras (WalletConnect no telemóvel ou extensão no PC), rede Polygon (137). Depois use «Depósito expresso» para assinar o envio de POL — o servidor credita após confirmações na chain.",
       "express_safety": "O valor vai assinado na tua carteira para o endereço da plataforma. Só envies POL na Polygon; outros tokens podem ser perdidos.",
-      "wc_missing_build": "O site foi compilado sem VITE_WALLETCONNECT_PROJECT_ID — no telemóvel o modal WalletConnect não abre. Coloca o ID no .env.production, rebuild e redeploy.",
+      "wc_missing_build": "Sem VITE_WALLETCONNECT_PROJECT_ID — no telemóvel o WalletConnect não abre. Coloca o ID em deploy.secrets.local (é merged no deploy) ou em .env.production.vm-backup e faz redeploy.",
       "connect_browser": "Conectar carteira",
       "connect_wc": "WalletConnect",
       "connecting": "A conectar…",
