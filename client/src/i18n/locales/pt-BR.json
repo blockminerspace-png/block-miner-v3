@@ -379,7 +379,22 @@
       "no_wallet_for_send": "Sem sessão de carteira. Conecte primeiro (navegador ou WalletConnect).",
       "no_browser_wallet": "Nenhuma carteira no browser. No telemóvel usa WalletConnect (com VITE_WALLETCONNECT_PROJECT_ID) ou abre o site dentro do browser do MetaMask / Trust.",
       "injected_unusable": "Uma extensão está a bloquear Ethereum (ex.: Bitwarden). Desativa para este site ou usa MetaMask / outra carteira. No telemóvel, WalletConnect.",
-      "switch_chain_unsupported": "Esta carteira não suporta mudar rede automaticamente. Abre a carteira e escolhe Polygon (rede 137) manualmente."
+      "switch_chain_unsupported": "Esta carteira não suporta mudar rede automaticamente. Abre a carteira e escolhe Polygon (rede 137) manualmente.",
+      "smart_contract_hint": "Usa WalletConnect ou extensão no Polygon (137). Associa a mesma carteira ao perfil e envia POL pelo contrato de depósito — o servidor credita após as confirmações.",
+      "no_deposit_config": "Depósitos não configurados no servidor (defina SMART_CONTRACT_ADDRESS e/ou DEPOSIT_WALLET_ADDRESS).",
+      "link_wallet_required_contract": "Associa a carteira ligada a esta conta (assina a mensagem de verificação) antes do depósito no contrato.",
+      "tx_requesting": "A pedir aprovação da transação na carteira…",
+      "tx_submitted": "Transação enviada. A registar para verificação…",
+      "deposit_success_registered": "Depósito registado. A verificação corre em segundo plano — podes sair desta página.",
+      "connect_wallet_failed": "Não foi possível ligar a carteira. Tenta novamente.",
+      "tx_rejected": "Transação rejeitada na carteira.",
+      "insufficient_funds": "POL insuficiente para o valor e taxas de rede.",
+      "tx_failed": "Transação falhou.",
+      "deposit_pol_button": "Depositar POL no contrato",
+      "your_balance_label": "Seu saldo",
+      "transaction_pending": "Transação pendente",
+      "transaction_confirmed": "Transação confirmada",
+      "deposit_successful": "Depósito realizado"
     },
     "express_mode_note": "EXPRESS: associe a carteira para assinar transferências na Polygon. O saldo atualiza após {{n}} confirmações de bloco."
   },

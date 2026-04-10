@@ -6,6 +6,9 @@ __pycache__/
 node_modules/
 client/node_modules/
 server/node_modules/
+contracts/node_modules/
+contracts/cache/
+contracts/artifacts/
 
 # Env / secrets
 # Guia local de deploy (pode conter notas sensíveis) — não commitar

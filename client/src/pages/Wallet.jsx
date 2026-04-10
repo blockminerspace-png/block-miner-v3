@@ -25,7 +25,8 @@ import {
     LogOut
 } from 'lucide-react';
 import { api } from '../store/auth';
-import { parseEther, isAddress, getAddress } from 'ethers';
+import { parseEther, isAddress, getAddress, Interface } from 'ethers';
+import { BLOCK_MINER_DEPOSIT_ABI } from '../web3/blockMinerDepositAbi.js';
 import { useSendTransaction } from 'wagmi';
 import { useWallet } from '../hooks/useWallet';
 import { useGameStore } from '../store/game';
@@ -44,15 +45,16 @@ function looksLikeGasOrProviderIssue(err) {
     return /gas|estimate|execution reverted|intrinsic|unknown method|failed to submit|invalid request/i.test(m);
 }
 
+const depositContractIface = new Interface(BLOCK_MINER_DEPOSIT_ABI);
+
 /**
- * Native POL transfer via EIP-1193 only (from / to / value, optional gas).
- * Matches the “wallet signs, minimal RPC” pattern used in lightweight wagmi v2 demos;
- * avoids viem/wagmi sending fee estimation RPCs through WalletConnect v2 (Unknown method).
+ * Native POL transfer or contract call via EIP-1193 (minimal RPC for WalletConnect).
  */
-async function sendNativePolDepositEip1193({
+async function sendPolDepositEip1193({
     getActiveEip1193,
     to,
     valueWei,
+    dataHex,
     t,
     looksLikeGasOrProviderIssue,
     isUserRejectedTx,
@@ -71,21 +73,27 @@ async function sendNativePolDepositEip1193({
         });
     }
     const valueHex = `0x${valueWei.toString(16)}`;
+    const txPayload = { from, to, value: valueHex };
+    if (dataHex && typeof dataHex === 'string' && dataHex.length > 2) {
+        txPayload.data = dataHex;
+    }
     try {
         return await eip1193.request({
             method: 'eth_sendTransaction',
-            params: [{ from, to, value: valueHex }],
+            params: [txPayload],
         });
     } catch (rawErr) {
         if (isUserRejectedTx(rawErr)) throw rawErr;
         if (!looksLikeGasOrProviderIssue(rawErr)) throw rawErr;
         let gasLimit = '0x5208';
         try {
-            const estRes = await api.post('/wallet/deposit/estimate-gas', {
+            const estBody = {
                 from,
                 to,
                 valueHex,
-            });
+                ...(txPayload.data ? { data: txPayload.data } : {}),
+            };
+            const estRes = await api.post('/wallet/deposit/estimate-gas', estBody);
             if (estRes.data?.ok && estRes.data.gasLimit) {
                 gasLimit = estRes.data.gasLimit;
             }
@@ -94,7 +102,7 @@ async function sendNativePolDepositEip1193({
         }
         return await eip1193.request({
             method: 'eth_sendTransaction',
-            params: [{ from, to, value: valueHex, gas: gasLimit }],
+            params: [{ ...txPayload, gas: gasLimit }],
         });
     }
 }
@@ -131,6 +139,8 @@ export default function Wallet() {
     const [isActionLoading, setIsActionLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('deposit');
     const [systemDepositAddress, setSystemDepositAddress] = useState(null);
+    const [systemContractAddress, setSystemContractAddress] = useState(null);
+    const [profileWalletAddress, setProfileWalletAddress] = useState(null);
     const walletConnectedRef = useRef(false);
 
     const [withdrawForm, setWithdrawForm] = useState({
@@ -197,6 +207,8 @@ export default function Wallet() {
                     totalWithdrawn: Number(balanceRes.data.totalWithdrawn || 0)
                 });
                 setSystemDepositAddress(balanceRes.data.depositAddress || null);
+                setSystemContractAddress(balanceRes.data.depositContractAddress || null);
+                setProfileWalletAddress(balanceRes.data.walletAddress || null);
                 if (typeof balanceRes.data.minDepositPol === 'number' && Number.isFinite(balanceRes.data.minDepositPol)) {
                     setMinDepositPol(balanceRes.data.minDepositPol);
                 }
@@ -303,7 +315,7 @@ export default function Wallet() {
 
                 const walletReady = await waitForWalletConnected(45000);
                 if (!walletReady) {
-                    toast.error('Não foi possível conectar a carteira. Tente novamente.');
+                    toast.error(t('wallet.web3_deposit.connect_wallet_failed'));
                     return;
                 }
             }
@@ -319,44 +331,68 @@ export default function Wallet() {
                 return;
             }
 
-            if (!systemDepositAddress) {
-                toast.error('System deposit address not loaded');
+            const useContract =
+                systemContractAddress && isAddress(systemContractAddress);
+            const useTreasury =
+                !useContract && systemDepositAddress && isAddress(systemDepositAddress);
+
+            if (!useContract && !useTreasury) {
+                toast.error(t('wallet.web3_deposit.no_deposit_config'));
                 return;
             }
 
-            if (!isAddress(systemDepositAddress)) {
-                toast.error('Invalid deposit address configuration');
-                return;
+            let to;
+            let dataHex;
+            if (useContract) {
+                to = getAddress(systemContractAddress);
+                if (!account || !isAddress(account)) {
+                    toast.error(t('wallet.web3_deposit.no_wallet_for_send'));
+                    return;
+                }
+                const linkedOk =
+                    profileWalletAddress &&
+                    isAddress(profileWalletAddress) &&
+                    getAddress(account) === getAddress(profileWalletAddress);
+                if (!linkedOk) {
+                    toast.error(t('wallet.web3_deposit.link_wallet_required_contract'));
+                    return;
+                }
+                dataHex = depositContractIface.encodeFunctionData('deposit', [getAddress(account)]);
+            } else {
+                to = getAddress(systemDepositAddress);
             }
 
-            const to = getAddress(systemDepositAddress);
             const valueWei = parseEther(amount.toString());
 
-            toast.info('Requesting transaction authorized...');
+            toast.info(t('wallet.web3_deposit.tx_requesting'));
 
             let txHash;
-            // AppKit / WalletConnect: never use wagmi sendTransaction first — viem may call
-            // eth_gasPrice / simulation on the WC provider and trigger "Unknown method(s) requested".
+            const sendPayload = useContract
+                ? { to, value: valueWei, data: dataHex }
+                : { to, value: valueWei };
+
             if (kitConnected) {
-                txHash = await sendNativePolDepositEip1193({
+                txHash = await sendPolDepositEip1193({
                     getActiveEip1193,
                     to,
                     valueWei,
+                    dataHex,
                     t,
                     looksLikeGasOrProviderIssue,
                     isUserRejectedTx,
                 });
             } else {
                 try {
-                    txHash = await sendOnchainTx({ to, value: valueWei });
+                    txHash = await sendOnchainTx(sendPayload);
                 } catch (wagmiErr) {
                     if (isUserRejectedTx(wagmiErr)) throw wagmiErr;
                     console.warn('Deposit: wagmi send failed, trying EIP-1193', wagmiErr);
                     try {
-                        txHash = await sendNativePolDepositEip1193({
+                        txHash = await sendPolDepositEip1193({
                             getActiveEip1193,
                             to,
                             valueWei,
+                            dataHex,
                             t,
                             looksLikeGasOrProviderIssue,
                             isUserRejectedTx,
@@ -370,7 +406,7 @@ export default function Wallet() {
                 }
             }
 
-            toast.info('Transação enviada! Registrando para verificação...');
+            toast.info(t('wallet.web3_deposit.tx_submitted'));
 
             const res = await api.post('/wallet/deposit/submit', {
                 txHash: txHash,
@@ -378,7 +414,7 @@ export default function Wallet() {
             });
 
             if (res.data.ok) {
-                toast.success('Depósito registrado! O sistema verifica na blockchain em segundo plano — você pode fechar esta página com segurança.');
+                toast.success(t('wallet.web3_deposit.deposit_success_registered'));
                 setDepositForm({ amount: '' });
                 fetchPendingDeposits();
                 startPendingPoll();
@@ -389,11 +425,11 @@ export default function Wallet() {
             console.error("Deposit error", error);
             // Handle common MetaMask errors
             if (error.code === 4001) {
-                toast.error('Transaction rejected by user');
+                toast.error(t('wallet.web3_deposit.tx_rejected'));
             } else if (error.code === 'INSUFFICIENT_FUNDS' || (error.message && error.message.includes('insufficient funds'))) {
-                toast.error('Insufficient funds: You need more POL to cover the amount + network gas fees.');
+                toast.error(t('wallet.web3_deposit.insufficient_funds'));
             } else {
-                toast.error(error.reason || error.message || 'Transaction failed');
+                toast.error(error.reason || error.message || t('wallet.web3_deposit.tx_failed'));
             }
         } finally {
             setIsActionLoading(false);
@@ -582,7 +618,9 @@ export default function Wallet() {
                         <div className="relative p-5 sm:p-10 text-white space-y-5 sm:space-y-12">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <p className="text-blue-100/60 font-black uppercase tracking-[0.3em] text-[9px] mb-3">Total Liquid Assets</p>
+                                    <p className="text-blue-100/60 font-black uppercase tracking-[0.3em] text-[9px] mb-3">
+                                        {t('wallet.web3_deposit.your_balance_label')}
+                                    </p>
                                     <div className="flex items-baseline gap-4">
                                         <h2 className="text-3xl sm:text-6xl font-black tracking-tighter tabular-nums drop-shadow-2xl">
                                             {balance.amount.toLocaleString(undefined, { minimumFractionDigits: 6 })}
@@ -757,7 +795,9 @@ export default function Wallet() {
                                                 {t('wallet.web3_deposit.title')}
                                             </h4>
                                             <p className="text-[9px] text-slate-500 font-bold leading-relaxed">
-                                                {t('wallet.web3_deposit.hint')}
+                                                {systemContractAddress
+                                                    ? t('wallet.web3_deposit.smart_contract_hint')
+                                                    : t('wallet.web3_deposit.hint')}
                                             </p>
                                             {!walletConnectConfigured ? (
                                                 <p className="text-[9px] text-amber-300/90 font-bold leading-relaxed">
@@ -848,15 +888,20 @@ export default function Wallet() {
                                             <button
                                                 type="button"
                                                 onClick={handleAutoDeposit}
-                                                disabled={isActionLoading || !systemDepositAddress}
-                                                className="w-full mt-auto py-4 sm:py-5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:scale-[1.01] active:scale-[0.99] text-white rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-tight sm:tracking-[0.1em] transition-all shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                                                disabled={
+                                                    isActionLoading ||
+                                                    (!systemDepositAddress && !systemContractAddress)
+                                                }
+                                                className="w-full mt-auto min-h-[44px] py-4 sm:py-5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:scale-[1.01] active:scale-[0.99] text-white rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-tight sm:tracking-[0.1em] transition-all shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
                                             >
                                                 <Send className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                                                {t('wallet.express_deposit')}
+                                                {systemContractAddress
+                                                    ? t('wallet.web3_deposit.deposit_pol_button')
+                                                    : t('wallet.express_deposit')}
                                             </button>
-                                            {!systemDepositAddress ? (
+                                            {!systemDepositAddress && !systemContractAddress ? (
                                                 <p className="text-[10px] text-amber-300 font-bold text-center">
-                                                    {t('wallet.web3_deposit.no_treasury')}
+                                                    {t('wallet.web3_deposit.no_deposit_config')}
                                                 </p>
                                             ) : null}
                                         </div>

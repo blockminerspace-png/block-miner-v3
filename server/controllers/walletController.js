@@ -24,10 +24,12 @@ export async function getBalance(req, res) {
   try {
     const balance = await walletModel.getUserBalance(req.user.id);
     const depositAddress = process.env.DEPOSIT_WALLET_ADDRESS || null;
+    const depositContractAddress = (process.env.SMART_CONTRACT_ADDRESS || "").trim() || null;
     res.json({
       ok: true,
       ...balance,
       depositAddress,
+      depositContractAddress,
       minDepositPol: getMinDepositPol(),
       blockConfirmations: getRequiredBlockConfirmations(),
       depositVerifyMaxAttempts: DEPOSIT_VERIFY_MAX_ATTEMPTS
@@ -165,7 +167,7 @@ const EVM_ADDR = /^0x[0-9a-fA-F]{40}$/;
  */
 export async function postDepositEstimateGas(req, res) {
   try {
-    const { from, to, valueHex } = req.body || {};
+    const { from, to, valueHex, data } = req.body || {};
     if (!from || !to || !valueHex || !EVM_ADDR.test(from) || !EVM_ADDR.test(to)) {
       return res.status(400).json({ ok: false, message: "Invalid from, to, or value." });
     }
@@ -178,8 +180,16 @@ export async function postDepositEstimateGas(req, res) {
     } catch {
       return res.status(400).json({ ok: false, message: "Invalid valueHex." });
     }
+    const dataHex = typeof data === "string" && data.startsWith("0x") ? data : undefined;
+    if (dataHex && !/^0x[0-9a-fA-F]*$/.test(dataHex)) {
+      return res.status(400).json({ ok: false, message: "Invalid data." });
+    }
     const provider = getSharedPolygonProvider();
-    const estimated = await provider.estimateGas({ from, to, value });
+    const txReq = { from, to, value };
+    if (dataHex && dataHex.length > 2) {
+      txReq.data = dataHex;
+    }
+    const estimated = await provider.estimateGas(txReq);
     const padded = estimated + estimated / 5n;
     const cap = 2_500_000n;
     const gasLimit = padded > cap ? cap : padded;

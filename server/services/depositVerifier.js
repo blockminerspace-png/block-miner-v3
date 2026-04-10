@@ -3,6 +3,10 @@ import prisma from "../src/db/prisma.js";
 import loggerLib from "../utils/logger.js";
 import { getMinDepositPol, getRequiredBlockConfirmations } from "./polygonDepositConfig.js";
 import { getSharedPolygonProvider } from "./polygonProvider.js";
+import {
+  contractDepositMatchesLinkedWallet,
+  extractDepositReceivedFromReceipt
+} from "./contractDepositLog.js";
 
 const logger = loggerLib.child("DepositVerifier");
 
@@ -16,7 +20,8 @@ const INTERVAL_MS = 15_000;
  */
 async function verifyOnePendingDeposit(tx) {
   const attempts = (tx.verifyAttempts ?? 0) + 1;
-  const DEPOSIT_ADDRESS = (process.env.DEPOSIT_WALLET_ADDRESS || "").toLowerCase();
+  const treasuryRaw = (process.env.DEPOSIT_WALLET_ADDRESS || "").trim().toLowerCase();
+  const contractRaw = (process.env.SMART_CONTRACT_ADDRESS || "").trim().toLowerCase();
 
   // Expirou sem confirmação
   if (attempts > DEPOSIT_VERIFY_MAX_ATTEMPTS) {
@@ -71,20 +76,6 @@ async function verifyOnePendingDeposit(tx) {
       return;
     }
 
-    // Valida destino
-    if (!DEPOSIT_ADDRESS || onchainTx.to?.toLowerCase() !== DEPOSIT_ADDRESS) {
-      await prisma.transaction.update({
-        where: { id: tx.id },
-        data: {
-          status: "failed",
-          verifyAttempts: attempts,
-          rawTx: JSON.stringify({ error: "wrong_destination", to: onchainTx.to })
-        }
-      });
-      logger.warn("Deposit wrong destination", { txId: tx.id, to: onchainTx.to, expected: DEPOSIT_ADDRESS });
-      return;
-    }
-
     // Valida chain = Polygon Mainnet (137)
     if (Number(onchainTx.chainId ?? 0) !== 137) {
       await prisma.transaction.update({
@@ -98,6 +89,80 @@ async function verifyOnePendingDeposit(tx) {
       return;
     }
 
+    const toLower = (onchainTx.to || "").toLowerCase();
+    const isContract = Boolean(contractRaw && toLower === contractRaw);
+    const isTreasury = Boolean(treasuryRaw && toLower === treasuryRaw);
+
+    if (!isContract && !isTreasury) {
+      await prisma.transaction.update({
+        where: { id: tx.id },
+        data: {
+          status: "failed",
+          verifyAttempts: attempts,
+          rawTx: JSON.stringify({ error: "wrong_destination", to: onchainTx.to })
+        }
+      });
+      logger.warn("Deposit wrong destination", {
+        txId: tx.id,
+        to: onchainTx.to,
+        expectedContract: contractRaw || null,
+        expectedTreasury: treasuryRaw || null
+      });
+      return;
+    }
+
+    let verifiedAmount = 0;
+    let depositSource = "treasury";
+
+    if (isContract) {
+      depositSource = "contract";
+      const depositEvent = extractDepositReceivedFromReceipt(receipt, contractRaw);
+      if (!depositEvent) {
+        await prisma.transaction.update({
+          where: { id: tx.id },
+          data: {
+            status: "failed",
+            verifyAttempts: attempts,
+            rawTx: JSON.stringify({ error: "no_deposit_event", to: onchainTx.to })
+          }
+        });
+        logger.warn("Contract deposit without DepositReceived log", { txId: tx.id, txHash: tx.txHash });
+        return;
+      }
+      if (BigInt(onchainTx.value) !== depositEvent.amount) {
+        await prisma.transaction.update({
+          where: { id: tx.id },
+          data: {
+            status: "failed",
+            verifyAttempts: attempts,
+            rawTx: JSON.stringify({ error: "value_event_mismatch" })
+          }
+        });
+        return;
+      }
+      const user = await prisma.user.findUnique({
+        where: { id: tx.userId },
+        select: { walletAddress: true }
+      });
+      const linked = (user?.walletAddress || "").toLowerCase();
+      const fromLower = (onchainTx.from || "").toLowerCase();
+      if (!contractDepositMatchesLinkedWallet(linked, depositEvent.userId, fromLower)) {
+        await prisma.transaction.update({
+          where: { id: tx.id },
+          data: {
+            status: "failed",
+            verifyAttempts: attempts,
+            rawTx: JSON.stringify({ error: "wallet_mismatch", expectedLinked: linked, eventUser: depositEvent.userId })
+          }
+        });
+        logger.warn("Contract deposit wallet mismatch", { txId: tx.id, userId: tx.userId });
+        return;
+      }
+      verifiedAmount = parseFloat(ethers.formatEther(depositEvent.amount));
+    } else {
+      verifiedAmount = parseFloat(ethers.formatEther(onchainTx.value));
+    }
+
     const latestBlock = await provider.getBlockNumber();
     const confCount = latestBlock - Number(receipt.blockNumber) + 1;
     if (confCount < requiredConfs) {
@@ -108,8 +173,6 @@ async function verifyOnePendingDeposit(tx) {
       return;
     }
 
-    // Valor real da chain (anti-fraud: ignora valor declarado pelo usuário)
-    const verifiedAmount = parseFloat(ethers.formatEther(onchainTx.value));
     if (verifiedAmount < minPol) {
       await prisma.transaction.update({
         where: { id: tx.id },
@@ -154,7 +217,12 @@ async function verifyOnePendingDeposit(tx) {
           fromAddress: onchainTx.from?.toLowerCase() || null,
           completedAt: new Date(),
           verifyAttempts: attempts,
-          rawTx: JSON.stringify({ verifiedAmount, block: receipt.blockNumber, from: onchainTx.from })
+          rawTx: JSON.stringify({
+            verifiedAmount,
+            block: receipt.blockNumber,
+            from: onchainTx.from,
+            source: depositSource
+          })
         }
       });
       await ptx.user.update({

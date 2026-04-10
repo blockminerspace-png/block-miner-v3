@@ -27,8 +27,10 @@ test("getMinDepositPol reads MIN_DEPOSIT_AMOUNT each call", () => {
 
 test("getRequiredBlockConfirmations defaults and enforces minimum 1", () => {
   const save = process.env.BLOCK_CONFIRMATIONS;
+  const saveConf = process.env.CONFIRMATION_BLOCKS;
   try {
     delete process.env.BLOCK_CONFIRMATIONS;
+    delete process.env.CONFIRMATION_BLOCKS;
     assert.equal(getRequiredBlockConfirmations(), 3);
 
     process.env.BLOCK_CONFIRMATIONS = "12";
@@ -36,8 +38,32 @@ test("getRequiredBlockConfirmations defaults and enforces minimum 1", () => {
 
     process.env.BLOCK_CONFIRMATIONS = "0";
     assert.equal(getRequiredBlockConfirmations(), 3);
+
+    delete process.env.BLOCK_CONFIRMATIONS;
+    process.env.CONFIRMATION_BLOCKS = "5";
+    assert.equal(getRequiredBlockConfirmations(), 5);
   } finally {
     if (save === undefined) delete process.env.BLOCK_CONFIRMATIONS;
     else process.env.BLOCK_CONFIRMATIONS = save;
+    if (saveConf === undefined) delete process.env.CONFIRMATION_BLOCKS;
+    else process.env.CONFIRMATION_BLOCKS = saveConf;
+  }
+});
+
+test("getMinDepositPol reads DEPOSIT_MIN_AMOUNT alias", () => {
+  const saveMin = process.env.MIN_DEPOSIT_AMOUNT;
+  const saveDep = process.env.DEPOSIT_MIN_AMOUNT;
+  try {
+    delete process.env.MIN_DEPOSIT_AMOUNT;
+    delete process.env.DEPOSIT_MIN_AMOUNT;
+    assert.equal(getMinDepositPol(), 0.01);
+
+    process.env.DEPOSIT_MIN_AMOUNT = "0.25";
+    assert.equal(getMinDepositPol(), 0.25);
+  } finally {
+    if (saveMin === undefined) delete process.env.MIN_DEPOSIT_AMOUNT;
+    else process.env.MIN_DEPOSIT_AMOUNT = saveMin;
+    if (saveDep === undefined) delete process.env.DEPOSIT_MIN_AMOUNT;
+    else process.env.DEPOSIT_MIN_AMOUNT = saveDep;
   }
 });

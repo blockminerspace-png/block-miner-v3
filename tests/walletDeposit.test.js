@@ -49,17 +49,17 @@ test("deposit returns 400 when amount is missing (only txHash provided)", async 
     assert.equal(res.body?.ok, false);
 });
 
-test("deposit returns 400 when amount is below minimum (1 POL)", async () => {
+test("deposit returns 400 when amount is below minimum (0.01 POL)", async () => {
     const req = {
         user: { id: 1 },
-        body: { amount: "0.5", txHash: "abc123" }
+        body: { amount: "0.005", txHash: "abc123" }
     };
     const res = createRes();
 
     await walletController.requestDeposit(req, res);
     assert.equal(res.statusCode, 400);
     assert.equal(res.body?.ok, false);
-    assert.match(res.body?.message, /Minimum deposit is 1 POL/);
+    assert.match(res.body?.message, /Minimum deposit is 0.01 POL/);
 });
 
 test("deposit successfully creates a deposit when valid (mock mode)", async (t) => {
@@ -120,12 +120,12 @@ test("submitDeposit returns 400 when txHash format is invalid", async () => {
     assert.match(res.body?.message, /Hash inválido/);
 });
 
-test("submitDeposit returns 400 when claimedAmount is below 1 POL", async () => {
+test("submitDeposit returns 400 when claimedAmount is below 0.01 POL", async () => {
     const req = {
         user: { id: 1 },
         body: {
             txHash: "0x" + "a".repeat(64),
-            claimedAmount: "0.3"
+            claimedAmount: "0.005"
         }
     };
     const res = createRes();
@@ -133,7 +133,7 @@ test("submitDeposit returns 400 when claimedAmount is below 1 POL", async () => 
     await walletController.submitDeposit(req, res);
     assert.equal(res.statusCode, 400);
     assert.equal(res.body?.ok, false);
-    assert.match(res.body?.message, /Depósito mínimo é 1 POL/);
+    assert.match(res.body?.message, /Depósito mínimo é 0.01 POL/);
 });
 
 test("submitDeposit returns 409 ALREADY_CREDITED when hash was already processed", async () => {

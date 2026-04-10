@@ -54,6 +54,7 @@ import * as transparencyController from "./controllers/transparencyController.js
 // Models & Utils
 import { startCronTasks } from "./cron/index.js";
 import { startDepositVerifier } from "./services/depositVerifier.js";
+import { startContractDepositSync } from "./services/contractDepositSync.js";
 import { registerMinerSocketHandlers } from "./src/socket/registerMinerSocketHandlers.js";
 import { registerGamesSocketHandlers } from "./src/socket/registerGamesSocketHandlers.js";
 import serverDatabaseModel from "./models/database/serverDatabaseModel.js";
@@ -433,6 +434,7 @@ async function bootstrap() {
         buildPublicState: async (minerId) => engine.getPublicState(minerId)
       });
       startDepositVerifier();
+      startContractDepositSync();
       if (process.env.NODE_ENV !== "test") {
         startAuditOutboxWorker();
       }
