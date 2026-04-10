@@ -389,6 +389,9 @@
       "connect_wc": "WalletConnect",
       "connecting": "Connecting…",
       "disconnect": "Disconnect wallet",
+      "disconnect_to_switch": "Disconnect your wallet first to choose another account or connection method.",
+      "hint_disconnect_for_contract": "WalletConnect is still active. Tap «Connect wallet» below to switch to the browser extension — the WalletConnect session is closed automatically. You can also disconnect first using the button in this section or in the header.",
+      "hint_disconnect_for_wc": "You are connected with the browser wallet. Disconnect first, then use WalletConnect (QR) if you prefer.",
       "cancel_connection": "Cancel connection",
       "connection_cancelled": "Wallet connection cancelled.",
       "treasury_label": "Treasury deposit address",
@@ -516,6 +519,8 @@
     "payment_tab_balance": "Balance",
     "cta_wallet_payment": "Pay with wallet",
     "cta_balance_claim": "Claim from balance",
+    "internal_balance_vs_wallet_hint": "\"Balance\" uses POL on your BlockMiner account (deposits and in-app rewards). It does not use your browser wallet balance. Choose \"Wallet\" to send 0.01 POL from your connected wallet on Polygon.",
+    "internal_balance_available": "In-game POL: {{amount}}",
     "payment_options": {
       "title": "Choose Payment Method",
       "wallet_option": "Pay with Wallet (0.01 POL)",

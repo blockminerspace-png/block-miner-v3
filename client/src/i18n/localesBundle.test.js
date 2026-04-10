@@ -21,6 +21,10 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(pt.checkin.payment_tab_wallet).toBeTruthy();
     expect(es.checkin.cta_balance_claim).toBeTruthy();
 
+    expect(en.checkin.internal_balance_vs_wallet_hint).toBeTruthy();
+    expect(pt.checkin.internal_balance_available).toBeTruthy();
+    expect(es.checkin.internal_balance_vs_wallet_hint).toBeTruthy();
+
     expect(en.wallet.hero_subtitle).toBeTruthy();
     expect(pt.wallet.ledger_title).toBeTruthy();
     expect(es.wallet.tx_inflow).toBeTruthy();
@@ -28,5 +32,9 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(en.autoMiningGpuPage.turbo_zerads_iframe_title).toBeTruthy();
     expect(pt.autoMiningGpuPage.turbo_zerads_iframe_title).toBeTruthy();
     expect(es.autoMiningGpuPage.turbo_zerads_iframe_title).toBeTruthy();
+
+    expect(en.wallet.web3_deposit.disconnect_to_switch).toBeTruthy();
+    expect(pt.wallet.web3_deposit.hint_disconnect_for_contract).toBeTruthy();
+    expect(es.wallet.web3_deposit.hint_disconnect_for_wc).toBeTruthy();
   });
 });

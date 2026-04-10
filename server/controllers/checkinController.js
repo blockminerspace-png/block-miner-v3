@@ -129,9 +129,10 @@ export async function getStatus(req, res) {
     const userId = req.user.id;
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { walletAddress: true }
+      select: { walletAddress: true, polBalance: true }
     });
     const wallet = user?.walletAddress || null;
+    const polBalance = user?.polBalance != null ? Number(user.polBalance) : 0;
     const pay = paymentCheckinEnabled();
     const minWei = parseCheckinAmountWei();
 
@@ -178,7 +179,8 @@ export async function getStatus(req, res) {
       checkinAmountWei: pay ? minWei.toString() : "0",
       chainId: POLYGON_CHAIN_ID,
       rpcConfigured: pay && Boolean(process.env.AETHER_RPC_URL?.trim() || process.env.POLYGON_RPC_URL?.trim()),
-      milestones: statusDegraded ? [] : milestones
+      milestones: statusDegraded ? [] : milestones,
+      polBalance: statusDegraded ? 0 : polBalance
     });
   } catch (e) {
     console.error("Checkin getStatus:", e);
@@ -453,8 +455,8 @@ export async function checkinBalance(req, res) {
   try {
     const userId = req.user.id;
     const amount = 0.02;
-
     const today = getBrazilCheckinDateKey();
+    const balanceTxHash = `balance-${userId}-${today}`;
     const existing = await prisma.dailyCheckin.findUnique({
       where: { userId_checkinDate: { userId, checkinDate: today } }
     });
@@ -490,12 +492,13 @@ export async function checkinBalance(req, res) {
           status: "confirmed",
           confirmedAt: new Date(),
           paymentMethod: "balance",
-          amount
+          amount,
+          txHash: balanceTxHash
         },
         create: {
           userId,
           checkinDate: today,
-          txHash: `balance-${userId}-${today}`,
+          txHash: balanceTxHash,
           status: "confirmed",
           confirmedAt: new Date(),
           paymentMethod: "balance",
@@ -519,9 +522,8 @@ export async function checkinBalance(req, res) {
       data: {
         userId,
         action: "daily_checkin_balance",
-        details: { amount, streak },
-        ipHash: req.ipHash || "",
-        userAgent: req.get("User-Agent") || ""
+        detailsJson: JSON.stringify({ amount, streak }),
+        userAgent: req.get("User-Agent") || null
       }
     });
 

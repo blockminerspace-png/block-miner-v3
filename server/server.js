@@ -339,6 +339,10 @@ app.get("/{*all}", async (req, res) => {
     const nonce = res.locals.cspNonce || "";
     html = html.replace(/__CSP_NONCE__/g, nonce);
 
+    // Avoid stale index.html after deploy (prevents "Failed to fetch dynamically imported module" for old chunk hashes)
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.setHeader("Pragma", "no-cache");
+
     res.send(html);
   } catch (error) {
     logger.error("Error serving index.html", { error: error.message });

@@ -392,6 +392,9 @@
       "connect_wc": "WalletConnect",
       "connecting": "A conectar…",
       "disconnect": "Desligar carteira",
+      "disconnect_to_switch": "Desliga primeiro a carteira para escolheres outra conta ou outro método de ligação.",
+      "hint_disconnect_for_contract": "O WalletConnect continua ativo. Toca em «Conectar carteira» abaixo para mudar para a extensão — a sessão WalletConnect é terminada automaticamente. Também podes desligar primeiro com o botão desta secção ou no topo.",
+      "hint_disconnect_for_wc": "Estás ligado com a carteira do navegador. Desliga primeiro e depois usa WalletConnect (QR) se preferires.",
       "cancel_connection": "Cancelar ligação",
       "connection_cancelled": "Ligação à carteira cancelada.",
       "treasury_label": "Endereço da tesouraria",
@@ -521,6 +524,8 @@
     "payment_tab_balance": "Saldo",
     "cta_wallet_payment": "Pagar com a carteira",
     "cta_balance_claim": "Resgatar com saldo",
+    "internal_balance_vs_wallet_hint": "A opção «Saldo» usa o POL da tua conta no BlockMiner (depósitos na Carteira, recompensas). Não usa o saldo da carteira do navegador. Usa «Carteira» para enviar 0,01 POL a partir da carteira ligada na Polygon.",
+    "internal_balance_available": "POL na conta: {{amount}}",
     "payment_options": {
       "title": "Escolha o Método de Pagamento",
       "wallet_option": "Pagar com Carteira (0.01 POL)",

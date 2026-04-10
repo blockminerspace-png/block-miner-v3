@@ -327,7 +327,7 @@ export default function Wallet() {
                     if (depositChannel === 'walletconnect') {
                         await connectWalletConnect();
                     } else {
-                        await connect();
+                        await connect({ useBrowserExtension: true });
                     }
                 } catch (e) {
                     if (e?.code === 'CANCELLED') {
@@ -843,6 +843,16 @@ export default function Wallet() {
                                     <p className="text-[9px] text-slate-600 font-bold text-center leading-relaxed">
                                         {t('wallet.deposit_options.hint')}
                                     </p>
+                                    {depositChannel === 'smart_contract' && kitConnected ? (
+                                        <p className="text-[9px] text-amber-300/90 font-bold text-center leading-relaxed">
+                                            {t('wallet.web3_deposit.hint_disconnect_for_contract')}
+                                        </p>
+                                    ) : null}
+                                    {depositChannel === 'walletconnect' && isConnected && !kitConnected ? (
+                                        <p className="text-[9px] text-amber-300/90 font-bold text-center leading-relaxed">
+                                            {t('wallet.web3_deposit.hint_disconnect_for_wc')}
+                                        </p>
+                                    ) : null}
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-stretch">
                                         <div className="p-5 sm:p-6 rounded-3xl border border-indigo-500/25 bg-indigo-950/20 flex flex-col gap-4 min-h-[280px]">
                                             <h4 className="text-xs font-black uppercase tracking-widest text-indigo-300">
@@ -867,16 +877,18 @@ export default function Wallet() {
                                                         onClick={() =>
                                                             void (depositChannel === 'walletconnect'
                                                                 ? connectWalletConnect()
-                                                                : connect())
+                                                                : connect({ useBrowserExtension: true }))
                                                         }
                                                         disabled={isConnecting}
                                                         className="flex-1 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:opacity-95 transition-opacity disabled:opacity-50"
                                                     >
                                                         {isConnecting
                                                             ? t('wallet.web3_deposit.connecting')
-                                                            : walletConnectConfigured
-                                                                ? t('wallet.web3_deposit.connect_wc')
-                                                                : t('wallet.web3_deposit.connect_browser')}
+                                                            : depositChannel === 'smart_contract'
+                                                                ? t('wallet.web3_deposit.connect_browser')
+                                                                : walletConnectConfigured
+                                                                    ? t('wallet.web3_deposit.connect_wc')
+                                                                    : t('wallet.web3_deposit.connect_browser')}
                                                     </button>
                                                     {showWalletSessionCancel ? (
                                                         <button

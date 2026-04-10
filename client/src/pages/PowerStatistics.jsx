@@ -1,4 +1,4 @@
-import { useState, useMemo, lazy, Suspense, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Activity,
@@ -18,8 +18,7 @@ import {
 } from 'lucide-react';
 import { useUserPowerStats } from '../hooks/useUserPowerStats';
 import { formatHashrate } from '../utils/machine';
-
-const PowerChartsPanel = lazy(() => import('../components/powerStats/PowerChartsPanel'));
+import PowerChartsPanel from '../components/powerStats/PowerChartsPanel';
 
 const TABS = ['overview', 'machines', 'temporary', 'network', 'history'];
 
@@ -214,15 +213,7 @@ export default function PowerStatistics() {
                 )}
               </div>
 
-              <Suspense
-                fallback={
-                  <div className="flex justify-center py-12 text-slate-500 gap-2">
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  </div>
-                }
-              >
-                <PowerChartsPanel overview={overview} history={data.history} />
-              </Suspense>
+              <PowerChartsPanel overview={overview} history={data.history} />
 
               <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 space-y-2">
                 <h2 className="text-sm font-black text-white uppercase tracking-widest">{t('powerStats.projections_title')}</h2>
@@ -467,15 +458,7 @@ export default function PowerStatistics() {
                 </div>
                 <p className="text-[10px] text-slate-600 mt-4">{t('powerStats.analytics.disclaimer')}</p>
               </div>
-              <Suspense
-                fallback={
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-slate-500" />
-                  </div>
-                }
-              >
-                <PowerChartsPanel overview={overview} history={data.history} />
-              </Suspense>
+              <PowerChartsPanel overview={overview} history={data.history} />
             </div>
           )}
         </>

@@ -33,6 +33,14 @@ function formatPolFromWei(weiStr) {
     }
 }
 
+function formatInternalPolBalance(n) {
+    if (n == null || Number.isNaN(Number(n))) return '—';
+    const v = Number(n);
+    if (v >= 1000) return v.toLocaleString(undefined, { maximumFractionDigits: 4 });
+    if (v >= 1) return v.toFixed(4).replace(/\.?0+$/, '');
+    return v.toFixed(6).replace(/\.?0+$/, '');
+}
+
 function mergeStatus(prev, incoming) {
     if (!incoming) return prev;
     return { ...prev, ...incoming };
@@ -422,6 +430,9 @@ export default function Checkin() {
                                     <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.15em]">
                                         {t('checkin.payment_method_heading')}
                                     </h3>
+                                    <p className="text-[10px] text-gray-500 leading-relaxed font-medium">
+                                        {t('checkin.internal_balance_vs_wallet_hint')}
+                                    </p>
                                     <div className="grid grid-cols-2 gap-2">
                                         <label className={`relative rounded-xl cursor-pointer p-3 transition-all ${
                                             paymentMethod === 'wallet' ? 'ring-2 ring-amber-400 bg-amber-400/10' : 'ring-1 ring-gray-700 bg-gray-900/30 hover:ring-gray-600'
@@ -457,6 +468,11 @@ export default function Checkin() {
                                                 <span className="text-xs font-bold">{t('checkin.payment_tab_balance')}</span>
                                             </div>
                                             <div className="text-xs text-gray-500 mt-1">0.02 POL</div>
+                                            <div className="text-[10px] text-emerald-500/90 mt-1 font-semibold leading-tight">
+                                                {t('checkin.internal_balance_available', {
+                                                    amount: formatInternalPolBalance(status.polBalance)
+                                                })}
+                                            </div>
                                         </label>
                                     </div>
 

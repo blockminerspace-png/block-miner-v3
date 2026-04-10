@@ -1,4 +1,4 @@
-import { ExternalLink, ImageOff } from "lucide-react";
+import { ImageOff } from "lucide-react";
 import { validateTrustedEvent } from "../../utils/security";
 
 /** Exact ZerAds placement URL (product requirement). */
@@ -6,7 +6,7 @@ export const TURBO_ZERADS_IFRAME_SRC =
   "https://zerads.com/ad/ad.php?width=300&ref=10776";
 
 /**
- * Turbo mode: shows the ZerAds iframe and a verified "open partner" control.
+ * Turbo mode: shows the ZerAds iframe with a single full-area control (no separate CTA).
  * Click is tracked server-side via `onRegisterClick(impression.id)` before opening a new tab.
  *
  * @param {{
@@ -89,27 +89,27 @@ export default function TurboPartnerBanner({
           </p>
         </div>
         <div className="flex justify-center">
-          <iframe
-            src={TURBO_ZERADS_IFRAME_SRC}
-            marginWidth={0}
-            marginHeight={0}
-            width={300}
-            height={250}
-            scrolling="no"
-            frameBorder="0"
-            style={{ border: 0, display: "block", maxWidth: "100%" }}
-            title={t("autoMiningGpuPage.turbo_zerads_iframe_title")}
-          />
+          <div className="relative w-[300px] max-w-full h-[250px] rounded-xl overflow-hidden border border-gray-800">
+            <iframe
+              src={TURBO_ZERADS_IFRAME_SRC}
+              marginWidth={0}
+              marginHeight={0}
+              width={300}
+              height={250}
+              scrolling="no"
+              frameBorder="0"
+              style={{ border: 0, display: "block", maxWidth: "100%" }}
+              title={t("autoMiningGpuPage.turbo_zerads_iframe_title")}
+            />
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={handleOpen}
+              aria-label={t("autoMiningGpuPage.banner_open")}
+              className="absolute inset-0 z-10 w-full h-full cursor-pointer bg-transparent disabled:cursor-not-allowed disabled:opacity-40"
+            />
+          </div>
         </div>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={handleOpen}
-          className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary text-white font-black text-[10px] uppercase tracking-widest hover:opacity-95 active:scale-[0.99] transition-all disabled:opacity-40"
-        >
-          <ExternalLink className="w-4 h-4" />
-          {t("autoMiningGpuPage.banner_open")}
-        </button>
         <p className="text-[9px] text-gray-600 font-bold uppercase text-center tracking-tighter">{title}</p>
       </div>
     </div>

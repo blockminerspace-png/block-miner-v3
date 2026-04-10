@@ -125,6 +125,8 @@ export function useWallet() {
     /** Bumped on user cancel so in-flight sync exits after awaits without toasting errors. */
     const linkOpIdRef = useRef(0);
     const openModalRef = useRef(false);
+    /** After explicit disconnect, do not auto-restore session from eth_accounts / checkConnection. */
+    const userDisconnectedRef = useRef(false);
 
     const kitChainNum = normalizeChainNum(kitChainId);
 
@@ -150,6 +152,7 @@ export function useWallet() {
     }, [walletProvider]);
 
     const cancelWalletSession = useCallback(async () => {
+        userDisconnectedRef.current = true;
         linkOpIdRef.current += 1;
         openModalRef.current = false;
         Object.entries(walletLinkRejectRef.current).forEach(([, rej]) => {
@@ -232,6 +235,7 @@ export function useWallet() {
             const myOpId = linkOpIdRef.current;
 
             (async () => {
+                userDisconnectedRef.current = false;
                 linkingRef.current = `busy:${addr}`;
                 setIsConnecting(true);
                 try {
@@ -296,6 +300,7 @@ export function useWallet() {
 
     const connectInjectedAndVerify = useCallback(
         async () => {
+            userDisconnectedRef.current = false;
             const injected = await getVerifiedBrowserEthereumProvider();
             if (!injected) {
                 const hasSlot =
@@ -348,6 +353,7 @@ export function useWallet() {
             return;
         }
 
+        userDisconnectedRef.current = false;
         openModalRef.current = true;
         setIsConnecting(true);
         try {
@@ -360,7 +366,7 @@ export function useWallet() {
             const message = String(e?.message || '');
             console.error(e);
             if (/connector already connected/i.test(message)) {
-                toast.info('Wallet already connected. Disconnect first if you want to choose another wallet.');
+                toast.info(t('wallet.web3_deposit.disconnect_to_switch'));
                 return;
             }
             toast.error(message || 'Could not open wallet modal.');
@@ -368,28 +374,31 @@ export function useWallet() {
             openModalRef.current = false;
             setIsConnecting(false);
         }
-    }, [open]);
+    }, [open, t]);
 
-    const connect = useCallback(async () => {
-        if (walletConnectConfigured) {
-            if (kitConnected && isConnected) {
-                toast.info('Wallet already connected. Disconnect first to choose another wallet.');
-                return;
-            }
-            // Sessão WC ativa mas ainda sem assinatura / sync — espera a mesma Promise que o useEffect (ex.: depósito).
-            if (kitConnected && kitAddress && !isConnected) {
-                try {
-                    await syncKitWalletWithServer(kitAddress, { forceRetry: true });
-                } catch (e) {
-                    if (e?.code === 'CANCELLED') throw e;
-                    /* other errors: toasts inside sync */
-                }
-                return;
-            }
-            await openConnectModal();
+    const connect = useCallback(async (options = {}) => {
+        const useBrowserExtension = options.useBrowserExtension === true;
+
+        if (!walletConnectConfigured || useBrowserExtension) {
+            await connectInjectedAndVerify();
             return;
         }
-        await connectInjectedAndVerify();
+
+        if (kitConnected && isConnected) {
+            toast.info(t('wallet.web3_deposit.disconnect_to_switch'));
+            return;
+        }
+        // WC session active but not yet signed / synced — reuse same Promise as useEffect (e.g. deposit flow).
+        if (kitConnected && kitAddress && !isConnected) {
+            try {
+                await syncKitWalletWithServer(kitAddress, { forceRetry: true });
+            } catch (e) {
+                if (e?.code === 'CANCELLED') throw e;
+                /* other errors: toasts inside sync */
+            }
+            return;
+        }
+        await openConnectModal();
     }, [
         walletConnectConfigured,
         kitConnected,
@@ -398,17 +407,16 @@ export function useWallet() {
         openConnectModal,
         connectInjectedAndVerify,
         syncKitWalletWithServer,
+        t,
     ]);
 
     const connectWalletConnect = useCallback(async () => {
         if (!walletConnectConfigured) {
-            toast.error(
-                'WalletConnect não está configurado. Define VITE_WALLETCONNECT_PROJECT_ID no build (.env.production) e faz redeploy.'
-            );
+            toast.error(t('wallet.web3_deposit.wc_missing_build'));
             return;
         }
         await connect();
-    }, [walletConnectConfigured, connect]);
+    }, [walletConnectConfigured, connect, t]);
 
     const switchNetwork = useCallback(async () => {
         if (walletConnectConfigured && kitConnected) {
@@ -430,6 +438,10 @@ export function useWallet() {
     useEffect(() => {
         if (!walletConnectConfigured || !kitConnected || !kitAddress) {
             if (!kitAddress) linkingRef.current = null;
+            return;
+        }
+
+        if (userDisconnectedRef.current) {
             return;
         }
 
@@ -455,6 +467,9 @@ export function useWallet() {
     ]);
 
     const checkConnection = useCallback(async () => {
+        if (userDisconnectedRef.current) {
+            return;
+        }
         const provider = await getVerifiedBrowserEthereumProvider();
         if (!provider) return;
 
@@ -487,6 +502,11 @@ export function useWallet() {
 
         const handleAccountsChanged = (accounts) => {
             if (kitConnected) return;
+            if (userDisconnectedRef.current) {
+                setAccount(null);
+                setIsConnected(false);
+                return;
+            }
             if (accounts.length > 0) {
                 setAccount(accounts[0]);
                 setIsConnected(true);

@@ -48,7 +48,7 @@ describe("TurboPartnerBanner", () => {
         t={t}
       />
     );
-    fireEvent.click(screen.getByText("autoMiningGpuPage.banner_open"));
+    fireEvent.click(screen.getByRole("button", { name: "autoMiningGpuPage.banner_open" }));
     await waitFor(() => {
       expect(onRegisterClick).toHaveBeenCalledWith("imp-99");
       expect(openSpy).toHaveBeenCalledWith(
