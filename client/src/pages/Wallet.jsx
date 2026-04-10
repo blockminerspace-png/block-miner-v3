@@ -473,7 +473,7 @@ export default function Wallet() {
             return;
         }
         if (amount > balance.amount) {
-            toast.error('Insufficient balance.');
+            toast.error(t('wallet.insufficient_balance'));
             return;
         }
 
@@ -514,21 +514,21 @@ export default function Wallet() {
     const handleOpenTicket = async (e) => {
         e.preventDefault();
         if (!ticketForm.walletAddress || !/^0x[0-9a-fA-F]{40}$/.test(ticketForm.walletAddress)) {
-            toast.error('Informe um endereço de carteira válido (0x...).');
+            toast.error(t('wallet.ticket_invalid_wallet'));
             return;
         }
         try {
             setIsSubmittingTicket(true);
             const res = await api.post('/deposit-tickets', ticketForm);
             if (res.data.ok) {
-                toast.success('Ticket aberto com sucesso! Vamos analisar sua transação.');
+                toast.success(t('wallet.ticket_open_success'));
                 setTicketForm({ walletAddress: '', txHash: '', amountClaimed: '', description: '' });
                 fetchMyTickets();
             } else {
-                toast.error(res.data.message || 'Erro ao abrir ticket.');
+                toast.error(res.data.message || t('wallet.ticket_open_error'));
             }
         } catch (err) {
-            toast.error(err.response?.data?.message || 'Erro ao abrir ticket.');
+            toast.error(err.response?.data?.message || t('wallet.ticket_open_error'));
         } finally {
             setIsSubmittingTicket(false);
         }
@@ -536,10 +536,10 @@ export default function Wallet() {
 
     const StatusBadge = ({ status }) => {
         const config = {
-            completed: { color: 'text-emerald-400 bg-emerald-400/10', label: 'Success' },
-            pending: { color: 'text-amber-400 bg-amber-400/10', label: 'Pending' },
-            approved: { color: 'text-sky-400 bg-sky-400/10', label: 'Approved' },
-            failed: { color: 'text-red-400 bg-red-400/10', label: 'Failed' }
+            completed: { color: 'text-emerald-400 bg-emerald-400/10', label: t('wallet.ledger_badge_success') },
+            pending: { color: 'text-amber-400 bg-amber-400/10', label: t('wallet.ledger_badge_pending') },
+            approved: { color: 'text-sky-400 bg-sky-400/10', label: t('wallet.ledger_badge_approved') },
+            failed: { color: 'text-red-400 bg-red-400/10', label: t('wallet.ledger_badge_failed') }
         };
         const s = config[status] || config.pending;
         return (
@@ -558,10 +558,11 @@ export default function Wallet() {
                         <div className="p-2 bg-primary/20 rounded-2xl">
                             <WalletIcon className="w-8 h-8 text-primary" />
                         </div>
-                        WALLET <span className="text-primary">TERMINAL</span>
+                        {t('wallet.hero_wallet').toUpperCase()}{' '}
+                        <span className="text-primary">{t('wallet.hero_terminal').toUpperCase()}</span>
                     </h1>
                     <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] pl-1">
-                        Secure Web3 Financial Operations
+                        {t('wallet.hero_subtitle')}
                     </p>
                 </div>
 
@@ -666,18 +667,18 @@ export default function Wallet() {
 
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8 pt-5 sm:pt-10 border-t border-white/10">
                                 <div className="space-y-1">
-                                    <p className="text-blue-100/40 font-bold uppercase tracking-widest text-[8px]">Life Mined</p>
+                                    <p className="text-blue-100/40 font-bold uppercase tracking-widest text-[8px]">{t('wallet.lifetime_mined')}</p>
                                     <p className="text-lg font-black tracking-tight">{balance.lifetimeMined.toFixed(4)} <span className="text-[10px] opacity-40">POL</span></p>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-blue-100/40 font-bold uppercase tracking-widest text-[8px]">Total Outflow</p>
+                                    <p className="text-blue-100/40 font-bold uppercase tracking-widest text-[8px]">{t('wallet.total_withdrawn')}</p>
                                     <p className="text-lg font-black tracking-tight">{balance.totalWithdrawn.toFixed(4)} <span className="text-[10px] opacity-40">POL</span></p>
                                 </div>
                                 <div className="hidden md:block space-y-1">
-                                    <p className="text-blue-100/40 font-bold uppercase tracking-widest text-[8px]">Network Status</p>
+                                    <p className="text-blue-100/40 font-bold uppercase tracking-widest text-[8px]">{t('wallet.network_status')}</p>
                                     <p className="text-lg font-black tracking-tight flex items-center gap-2">
                                         <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-                                        Polygon
+                                        {t('wallet.network_polygon')}
                                     </p>
                                 </div>
                             </div>
@@ -685,7 +686,7 @@ export default function Wallet() {
                             <div className="mt-6 pt-6 border-t border-white/10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                                 <div>
                                     <p className="text-blue-100/50 font-black uppercase tracking-[0.25em] text-[8px] mb-1 flex items-center gap-2">
-                                        <Banknote className="w-3 h-3" /> BLK (1 BLK ≈ 1 USD)
+                                        <Banknote className="w-3 h-3" /> {t('wallet.blk_equiv_note')}
                                     </p>
                                     <p className="text-2xl sm:text-3xl font-black tabular-nums tracking-tight">
                                         {balance.blkBalance.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 8 })}
@@ -693,7 +694,7 @@ export default function Wallet() {
                                     </p>
                                     {balance.blkLocked > 0 && (
                                         <p className="text-[10px] font-bold text-amber-200/90 mt-1">
-                                            Bloqueado (legado): {balance.blkLocked.toFixed(8)} BLK — contate suporte se necessário.
+                                            {t('wallet.blk_locked_line', { amount: balance.blkLocked.toFixed(8) })}
                                         </p>
                                     )}
                                 </div>
@@ -748,7 +749,7 @@ export default function Wallet() {
                                                         type="button"
                                                         onClick={() => setWithdrawForm(prev => ({ ...prev, address: account }))}
                                                         className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-primary hover:text-white transition-colors"
-                                                        title="Use connected wallet"
+                                                        title={t('wallet.use_connected_wallet_hint')}
                                                     >
                                                         <Smartphone className="w-5 h-5" />
                                                     </button>
@@ -1161,7 +1162,7 @@ export default function Wallet() {
                         <div className="flex items-center justify-between mb-4 sm:mb-8">
                             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
                                 <Clock className="w-4 h-4 text-primary" />
-                                Ledger Analytics
+                                {t('wallet.ledger_title')}
                             </h3>
                             <ChevronRight className="w-4 h-4 text-slate-700" />
                         </div>
@@ -1170,7 +1171,7 @@ export default function Wallet() {
                             {transactions.length === 0 ? (
                                 <div className="py-20 flex flex-col items-center justify-center text-center space-y-4 opacity-20">
                                     <QrCode className="w-12 h-12" />
-                                    <p className="text-[10px] font-black uppercase tracking-widest">No activity found</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest">{t('wallet.ledger_empty')}</p>
                                 </div>
                             ) : (
                                 transactions.map((tx, i) => {
@@ -1185,12 +1186,12 @@ export default function Wallet() {
                                               ? `$${(Number(tx.amount) * polPrice).toFixed(2)}`
                                               : null;
                                     const label = isBlkConvert
-                                        ? 'POL → BLK'
+                                        ? t('wallet.tx_pol_to_blk')
                                         : isBlkWithdraw
-                                          ? 'BLK (saque legado)'
+                                          ? t('wallet.tx_blk_legacy')
                                           : isWithdrawal
-                                            ? 'Outflow'
-                                            : 'Inflow';
+                                            ? t('wallet.tx_outflow')
+                                            : t('wallet.tx_inflow');
                                     return (
                                         <div key={i} className="group relative flex items-center gap-4 p-4 hover:bg-slate-900/50 rounded-2xl transition-all border border-transparent hover:border-slate-800/50">
                                             <div

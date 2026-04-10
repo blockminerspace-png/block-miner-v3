@@ -18,6 +18,10 @@ const resources = {
   pt: {
     translation: translationPT,
   },
+  /** Portugal (pt-PT) uses the same app bundle as pt-BR for now */
+  'pt-PT': {
+    translation: translationPT,
+  },
   es: {
     translation: translationES,
   },
@@ -35,13 +39,13 @@ i18n
     showSupportNotice: false,
     debug: Boolean(import.meta.env?.DEV),
     fallbackLng: 'en', // Default language if browser language is not available
-    supportedLngs: ['en', 'pt-BR', 'pt', 'es', 'es-ES'],
+    supportedLngs: ['en', 'pt-BR', 'pt', 'pt-PT', 'es', 'es-ES'],
     interpolation: {
       escapeValue: false, // react already safes from xss
     },
     detection: {
-      // Sem `navigator`: primeira visita usa inglês (fallbackLng); PT/ES só após escolha guardada em localStorage ou ?lng=
-      order: ['querystring', 'localStorage', 'cookie', 'htmlTag'],
+      // querystring + localStorage first (explicit choice); then browser language (important on mobile first visit)
+      order: ['querystring', 'localStorage', 'navigator', 'cookie', 'htmlTag'],
       caches: ['localStorage'],
       lookupQuerystring: 'lng',
     },
@@ -49,7 +53,14 @@ i18n
 
 i18n.on('languageChanged', (lng) => {
   if (typeof document === 'undefined') return;
-  const map = { en: 'en', pt: 'pt-BR', 'pt-BR': 'pt-BR', es: 'es', 'es-ES': 'es-ES' };
+  const map = {
+    en: 'en',
+    pt: 'pt-BR',
+    'pt-BR': 'pt-BR',
+    'pt-PT': 'pt-PT',
+    es: 'es',
+    'es-ES': 'es-ES',
+  };
   document.documentElement.lang = map[lng] || lng || 'en';
 });
 

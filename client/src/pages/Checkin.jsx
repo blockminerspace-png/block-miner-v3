@@ -294,7 +294,7 @@ export default function Checkin() {
         try {
             const res = await api.post('/checkin/balance');
             if (res.data.ok) {
-                toast.success(t('checkin.claimed'));
+                toast.success(t('checkin.claimed'), { id: 'checkin-balance-flow' });
                 setStatus((s) =>
                     mergeStatus(s, {
                         checkedIn: true,
@@ -310,14 +310,15 @@ export default function Checkin() {
             }
         } catch (err) {
             const code = err.response?.data?.code;
+            const toastOpts = { id: 'checkin-balance-flow' };
             if (code === 'CHECKIN_ALREADY_TODAY') {
-                toast.error(t('checkin.error_already_today'));
+                toast.error(t('checkin.error_already_today'), toastOpts);
             } else if (code === 'CHECKIN_BALANCE_INSUFFICIENT') {
-                toast.error(t('checkin.error_balance_insufficient'));
+                toast.error(t('checkin.error_balance_insufficient'), toastOpts);
             } else if (code === 'CHECKIN_BALANCE_FAILED') {
-                toast.error(t('checkin.error_balance_failed'));
+                toast.error(t('checkin.error_balance_failed'), toastOpts);
             } else {
-                toast.error(err.response?.data?.message || t('common.error'));
+                toast.error(err.response?.data?.message || t('common.error'), toastOpts);
             }
         } finally {
             setIsPaying(false);
@@ -418,7 +419,9 @@ export default function Checkin() {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.15em]">Payment Method</h3>
+                                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.15em]">
+                                        {t('checkin.payment_method_heading')}
+                                    </h3>
                                     <div className="grid grid-cols-2 gap-2">
                                         <label className={`relative rounded-xl cursor-pointer p-3 transition-all ${
                                             paymentMethod === 'wallet' ? 'ring-2 ring-amber-400 bg-amber-400/10' : 'ring-1 ring-gray-700 bg-gray-900/30 hover:ring-gray-600'
@@ -433,7 +436,7 @@ export default function Checkin() {
                                             />
                                             <div className="flex items-center gap-2">
                                                 <Zap className="w-4 h-4 text-amber-400" />
-                                                <span className="text-xs font-bold">Wallet</span>
+                                                <span className="text-xs font-bold">{t('checkin.payment_tab_wallet')}</span>
                                             </div>
                                             <div className="text-xs text-gray-500 mt-1">0.01 POL</div>
                                         </label>
@@ -451,7 +454,7 @@ export default function Checkin() {
                                             />
                                             <div className="flex items-center gap-2">
                                                 <Coins className="w-4 h-4 text-emerald-400" />
-                                                <span className="text-xs font-bold">Balance</span>
+                                                <span className="text-xs font-bold">{t('checkin.payment_tab_balance')}</span>
                                             </div>
                                             <div className="text-xs text-gray-500 mt-1">0.02 POL</div>
                                         </label>
@@ -476,7 +479,7 @@ export default function Checkin() {
                                             className="w-full py-5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-xl shadow-amber-500/20 flex items-center justify-center gap-3"
                                         >
                                             {isPaying ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5 fill-current" />}
-                                            Send Wallet Payment
+                                            {t('checkin.cta_wallet_payment')}
                                         </button>
                                     )}
 
@@ -488,7 +491,7 @@ export default function Checkin() {
                                             className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3"
                                         >
                                             {isPaying ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
-                                            Claim From Balance
+                                            {t('checkin.cta_balance_claim')}
                                         </button>
                                     )}
 

@@ -17,6 +17,14 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(pt.checkin.error_balance_insufficient).toBeTruthy();
     expect(es.checkin.error_balance_insufficient).toBeTruthy();
 
+    expect(en.checkin.payment_method_heading).toBeTruthy();
+    expect(pt.checkin.payment_tab_wallet).toBeTruthy();
+    expect(es.checkin.cta_balance_claim).toBeTruthy();
+
+    expect(en.wallet.hero_subtitle).toBeTruthy();
+    expect(pt.wallet.ledger_title).toBeTruthy();
+    expect(es.wallet.tx_inflow).toBeTruthy();
+
     expect(en.autoMiningGpuPage.turbo_zerads_iframe_title).toBeTruthy();
     expect(pt.autoMiningGpuPage.turbo_zerads_iframe_title).toBeTruthy();
     expect(es.autoMiningGpuPage.turbo_zerads_iframe_title).toBeTruthy();
