@@ -67,13 +67,19 @@ export const useAuthStore = create((set) => ({
             set({ user: response.data.user, isAuthenticated: true, isLoading: false });
             return { success: true };
         } catch (error) {
-            const fieldError = error.response?.data?.errors?.[0]?.message;
+            const firstError = error.response?.data?.errors?.[0];
             const code = error.response?.data?.code;
             set({
-                error: fieldError || error.response?.data?.message || 'Erro ao registrar',
+                error: firstError?.message || error.response?.data?.message || 'Registration failed.',
                 isLoading: false
             });
-            return { success: false, message: fieldError || error.response?.data?.message, code };
+            return {
+                success: false,
+                message: firstError?.message || error.response?.data?.message,
+                code,
+                fieldPath: firstError?.path,
+                fieldMessage: firstError?.message
+            };
         }
     },
 

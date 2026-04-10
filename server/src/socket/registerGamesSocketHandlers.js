@@ -4,6 +4,7 @@ import { syncUserBaseHashRate } from '../../models/minerProfileModel.js';
 import { verifyAccessToken } from '../../utils/authTokens.js';
 import { getTokenFromRequest } from '../../utils/token.js';
 import { getBrazilCheckinDateKey } from '../../utils/checkinDate.js';
+import { notifyMiniPassGamePlayed } from '../../services/miniPass/miniPassMissionHookService.js';
 
 const logger = loggerLib.child("GamesSocket");
 const GAME_SESSIONS = new Map();
@@ -28,7 +29,7 @@ export function registerGamesSocketHandlers({ io, engine }) {
         const payload = authToken ? verifyAccessToken(authToken) : null;
         const userId = Number(socket.data?.userId || payload?.sub);
 
-        if (!userId) return socket.emit("game:error", "Sessão inválida.");
+        if (!userId) return socket.emit("game:error", { code: "invalid_session" });
 
         // Cooldown check individual por jogo
         const cooldownKey = `${userId}-${gameSlug}`;
@@ -37,18 +38,18 @@ export function registerGamesSocketHandlers({ io, engine }) {
           const elapsed = Date.now() - lastFinish;
           if (elapsed < GAME_COOLDOWN_MS) {
             const remaining = Math.ceil((GAME_COOLDOWN_MS - elapsed) / 1000);
-            return socket.emit("game:error", `Aguarde ${remaining} segundos para iniciar este jogo novamente.`);
+            return socket.emit("game:error", { code: "cooldown", seconds: remaining });
           }
         }
 
         const gameName = GAME_NAMES[gameSlug];
-        if (!gameName) return socket.emit("game:error", "Jogo indisponível.");
+        if (!gameName) return socket.emit("game:error", { code: "unknown_game" });
         const game = await prisma.game.upsert({
           where: { slug: gameSlug },
           create: { name: gameName, slug: gameSlug, isActive: true },
           update: {},
         });
-        if (!game.isActive) return socket.emit("game:error", "Jogo pausado temporariamente.");
+        if (!game.isActive) return socket.emit("game:error", { code: "game_paused" });
 
         let initialState = {
           gameId: Number(game.id),
@@ -75,7 +76,7 @@ export function registerGamesSocketHandlers({ io, engine }) {
         GAME_SESSIONS.set(socket.id, initialState);
       } catch (error) {
         logger.error("Game Start Error", error);
-        socket.emit("game:error", "Erro ao iniciar o jogo. Tente novamente.");
+        socket.emit("game:error", { code: "start_failed" });
       }
     });
 
@@ -212,7 +213,11 @@ async function finishGame(socket, state, success, engine) {
     const playTimeMs = Date.now() - state.startTime;
     if (playTimeMs < 15000) {
       logger.warn(`Cheating attempt detected: User ${state.userId} finished game too quickly (${playTimeMs}ms).`);
-      return socket.emit("game:finished", { success: false, message: "AÇÃO SUSPEITA DETECTADA! Tempo de jogo irreal." });
+      return socket.emit("game:finished", {
+        success: false,
+        messageCode: "anti_cheat_timing",
+        cooldownSeconds: Math.ceil(GAME_COOLDOWN_MS / 1000),
+      });
     }
 
     // Verifica se o usuário fez check-in hoje — sem check-in bônus dura só 24h
@@ -222,32 +227,48 @@ async function finishGame(socket, state, success, engine) {
       select: { status: true },
     });
     const powerDays = (checkinToday?.status === 'confirmed') ? GAME_POWER_DAYS : 1;
-    const rewardMsg = powerDays >= GAME_POWER_DAYS
-      ? `BÔNUS DE 50 H/S ATIVADO POR ${GAME_POWER_DAYS} DIAS!`
-      : `BÔNUS DE 50 H/S ATIVADO POR 24 HORAS! Faça check-in para ${GAME_POWER_DAYS} dias!`;
+    const rewardCode = powerDays >= GAME_POWER_DAYS ? "full_term" : "short_term";
+    const rewardParams = { days: GAME_POWER_DAYS };
 
     const expiresAt = new Date(Date.now() + powerDays * 24 * 60 * 60 * 1000);
     try {
       // ANTI-CHEAT: Limita o máximo de poderes ativos acumulados pelo minigame a um valor seguro (ex: max 10 instâncias = 500 H/s)
-      await prisma.userPowerGame.create({ 
-        data: { 
-          userId: Number(state.userId), 
-          gameId: Number(state.gameId), 
-          hashRate: 50.0, 
-          playedAt: new Date(), 
-          expiresAt 
-        } 
+      const powerRow = await prisma.userPowerGame.create({
+        data: {
+          userId: Number(state.userId),
+          gameId: Number(state.gameId),
+          hashRate: 50.0,
+          playedAt: new Date(),
+          expiresAt
+        }
       });
+      notifyMiniPassGamePlayed(Number(state.userId), {
+        userPowerGameId: powerRow.id,
+        gameSlug: String(state.slug || "")
+      }).catch(() => {});
       const total = await syncUserBaseHashRate(state.userId);
       const miner = engine.miners.get(state.userId.toString());
       if (miner) miner.baseHashRate = total;
 
-      socket.emit("game:finished", { success: true, reward: rewardMsg, cooldownSeconds: Math.ceil(GAME_COOLDOWN_MS / 1000) });
+      socket.emit("game:finished", {
+        success: true,
+        rewardCode,
+        rewardParams,
+        cooldownSeconds: Math.ceil(GAME_COOLDOWN_MS / 1000),
+      });
       socket.emit("machines:update");
     } catch (e) { 
-      socket.emit("game:finished", { success: true, reward: "BÔNUS PROCESSADO COM SUCESSO!", cooldownSeconds: Math.ceil(GAME_COOLDOWN_MS / 1000) });
+      socket.emit("game:finished", {
+        success: true,
+        rewardCode: "persist_ok",
+        cooldownSeconds: Math.ceil(GAME_COOLDOWN_MS / 1000),
+      });
     }
   } else {
-    socket.emit("game:finished", { success: false, message: "SESSÃO ENCERRADA!", cooldownSeconds: Math.ceil(GAME_COOLDOWN_MS / 1000) });
+    socket.emit("game:finished", {
+      success: false,
+      messageCode: "session_ended",
+      cooldownSeconds: Math.ceil(GAME_COOLDOWN_MS / 1000),
+    });
   }
 }

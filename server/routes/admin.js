@@ -2,11 +2,13 @@ import express from "express";
 import * as adminController from "../controllers/adminController.js";
 import { getPolUsdPrice } from "../utils/cryptoPrice.js";
 import * as adminSupportController from "../controllers/adminSupportController.js";
+import * as adminUserInsightsController from "../controllers/adminUserInsightsController.js";
 import * as depositTicketController from "../controllers/depositTicketController.js";
 import * as bannerController from "../controllers/bannerController.js";
 import * as creatorController from "../controllers/creatorController.js";
 import * as transparencyController from "../controllers/transparencyController.js";
 import { adminOfferEventsRouter } from "./admin-offer-events.js";
+import { adminMiniPassRouter } from "./admin-mini-pass.js";
 import { adminLogsRouter } from "./admin-logs.js";
 import { requireAdminAuth } from "../middleware/adminAuth.js";
 import { createRateLimiter } from "../middleware/rateLimit.js";
@@ -14,6 +16,7 @@ import * as walletModel from "../models/walletModel.js";
 import * as blkWalletController from "../controllers/blkWalletController.js";
 import * as miningController from "../controllers/miningController.js";
 import * as adminCheckinMilestoneController from "../controllers/adminCheckinMilestoneController.js";
+import * as adminReadEarnController from "../controllers/adminReadEarnController.js";
 import prisma from "../src/db/prisma.js";
 import path from "path";
 import fs from "fs/promises";
@@ -62,6 +65,7 @@ const uploadMedia = multer({
 adminRouter.use(requireAdminAuth, adminLimiter);
 
 adminRouter.use(adminOfferEventsRouter);
+adminRouter.use(adminMiniPassRouter);
 adminRouter.use("/logs", adminLogsRouter);
 
 // Upload de imagem (event/miner covers)
@@ -281,6 +285,15 @@ adminRouter.get("/checkin-milestones", adminCheckinMilestoneController.listCheck
 adminRouter.post("/checkin-milestones", adminCheckinMilestoneController.createCheckinMilestone);
 adminRouter.put("/checkin-milestones/:id", adminCheckinMilestoneController.updateCheckinMilestone);
 adminRouter.delete("/checkin-milestones/:id", adminCheckinMilestoneController.deleteCheckinMilestone);
+
+adminRouter.get("/read-earn/campaigns", adminReadEarnController.adminListReadEarnCampaigns);
+adminRouter.post("/read-earn/campaigns", adminReadEarnController.adminCreateReadEarnCampaign);
+adminRouter.put("/read-earn/campaigns/:id", adminReadEarnController.adminUpdateReadEarnCampaign);
+adminRouter.delete("/read-earn/campaigns/:id", adminReadEarnController.adminDeleteReadEarnCampaign);
+adminRouter.get(
+  "/read-earn/campaigns/:id/redemptions",
+  adminReadEarnController.adminListReadEarnRedemptions
+);
 
 // Criadores de Conteúdo
 adminRouter.get("/creators", creatorController.adminList);
@@ -633,6 +646,10 @@ adminRouter.delete("/backups", async (req, res) => {
         res.status(500).json({ ok: false, message: "Error" });
     }
 });
+
+// User wallet ledger & activity (support / admin tooling)
+adminRouter.get("/users/:id/wallet-ledger", adminUserInsightsController.getUserWalletLedger);
+adminRouter.get("/users/:id/activity-summary", adminUserInsightsController.getUserActivitySummary);
 
 // User Details
 adminRouter.get("/users/:id/details", async (req, res) => {

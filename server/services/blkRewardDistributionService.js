@@ -198,6 +198,15 @@ export async function runBlkRewardCycle(options = {}) {
     throw e;
   }
 
+  const rewardLogs = await prisma.blkRewardLog.findMany({
+    where: { cycleId: cycle.id },
+    select: { id: true, userId: true, amount: true }
+  });
+  const { notifyMiniPassBlkReward } = await import("./miniPass/miniPassMissionHookService.js");
+  for (const log of rewardLogs) {
+    notifyMiniPassBlkReward(log.userId, log.id, log.amount).catch(() => {});
+  }
+
   logger.info("BLK cycle distributed", {
     cycleId: cycle.id,
     windowStart: windowStart.toISOString(),

@@ -100,10 +100,13 @@ function clearAuthCookies() {
 }
 
 const registerSchema = z.object({
-  username: z.string().trim().min(3, "Username deve ter pelo menos 3 caracteres").max(24, "Username pode ter no maximo 24 caracteres").regex(/^[a-zA-Z0-9._-]+$/, "Username so pode conter letras, numeros, ponto, underline e hifen"),
-  email: z.string().trim().email("Email invalido"),
-  password: z.string().min(8, "Senha deve ter pelo menos 8 caracteres"),
-  refCode: z.string().trim().optional()
+  username: z.string().trim().min(3, "auth.register.errors.username_too_short").max(24, "auth.register.errors.username_too_long").regex(/^[a-zA-Z0-9._-]+$/, "auth.register.errors.username_invalid"),
+  email: z.string().trim().email("auth.register.errors.email_invalid"),
+  password: z.string().min(8, "auth.register.errors.password_min"),
+  refCode: z.string().trim().optional(),
+  acceptTerms: z.boolean().refine((value) => value === true, {
+    message: "validation.errors.termsRequired"
+  })
 });
 
 import { authenticator } from "otplib";
@@ -184,10 +187,18 @@ async function findUserByIdentifier(identifier) {
 
 authRouter.post("/register", authLimiter, validateBody(registerSchema), async (req, res) => {
   try {
-    const { username, email, password, refCode: refCodeInput } = req.body;
+    const { username, email, password, refCode: refCodeInput, acceptTerms } = req.body;
     const normalizedUsername = normalizeIdentifier(username);
     const normalizedEmail = normalizeEmail(email);
     const clientIp = req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.ip;
+
+    if (!acceptTerms) {
+      return res.status(400).json({
+        ok: false,
+        message: "Invalid request data.",
+        errors: [{ path: "acceptTerms", message: "validation.errors.termsRequired" }]
+      });
+    }
 
     // 1. IP-based Anti-Abuse: Limit accounts per IP (max 2 for families/roommates)
     const accountsWithSameIp = await prisma.user.count({

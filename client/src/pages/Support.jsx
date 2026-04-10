@@ -1,470 +1,471 @@
-
-import { useState, useEffect } from 'react';
-import { 
-  MessageSquare, 
-  Send, 
-  Mail, 
-  User, 
-  Type, 
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  List,
-  PlusCircle,
-  MessageCircle,
-  ChevronDown,
-  ChevronUp,
-  Loader2
+import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  LifeBuoy,
+  Plus,
+  Send,
+  Loader2,
+  ChevronLeft,
+  ImagePlus,
+  X,
+  RefreshCw,
+  Inbox
 } from 'lucide-react';
-import { api } from '../store/auth';
 import { toast } from 'sonner';
-import { useAuthStore } from '../store/auth';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { api, useAuthStore } from '../store/auth';
+import { useSupportTicketSocket } from '../hooks/useSupportTicketSocket';
+import SupportAttachmentThumbnails from '../components/SupportAttachmentThumbnails';
+
+function mergeReplyUnique(replies, incoming) {
+  if (!incoming?.id) return replies;
+  if (replies.some((r) => r.id === incoming.id)) return replies;
+  return [...replies, incoming];
+}
 
 export default function Support() {
-  const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState('new'); // 'new' | 'tickets'
-  const [tickets, setTickets] = useState([]);
-  const [loadingTickets, setLoadingTickets] = useState(false);
-  const [expandedTicketId, setExpandedTicketId] = useState(null);
-  const [ticketDetails, setTicketDetails] = useState({}); // { [id]: fullDataWithReplies }
-  const [loadingDetails, setLoadingDetails] = useState({});
+  const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
 
-  const [formData, setFormData] = useState({
-    name: user?.name || '',
-    email: user?.email || '',
-    subject: '',
-    message: ''
-  });
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [replyMessage, setReplyMessage] = useState('');
-  const [sendingReply, setSendingReply] = useState(false);
+  const [list, setList] = useState([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [limit] = useState(20);
+  const [listLoading, setListLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState(null);
+  const [thread, setThread] = useState(null);
+  const [threadLoading, setThreadLoading] = useState(false);
+
+  const [replyText, setReplyText] = useState('');
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const [sending, setSending] = useState(false);
+
+  const [showNew, setShowNew] = useState(false);
+  const [newSubject, setNewSubject] = useState('');
+  const [newMessage, setNewMessage] = useState('');
+  const [newFiles, setNewFiles] = useState([]);
+  const [creating, setCreating] = useState(false);
+
+  const fetchList = useCallback(
+    async (p = 1, append = false) => {
+      try {
+        setListLoading(true);
+        const res = await api.get('/support', { params: { page: p, limit } });
+        if (res.data?.ok) {
+          const rows = res.data.messages || [];
+          setList((prev) => (append ? [...prev, ...rows] : rows));
+          setTotal(res.data.total ?? 0);
+          setPage(res.data.page ?? p);
+        }
+      } catch {
+        toast.error(t('support_tickets.error_list'));
+      } finally {
+        setListLoading(false);
+      }
+    },
+    [limit, t]
+  );
 
   useEffect(() => {
-    if (user && activeTab === 'tickets') {
-      fetchTickets();
-    }
-  }, [user, activeTab]);
+    fetchList(1);
+  }, [fetchList]);
 
-  const fetchTickets = async () => {
-    setLoadingTickets(true);
-    try {
-      const res = await api.get('/support');
-      if (res.data.ok) {
-        setTickets(res.data.messages);
+  const loadThread = useCallback(
+    async (id) => {
+      try {
+        setThreadLoading(true);
+        const res = await api.get(`/support/${id}`);
+        if (res.data?.ok) {
+          setThread(res.data.message);
+        } else {
+          toast.error(t('support_tickets.error_thread'));
+        }
+      } catch {
+        toast.error(t('support_tickets.error_thread'));
+      } finally {
+        setThreadLoading(false);
       }
-    } catch (error) {
-      toast.error('Erro ao carregar seus chamados');
+    },
+    [t]
+  );
+
+  const onRealtimeReply = useCallback((reply) => {
+    setThread((prev) => {
+      if (!prev || Number(prev.id) !== Number(reply.supportMessageId)) return prev;
+      return {
+        ...prev,
+        replies: mergeReplyUnique(prev.replies || [], reply)
+      };
+    });
+  }, []);
+
+  useSupportTicketSocket(selectedId, onRealtimeReply);
+
+  const selectTicket = (id) => {
+    setSelectedId(id);
+    setReplyText('');
+    setPendingFiles([]);
+    loadThread(id);
+  };
+
+  const uploadImages = async (files) => {
+    const urls = [];
+    for (const file of files) {
+      const fd = new FormData();
+      fd.append('image', file);
+      const res = await api.post('/support/upload-image', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (res.data?.ok && res.data.url) {
+        urls.push({ url: res.data.url, mimeType: res.data.mimeType || file.type });
+      }
+    }
+    return urls;
+  };
+
+  const handleSendReply = async () => {
+    if (!selectedId || (!replyText.trim() && pendingFiles.length === 0)) return;
+    setSending(true);
+    try {
+      let attachments = [];
+      if (pendingFiles.length) {
+        attachments = await uploadImages(pendingFiles);
+      }
+      const res = await api.post(`/support/${selectedId}/reply`, {
+        message: replyText.trim() || t('support_tickets.reply_image_only'),
+        attachments
+      });
+      if (res.data?.ok && res.data.reply) {
+        setThread((prev) =>
+          prev
+            ? { ...prev, replies: mergeReplyUnique(prev.replies || [], res.data.reply) }
+            : prev
+        );
+        setReplyText('');
+        setPendingFiles([]);
+        toast.success(t('support_tickets.reply_sent'));
+      }
+    } catch {
+      toast.error(t('support_tickets.error_reply'));
     } finally {
-      setLoadingTickets(false);
+      setSending(false);
     }
   };
 
-  const fetchTicketDetails = async (id) => {
-    if (ticketDetails[id]) return; // Already loaded
-
-    setLoadingDetails(prev => ({ ...prev, [id]: true }));
-    try {
-      const res = await api.get(`/support/${id}`);
-      if (res.data.ok) {
-        setTicketDetails(prev => ({ ...prev, [id]: res.data.message }));
-      }
-    } catch (error) {
-      toast.error('Erro ao carregar detalhes do chamado');
-    } finally {
-      setLoadingDetails(prev => ({ ...prev, [id]: false }));
-    }
-  };
-
-  const handleSubmit = async (e) => {
+  const handleCreateTicket = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    if (!newSubject.trim() || !newMessage.trim()) {
+      toast.error(t('support_tickets.validation_required'));
+      return;
+    }
+    if (!user?.name || !user?.email) {
+      toast.error(t('support_tickets.validation_profile'));
+      return;
+    }
+    setCreating(true);
     try {
-      const res = await api.post('/support', formData);
-      if (res.data.ok) {
-        setSubmitted(true);
-        toast.success('Mensagem enviada com sucesso!');
-        setFormData(prev => ({ ...prev, subject: '', message: '' }));
-        if (user) {
-          fetchTickets();
-        }
+      let attachments = [];
+      if (newFiles.length) {
+        attachments = await uploadImages(newFiles);
       }
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Erro ao enviar mensagem');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReply = async (ticketId) => {
-    if (!replyMessage.trim()) return;
-
-    setSendingReply(true);
-    try {
-      const res = await api.post(`/support/${ticketId}/reply`, { message: replyMessage });
-      if (res.data.ok) {
-        toast.success('Resposta enviada!');
-        setReplyMessage('');
-        // Refresh details
-        const detailsRes = await api.get(`/support/${ticketId}`);
-        if (detailsRes.data.ok) {
-          setTicketDetails(prev => ({ ...prev, [ticketId]: detailsRes.data.message }));
-        }
+      const res = await api.post('/support', {
+        name: user.name,
+        email: user.email,
+        subject: newSubject.trim(),
+        message: newMessage.trim(),
+        attachments
+      });
+      if (res.data?.ok) {
+        toast.success(t('support_tickets.created'));
+        setShowNew(false);
+        setNewSubject('');
+        setNewMessage('');
+        setNewFiles([]);
+        await fetchList(1);
+        if (res.data.id) selectTicket(res.data.id);
       }
-    } catch (error) {
-      toast.error('Erro ao enviar resposta');
+    } catch {
+      toast.error(t('support_tickets.error_create'));
     } finally {
-      setSendingReply(false);
+      setCreating(false);
     }
   };
 
-  const toggleTicket = (id) => {
-    if (expandedTicketId === id) {
-      setExpandedTicketId(null);
-    } else {
-      setExpandedTicketId(id);
-      fetchTicketDetails(id);
-    }
+  const addFiles = (fileList, setter, max = 5) => {
+    const next = Array.from(fileList || []).filter((f) => f.type.startsWith('image/'));
+    setter((prev) => [...prev, ...next].slice(0, max));
   };
 
-  if (submitted) {
-    return (
-      <div className="max-w-2xl mx-auto py-12 text-center space-y-6 animate-in zoom-in duration-500">
-        <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-8 shadow-xl shadow-emerald-500/10">
-          <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+  const hasMore = page * limit < total;
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-3">
+            <LifeBuoy className="w-8 h-8 text-primary" />
+            {t('support_tickets.title')}
+          </h1>
+          <p className="text-slate-500 text-sm mt-1 font-medium">{t('support_tickets.subtitle')}</p>
         </div>
-        <h1 className="text-4xl font-black text-white italic tracking-tighter uppercase">MENSAGEM ENVIADA!</h1>
-        <p className="text-slate-400 text-lg">
-          {user ? 'Sua solicitação foi registrada. Você pode acompanhar pelo painel de chamados.' : 'Recebemos sua solicitação. Caso queira acompanhar seus chamados, faça login.'}
-        </p>
-        <div className="flex justify-center gap-4 mt-8">
-          <button 
-            onClick={() => setSubmitted(false)}
-            className="px-8 py-3 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition-colors"
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => fetchList(page)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs font-bold uppercase tracking-wider hover:border-primary/40"
           >
-            Enviar outra mensagem
+            <RefreshCw className={`w-4 h-4 ${listLoading ? 'animate-spin' : ''}`} />
+            {t('support_tickets.refresh')}
           </button>
-          {user && (
-            <button 
-              onClick={() => {
-                setSubmitted(false);
-                setActiveTab('tickets');
-              }}
-              className="px-8 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 transition-colors"
+          <button
+            type="button"
+            onClick={() => setShowNew(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-slate-950 text-xs font-black uppercase tracking-wider hover:opacity-90"
+          >
+            <Plus className="w-4 h-4" />
+            {t('support_tickets.new_ticket')}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[480px]">
+        <div className="lg:col-span-4 flex flex-col rounded-2xl border border-slate-800 bg-slate-950/50 overflow-hidden">
+          <div className="p-3 border-b border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-500">
+            {t('support_tickets.list_heading')}
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-2 max-h-[60vh] lg:max-h-[calc(100vh-220px)]">
+            {listLoading && list.length === 0 ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+              </div>
+            ) : list.length === 0 ? (
+              <div className="text-center py-12 text-slate-500 text-sm px-4">{t('support_tickets.empty_list')}</div>
+            ) : (
+              list.map((row) => (
+                <button
+                  key={row.id}
+                  type="button"
+                  onClick={() => selectTicket(row.id)}
+                  className={`w-full text-left p-3 rounded-xl border transition-all ${
+                    selectedId === row.id
+                      ? 'border-primary/50 bg-primary/10'
+                      : 'border-slate-800 bg-slate-900/40 hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex justify-between items-start gap-2 mb-1">
+                    <span
+                      className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                        row.isReplied ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-500/15 text-amber-400'
+                      }`}
+                    >
+                      {row.isReplied ? t('support_tickets.status_replied') : t('support_tickets.status_open')}
+                    </span>
+                    {!row.isRead && (
+                      <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1" aria-hidden />
+                    )}
+                  </div>
+                  <p className="text-white font-semibold text-sm truncate">{row.subject}</p>
+                  <p className="text-[10px] text-slate-500 mt-1 font-mono">
+                    {new Date(row.createdAt).toLocaleString()}
+                  </p>
+                </button>
+              ))
+            )}
+          </div>
+          {hasMore && (
+            <button
+              type="button"
+              className="m-2 py-2 text-xs font-bold text-primary uppercase"
+              onClick={() => fetchList(page + 1, true)}
             >
-              Ver meus chamados
+              {t('support_tickets.load_more')}
             </button>
           )}
         </div>
-      </div>
-    );
-  }
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="text-center space-y-2">
-        <h1 className="text-4xl font-black text-white italic tracking-tighter uppercase flex items-center justify-center gap-4">
-          <MessageSquare className="w-10 h-10 text-primary" />
-          SUPORTE <span className="text-primary/50">CENTRAL</span>
-        </h1>
-        <p className="text-slate-500 font-medium">Precisa de ajuda? Envie-nos uma mensagem e responderemos o mais rápido possível.</p>
-      </div>
+        <div className="lg:col-span-8 rounded-2xl border border-slate-800 bg-slate-950/50 flex flex-col min-h-[480px]">
+          {threadLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            </div>
+          ) : thread ? (
+            <>
+              <div className="p-4 border-b border-slate-800 flex items-start gap-3">
+                <button
+                  type="button"
+                  className="lg:hidden p-2 rounded-lg bg-slate-900 border border-slate-800"
+                  onClick={() => {
+                    setSelectedId(null);
+                    setThread(null);
+                  }}
+                  aria-label={t('support_tickets.back_list')}
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-black text-white uppercase tracking-tight truncate">
+                    {thread.subject}
+                  </h2>
+                  <p className="text-[10px] text-slate-500 font-mono mt-1">
+                    {t('support_tickets.protocol', { id: thread.id })} ·{' '}
+                    {new Date(thread.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
 
-      {user && (
-        <div className="flex justify-center gap-4 mb-8">
-          <button
-            onClick={() => setActiveTab('new')}
-            className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all ${
-              activeTab === 'new' 
-                ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <PlusCircle className="w-5 h-5" />
-            Novo Chamado
-          </button>
-          <button
-            onClick={() => setActiveTab('tickets')}
-            className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all ${
-              activeTab === 'tickets' 
-                ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <List className="w-5 h-5" />
-            Meus Chamados
-          </button>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[45vh] lg:max-h-[calc(100vh-340px)]">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
+                  <p className="text-[10px] font-black uppercase text-slate-500 mb-2">
+                    {t('support_tickets.you')}
+                  </p>
+                  <p className="text-slate-200 whitespace-pre-wrap text-sm leading-relaxed">{thread.body}</p>
+                  <SupportAttachmentThumbnails attachments={thread.attachments} />
+                </div>
+
+                {(thread.replies || []).map((r) => (
+                  <div
+                    key={r.id}
+                    className={`rounded-2xl border p-4 ${
+                      r.isAdmin
+                        ? 'border-primary/30 bg-primary/5 ml-0 md:ml-8'
+                        : 'border-slate-800 bg-slate-900/30 mr-0 md:mr-8'
+                    }`}
+                  >
+                    <p className="text-[10px] font-black uppercase text-slate-500 mb-2">
+                      {r.isAdmin ? t('support_tickets.team') : t('support_tickets.you')}
+                      <span className="float-right font-mono normal-case opacity-60">
+                        {new Date(r.createdAt).toLocaleString()}
+                      </span>
+                    </p>
+                    <p className="text-slate-200 whitespace-pre-wrap text-sm leading-relaxed">{r.body}</p>
+                    <SupportAttachmentThumbnails attachments={r.attachments} />
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-4 border-t border-slate-800 space-y-3">
+                <textarea
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  rows={3}
+                  placeholder={t('support_tickets.reply_placeholder')}
+                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-primary/40 resize-none"
+                />
+                {pendingFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {pendingFiles.map((f, i) => (
+                      <span
+                        key={`${f.name}-${i}`}
+                        className="inline-flex items-center gap-1 text-[10px] bg-slate-800 px-2 py-1 rounded-lg"
+                      >
+                        {f.name}
+                        <button
+                          type="button"
+                          className="p-0.5"
+                          onClick={() => setPendingFiles((p) => p.filter((_, j) => j !== i))}
+                          aria-label={t('support_tickets.remove_file')}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 cursor-pointer hover:border-primary/40">
+                    <ImagePlus className="w-4 h-4" />
+                    {t('support_tickets.add_images')}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => addFiles(e.target.files, setPendingFiles)}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    disabled={sending || (!replyText.trim() && pendingFiles.length === 0)}
+                    onClick={handleSendReply}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-slate-950 text-xs font-black uppercase disabled:opacity-40"
+                  >
+                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    {t('support_tickets.send')}
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-500 p-8">
+              <Inbox className="w-16 h-16 mb-4 opacity-40" />
+              <p className="text-sm text-center">{t('support_tickets.select_prompt')}</p>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
-      {activeTab === 'new' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4">
-          {/* Info Cards */}
-          <div className="space-y-4">
-            <div className="p-6 bg-slate-900/50 border border-slate-800 rounded-3xl group hover:border-primary/30 transition-all">
-              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Clock className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-white font-bold mb-1">Tempo de Resposta</h3>
-              <p className="text-xs text-slate-500">Geralmente respondemos em até 24 horas úteis.</p>
+      {showNew && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-950 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-black text-white uppercase">{t('support_tickets.modal_title')}</h3>
+              <button
+                type="button"
+                onClick={() => setShowNew(false)}
+                className="p-2 rounded-lg hover:bg-slate-800"
+                aria-label={t('support_tickets.close')}
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="p-6 bg-slate-900/50 border border-slate-800 rounded-3xl group hover:border-primary/30 transition-all">
-              <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <AlertCircle className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-white font-bold mb-1">FAQ</h3>
-              <p className="text-xs text-slate-500">Verifique os canais de comunidade para dúvidas rápidas.</p>
-            </div>
-          </div>
-
-          {/* Contact Form */}
-          <div className="md:col-span-2 bg-slate-950/50 border border-slate-800 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] -z-10" />
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nome Completo</label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
-                    <input 
-                      type="text" 
-                      required
-                      placeholder="Seu nome"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      disabled={!!user}
-                      className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors disabled:opacity-50"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">E-mail de Contato</label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
-                    <input 
-                      type="email" 
-                      required
-                      placeholder="seu@email.com"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      disabled={!!user}
-                      className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors disabled:opacity-50"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Assunto</label>
-                <div className="relative">
-                  <Type className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
-                  <input 
-                    type="text" 
-                    required
-                    placeholder="Do que se trata seu contato?"
-                    value={formData.subject}
-                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                    className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Mensagem</label>
-                <textarea 
-                  required
-                  rows={5}
-                  placeholder="Descreva seu problema ou dúvida em detalhes..."
-                  value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors resize-none"
+            <form onSubmit={handleCreateTicket} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">
+                  {t('support_tickets.field_subject')}
+                </label>
+                <input
+                  value={newSubject}
+                  onChange={(e) => setNewSubject(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white"
+                  maxLength={200}
                 />
               </div>
-
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">
+                  {t('support_tickets.field_message')}
+                </label>
+                <textarea
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  rows={5}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white resize-none"
+                  maxLength={12000}
+                />
+              </div>
+              <div>
+                <label className="inline-flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                  <ImagePlus className="w-4 h-4" />
+                  {t('support_tickets.add_images')}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => addFiles(e.target.files, setNewFiles)}
+                  />
+                </label>
+                {newFiles.length > 0 && (
+                  <p className="text-[10px] text-slate-500 mt-1">{t('support_tickets.files_count', { count: newFiles.length })}</p>
+                )}
+              </div>
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full h-14 bg-gradient-to-r from-primary to-blue-600 text-white font-black text-sm uppercase tracking-[0.2em] rounded-2xl hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/20 flex items-center justify-center gap-3 italic"
+                disabled={creating}
+                className="w-full py-3 rounded-xl bg-primary text-slate-950 font-black text-xs uppercase disabled:opacity-50"
               >
-                {loading ? (
-                  <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Send className="w-5 h-5" />
-                    ENVIAR MENSAGEM
-                  </>
-                )}
+                {creating ? t('support_tickets.submitting') : t('support_tickets.submit')}
               </button>
             </form>
           </div>
-        </div>
-      )}
-
-      {activeTab === 'tickets' && user && (
-        <div className="bg-slate-950/50 border border-slate-800 rounded-[2.5rem] p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[100px] -z-10" />
-          
-          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <MessageCircle className="w-6 h-6 text-primary" />
-            Histórico de Chamados
-          </h2>
-
-          {loadingTickets ? (
-            <div className="flex justify-center py-12">
-              <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-            </div>
-          ) : tickets.length === 0 ? (
-            <div className="text-center py-12 bg-slate-900/50 rounded-3xl border border-slate-800 border-dashed">
-              <AlertCircle className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-slate-300">Nenhum chamado encontrado</h3>
-              <p className="text-sm text-slate-500">Você ainda não abriu nenhum ticket de suporte.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {tickets.map((ticket) => (
-                <div key={ticket.id} className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden transition-all hover:border-slate-700">
-                  <div 
-                    className="p-4 sm:p-6 cursor-pointer flex items-center justify-between gap-4"
-                    onClick={() => toggleTicket(ticket.id)}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        {ticket.isReplied ? (
-                          <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-emerald-500/20">
-                            Respondido
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-1 bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-amber-500/20">
-                            Aguardando
-                          </span>
-                        )}
-                        <span className="text-xs text-slate-500 font-medium">
-                          {format(new Date(ticket.createdAt), "dd 'de' MMM, yyyy 'às' HH:mm", { locale: ptBR })}
-                        </span>
-                      </div>
-                      <h3 className="text-white font-bold truncate text-base sm:text-lg">{ticket.subject}</h3>
-                    </div>
-                    <div className="flex-shrink-0 text-slate-500">
-                      {expandedTicketId === ticket.id ? <ChevronUp /> : <ChevronDown />}
-                    </div>
-                  </div>
-
-                  {expandedTicketId === ticket.id && (
-                    <div className="px-4 pb-4 sm:px-6 sm:pb-6 pt-0 border-t border-slate-800 mt-2">
-                      {loadingDetails[ticket.id] ? (
-                        <div className="flex justify-center py-8">
-                          <Loader2 className="w-6 h-6 text-primary animate-spin" />
-                        </div>
-                      ) : (
-                        <div className="space-y-6 pt-6">
-                          {/* Main Message */}
-                          <div className="bg-slate-800/30 p-4 rounded-2xl border border-slate-800/50">
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
-                                <User className="w-4 h-4 text-slate-400" />
-                              </div>
-                              <div>
-                                <p className="text-xs font-bold text-slate-300">Você</p>
-                                <p className="text-[10px] text-slate-500">
-                                  {format(new Date(ticket.createdAt), "dd/MM/yyyy HH:mm")}
-                                </p>
-                              </div>
-                            </div>
-                            <p className="text-sm text-slate-300 whitespace-pre-wrap">{ticket.message}</p>
-                          </div>
-
-                          {/* Historical Reply (compatibility for old tickets) */}
-                          {ticket.reply && (!ticketDetails[ticket.id]?.replies || ticketDetails[ticket.id].replies.length === 0) && (
-                             <div className="bg-primary/5 p-4 rounded-2xl border border-primary/20 ml-4 sm:ml-8 relative">
-                               <div className="absolute -left-3 sm:-left-4 top-8 w-3 sm:w-4 h-[1px] bg-primary/20"></div>
-                               <div className="absolute -left-3 sm:-left-4 top-0 w-[1px] h-8 bg-primary/20 rounded-bl-xl"></div>
-                               
-                               <div className="flex items-center gap-2 mb-3">
-                                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                                   <span className="text-primary font-black text-xs">BM</span>
-                                 </div>
-                                 <div>
-                                   <p className="text-xs font-bold text-primary">Equipe Block Miner</p>
-                                   <p className="text-[10px] text-slate-500">Resposta do Suporte</p>
-                                 </div>
-                               </div>
-                               <p className="text-sm text-slate-300 whitespace-pre-wrap">{ticket.reply}</p>
-                             </div>
-                          )}
-
-                          {/* Modern Replies List */}
-                          {ticketDetails[ticket.id]?.replies?.map((reply) => (
-                            <div 
-                              key={reply.id} 
-                              className={`p-4 rounded-2xl border relative ${
-                                reply.isAdmin 
-                                  ? 'bg-primary/5 border-primary/20 ml-4 sm:ml-8' 
-                                  : 'bg-slate-800/30 border-slate-800/50 mr-4 sm:mr-8'
-                              }`}
-                            >
-                              {reply.isAdmin && (
-                                <>
-                                  <div className="absolute -left-3 sm:-left-4 top-8 w-3 sm:w-4 h-[1px] bg-primary/20"></div>
-                                  <div className="absolute -left-3 sm:-left-4 top-0 w-[1px] h-8 bg-primary/20 rounded-bl-xl"></div>
-                                </>
-                              )}
-                              <div className="flex items-center gap-2 mb-3">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                  reply.isAdmin ? 'bg-primary/20' : 'bg-slate-700'
-                                }`}>
-                                  {reply.isAdmin ? (
-                                    <span className="text-primary font-black text-[10px]">BM</span>
-                                  ) : (
-                                    <User className="w-4 h-4 text-slate-400" />
-                                  )}
-                                </div>
-                                <div>
-                                  <p className={`text-xs font-bold ${reply.isAdmin ? 'text-primary' : 'text-slate-300'}`}>
-                                    {reply.isAdmin ? 'Equipe Block Miner' : 'Você'}
-                                  </p>
-                                  <p className="text-[10px] text-slate-500">
-                                    {format(new Date(reply.createdAt), "dd/MM/yyyy HH:mm")}
-                                  </p>
-                                </div>
-                              </div>
-                              <p className="text-sm text-slate-300 whitespace-pre-wrap">{reply.message}</p>
-                            </div>
-                          ))}
-
-                          {/* Reply Form */}
-                          <div className="pt-4 border-t border-slate-800 mt-4">
-                            <div className="relative">
-                              <textarea
-                                rows={2}
-                                value={replyMessage}
-                                onChange={(e) => setReplyMessage(e.target.value)}
-                                placeholder="Responda para o suporte..."
-                                className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl p-4 pr-14 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors resize-none"
-                              />
-                              <button
-                                onClick={() => handleReply(ticket.id)}
-                                disabled={sendingReply || !replyMessage.trim()}
-                                className="absolute right-3 bottom-3 p-3 bg-primary text-white rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-all"
-                              >
-                                {sendingReply ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Send className="w-4 h-4" />
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
     </div>

@@ -1,104 +1,215 @@
-
-import { useState, useEffect } from 'react';
-import { 
-  MessageSquare, 
-  Search, 
-  Filter, 
-  ChevronRight, 
-  Clock, 
-  User, 
-  Mail, 
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { io } from 'socket.io-client';
+import {
+  Search,
+  Clock,
+  User,
+  Mail,
   Send,
-  CheckCircle2,
-  AlertCircle,
   Inbox,
   Settings,
-  X,
   RefreshCw,
-  Loader2
+  Loader2,
+  ImagePlus,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../store/auth';
+import SupportAttachmentThumbnails from '../components/SupportAttachmentThumbnails';
+
+function mergeReplyUnique(replies, incoming) {
+  if (!incoming?.id) return replies;
+  if (replies.some((r) => r.id === incoming.id)) return replies;
+  return [...replies, incoming];
+}
 
 export default function AdminSupport() {
+  const { t } = useTranslation();
   const [messages, setMessages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [limit] = useState(50);
   const [loading, setLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [reply, setReply] = useState('');
+  const [replyFiles, setReplyFiles] = useState([]);
   const [sendingReply, setSendingReply] = useState(false);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('all'); // all, unread, replied
+  const [filter, setFilter] = useState('all');
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const socketRef = useRef(null);
+  const selectedIdRef = useRef(null);
+  selectedIdRef.current = selectedMessage?.id ?? null;
+
+  const fetchMessages = useCallback(
+    async (p = 1, append = false) => {
+      try {
+        setLoading(true);
+        const res = await api.get('/admin/support', { params: { page: p, limit } });
+        if (res.data.ok) {
+          const rows = res.data.messages || [];
+          setMessages((prev) => (append ? [...prev, ...rows] : rows));
+          setTotal(res.data.total ?? 0);
+          setPage(res.data.page ?? p);
+        }
+      } catch {
+        toast.error(t('admin_support.error_list'));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [limit, t]
+  );
 
   useEffect(() => {
-    fetchMessages();
-  }, []);
-
-  const fetchMessages = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/admin/support');
-      if (res.data.ok) {
-        setMessages(res.data.messages);
-      }
-    } catch (error) {
-      toast.error('Erro ao carregar mensagens');
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchMessages(1, false);
+  }, [fetchMessages]);
 
   const selectMessage = async (msg) => {
     setLoadingDetails(true);
     setReply('');
+    setReplyFiles([]);
     try {
       const res = await api.get(`/admin/support/${msg.id}`);
       if (res.data.ok) {
         setSelectedMessage(res.data.message);
         if (!msg.isRead) {
-          setMessages(messages.map(m => m.id === msg.id ? { ...m, isRead: true } : m));
+          setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, isRead: true } : m)));
         }
       }
-    } catch (error) {
-      toast.error('Erro ao carregar detalhes');
+    } catch {
+      toast.error(t('admin_support.error_details'));
     } finally {
       setLoadingDetails(false);
     }
   };
 
+  useEffect(() => {
+    if (!selectedMessage?.id) {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      return;
+    }
+
+    const token = localStorage.getItem('adminToken');
+    const s = io('/', { withCredentials: true });
+    socketRef.current = s;
+
+    const onSocketReply = (payload) => {
+      const currentId = selectedIdRef.current;
+      if (
+        payload &&
+        currentId != null &&
+        Number(payload.supportMessageId) === Number(currentId) &&
+        payload.reply
+      ) {
+        setSelectedMessage((prev) =>
+          prev && prev.id === currentId
+            ? { ...prev, replies: mergeReplyUnique(prev.replies || [], payload.reply) }
+            : prev
+        );
+        setMessages((prev) =>
+          prev.map((m) => (m.id === currentId ? { ...m, isReplied: true } : m))
+        );
+      }
+    };
+
+    s.on('support:reply', onSocketReply);
+    s.on('connect', () => {
+      s.emit(
+        'support:subscribeAdmin',
+        { token, supportMessageId: selectedMessage.id },
+        (res) => {
+          if (res && !res.ok && import.meta.env?.DEV) {
+            console.warn('support:subscribeAdmin', res);
+          }
+        }
+      );
+    });
+
+    if (s.connected) {
+      s.emit(
+        'support:subscribeAdmin',
+        { token, supportMessageId: selectedMessage.id },
+        () => {}
+      );
+    }
+
+    return () => {
+      s.off('support:reply', onSocketReply);
+      s.disconnect();
+      if (socketRef.current === s) socketRef.current = null;
+    };
+  }, [selectedMessage?.id]);
+
+  const uploadAdminImages = async (files) => {
+    const urls = [];
+    for (const file of files) {
+      const fd = new FormData();
+      fd.append('image', file);
+      const res = await api.post('/admin/upload-image', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (res.data?.ok && res.data.url) {
+        urls.push({ url: res.data.url, mimeType: res.data.mimeType || file.type });
+      }
+    }
+    return urls;
+  };
+
   const handleReply = async () => {
-    if (!reply.trim()) return;
+    if (!reply.trim() && replyFiles.length === 0) return;
     setSendingReply(true);
     try {
-      const res = await api.post(`/admin/support/${selectedMessage.id}/reply`, { reply });
+      let attachments = [];
+      if (replyFiles.length) {
+        attachments = await uploadAdminImages(replyFiles);
+      }
+      const res = await api.post(`/admin/support/${selectedMessage.id}/reply`, {
+        reply: reply.trim() || t('admin_support.reply_image_only'),
+        attachments
+      });
       if (res.data.ok) {
-        toast.success('Resposta enviada com sucesso!');
-        // Refresh details
+        toast.success(t('admin_support.reply_sent'));
         const detailsRes = await api.get(`/admin/support/${selectedMessage.id}`);
         if (detailsRes.data.ok) {
           const updatedFull = detailsRes.data.message;
           setSelectedMessage(updatedFull);
-          setMessages(messages.map(m => m.id === updatedFull.id ? { ...m, isReplied: true } : m));
+          setMessages((prev) =>
+            prev.map((m) => (m.id === updatedFull.id ? { ...m, isReplied: true } : m))
+          );
         }
         setReply('');
+        setReplyFiles([]);
       }
-    } catch (error) {
-      toast.error('Erro ao enviar resposta');
+    } catch {
+      toast.error(t('admin_support.error_reply'));
     } finally {
       setSendingReply(false);
     }
   };
 
-  const filteredMessages = messages.filter(msg => {
-    const matchesSearch = (msg.subject || '').toLowerCase().includes(search.toLowerCase()) || 
-                          (msg.name || '').toLowerCase().includes(search.toLowerCase()) ||
-                          (msg.email || '').toLowerCase().includes(search.toLowerCase());
-    
+  const filteredMessages = messages.filter((msg) => {
+    const matchesSearch =
+      (msg.subject || '').toLowerCase().includes(search.toLowerCase()) ||
+      (msg.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (msg.email || '').toLowerCase().includes(search.toLowerCase());
+
     if (filter === 'unread') return matchesSearch && !msg.isRead;
     if (filter === 'replied') return matchesSearch && msg.isReplied;
     if (filter === 'pending') return matchesSearch && !msg.isReplied;
     return matchesSearch;
   });
+
+  const hasMore = page * limit < total;
+
+  const addReplyFiles = (fileList) => {
+    const next = Array.from(fileList || []).filter((f) => f.type.startsWith('image/'));
+    setReplyFiles((prev) => [...prev, ...next].slice(0, 5));
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -106,41 +217,42 @@ export default function AdminSupport() {
         <div>
           <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
             <Inbox className="w-8 h-8 text-amber-500" />
-            SUPORTE <span className="text-amber-500/50">TICKETS</span>
+            {t('admin_support.title')}
           </h1>
-          <p className="text-slate-500 font-medium">Gerencie as solicitações de suporte dos usuários em formato de chat</p>
+          <p className="text-slate-500 font-medium">{t('admin_support.subtitle')}</p>
         </div>
-        <button 
-          onClick={fetchMessages}
+        <button
+          type="button"
+          onClick={() => fetchMessages(1, false)}
           className="flex items-center gap-2 px-6 py-3 bg-slate-900 border border-slate-800 hover:border-amber-500/50 text-slate-300 hover:text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> ATUALIZAR
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          {t('admin_support.refresh')}
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-250px)]">
-        {/* Sidebar: Message List */}
         <div className="lg:col-span-4 flex flex-col space-y-4 overflow-hidden">
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-              <input 
-                type="text" 
-                placeholder="Buscar..."
+              <input
+                type="text"
+                placeholder={t('admin_support.search_placeholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-amber-500/50 transition-colors"
               />
             </div>
-            <select 
+            <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               className="bg-slate-900 border border-slate-800 rounded-xl px-3 text-xs text-slate-300 focus:outline-none"
             >
-              <option value="all">Todas</option>
-              <option value="unread">Não Lidas</option>
-              <option value="pending">Pendentes</option>
-              <option value="replied">Respondidas</option>
+              <option value="all">{t('admin_support.filter_all')}</option>
+              <option value="unread">{t('admin_support.filter_unread')}</option>
+              <option value="pending">{t('admin_support.filter_pending')}</option>
+              <option value="replied">{t('admin_support.filter_replied')}</option>
             </select>
           </div>
 
@@ -150,25 +262,30 @@ export default function AdminSupport() {
                 <div key={i} className="h-20 bg-slate-900/50 rounded-2xl animate-pulse" />
               ))
             ) : filteredMessages.length === 0 ? (
-              <div className="text-center py-10 opacity-50">Nenhuma mensagem encontrada</div>
+              <div className="text-center py-10 opacity-50">{t('admin_support.empty')}</div>
             ) : (
               filteredMessages.map((msg) => (
                 <button
                   key={msg.id}
+                  type="button"
                   onClick={() => selectMessage(msg)}
                   className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 ${
-                    selectedMessage?.id === msg.id 
-                    ? 'bg-amber-500/10 border-amber-500/30' 
-                    : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
+                    selectedMessage?.id === msg.id
+                      ? 'bg-amber-500/10 border-amber-500/30'
+                      : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-1">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter ${
-                      msg.isReplied ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
-                    }`}>
-                      {msg.isReplied ? 'Respondido' : 'Pendente'}
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter ${
+                        msg.isReplied ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'
+                      }`}
+                    >
+                      {msg.isReplied ? t('admin_support.badge_replied') : t('admin_support.badge_pending')}
                     </span>
-                    {!msg.isRead && <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse shadow-lg shadow-amber-500/50" />}
+                    {!msg.isRead && (
+                      <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse shadow-lg shadow-amber-500/50" />
+                    )}
                   </div>
                   <h3 className="text-white font-bold text-sm truncate">{msg.subject}</h3>
                   <div className="flex items-center gap-2 mt-2 text-slate-500 text-[10px] font-bold uppercase tracking-wider">
@@ -181,9 +298,17 @@ export default function AdminSupport() {
               ))
             )}
           </div>
+          {hasMore && (
+            <button
+              type="button"
+              className="text-xs font-bold text-amber-500 uppercase py-2"
+              onClick={() => fetchMessages(page + 1, true)}
+            >
+              {t('admin_support.load_more')}
+            </button>
+          )}
         </div>
 
-        {/* Content: Selected Message */}
         <div className="lg:col-span-8 bg-slate-950/50 border border-slate-800 rounded-3xl overflow-hidden flex flex-col">
           {loadingDetails ? (
             <div className="flex-1 flex items-center justify-center">
@@ -191,14 +316,20 @@ export default function AdminSupport() {
             </div>
           ) : selectedMessage ? (
             <div className="flex-1 flex flex-col p-8 overflow-hidden">
-              <div className="flex justify-between items-start border-b border-slate-800 pb-6 mb-6">
+              <div className="flex justify-between items-start border-b border-slate-800 pb-6 mb-6 shrink-0">
                 <div className="space-y-1">
-                  <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">{selectedMessage.subject}</h2>
-                  <div className="flex items-center gap-4 text-slate-400 text-sm">
+                  <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">
+                    {selectedMessage.subject}
+                  </h2>
+                  <div className="flex flex-wrap items-center gap-4 text-slate-400 text-sm">
                     <div className="flex items-center gap-2">
                       <User className="w-4 h-4 text-amber-500" />
                       <span className="font-bold">{selectedMessage.name}</span>
-                      {selectedMessage.user && <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full text-slate-400">@{selectedMessage.user.username}</span>}
+                      {selectedMessage.user && (
+                        <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded-full text-slate-400">
+                          @{selectedMessage.user.username}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <Mail className="w-4 h-4 text-amber-500" />
@@ -207,81 +338,134 @@ export default function AdminSupport() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Protocolo #{selectedMessage.id}</p>
-                  <p className="text-white font-mono text-xs">{new Date(selectedMessage.createdAt).toLocaleString()}</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                    {t('admin_support.protocol', { id: selectedMessage.id })}
+                  </p>
+                  <p className="text-white font-mono text-xs">
+                    {new Date(selectedMessage.createdAt).toLocaleString()}
+                  </p>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-6 pr-4 mb-6 scrollbar-thin scrollbar-thumb-slate-800">
-                {/* Initial Message */}
+              <div className="flex-1 overflow-y-auto space-y-6 pr-4 mb-6 scrollbar-thin scrollbar-thumb-slate-800 min-h-0">
                 <div className="bg-slate-900/30 p-6 rounded-3xl border border-slate-800/50">
                   <div className="flex items-center gap-2 mb-2 text-[10px] font-black text-slate-500 uppercase">
-                    <User className="w-3 h-3" /> Usuário
+                    <User className="w-3 h-3" /> {t('admin_support.label_user')}
                   </div>
-                  <p className="text-slate-300 whitespace-pre-wrap leading-relaxed">{selectedMessage.message}</p>
+                  <p className="text-slate-300 whitespace-pre-wrap leading-relaxed">
+                    {selectedMessage.body ?? selectedMessage.message}
+                  </p>
+                  <SupportAttachmentThumbnails attachments={selectedMessage.attachments} />
                 </div>
 
-                {/* Legacy Reply Support */}
-                {selectedMessage.reply && (!selectedMessage.replies || selectedMessage.replies.length === 0) && (
-                  <div className="bg-amber-500/5 p-6 rounded-3xl border border-amber-500/20 relative ml-8">
-                    <div className="absolute -top-3 left-6 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase italic">
-                      Resposta Legada
+                {selectedMessage.reply &&
+                  (!selectedMessage.replies || selectedMessage.replies.length === 0) && (
+                    <div className="bg-amber-500/5 p-6 rounded-3xl border border-amber-500/20 relative ml-8">
+                      <div className="absolute -top-3 left-6 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase italic">
+                        {t('admin_support.legacy_reply')}
+                      </div>
+                      <p className="text-amber-100/80 whitespace-pre-wrap leading-relaxed">
+                        {selectedMessage.reply}
+                      </p>
                     </div>
-                    <p className="text-amber-100/80 whitespace-pre-wrap leading-relaxed">{selectedMessage.reply}</p>
-                  </div>
-                )}
+                  )}
 
-                {/* Chat Replies */}
                 {selectedMessage.replies?.map((r) => (
-                  <div 
-                    key={r.id} 
+                  <div
+                    key={r.id}
                     className={`p-6 rounded-3xl border relative ${
-                      r.isAdmin 
-                        ? 'bg-amber-500/5 border-amber-500/20 ml-8' 
+                      r.isAdmin
+                        ? 'bg-amber-500/5 border-amber-500/20 ml-8'
                         : 'bg-slate-900/30 border-slate-800/50 mr-8'
                     }`}
                   >
-                    <div className={`flex items-center gap-2 mb-2 text-[10px] font-black uppercase ${r.isAdmin ? 'text-amber-500' : 'text-slate-500'}`}>
+                    <div
+                      className={`flex items-center gap-2 mb-2 text-[10px] font-black uppercase ${
+                        r.isAdmin ? 'text-amber-500' : 'text-slate-500'
+                      }`}
+                    >
                       {r.isAdmin ? <Settings className="w-3 h-3" /> : <User className="w-3 h-3" />}
-                      {r.isAdmin ? 'Equipe Suporte' : 'Usuário'} 
-                      <span className="ml-auto font-mono opacity-50">{new Date(r.createdAt).toLocaleString()}</span>
+                      {r.isAdmin ? t('admin_support.label_team') : t('admin_support.label_user')}
+                      <span className="ml-auto font-mono opacity-50">
+                        {new Date(r.createdAt).toLocaleString()}
+                      </span>
                     </div>
-                    <p className={`${r.isAdmin ? 'text-amber-100/80' : 'text-slate-300'} whitespace-pre-wrap leading-relaxed`}>
-                      {r.message}
+                    <p
+                      className={`${
+                        r.isAdmin ? 'text-amber-100/80' : 'text-slate-300'
+                      } whitespace-pre-wrap leading-relaxed`}
+                    >
+                      {r.body ?? r.message}
                     </p>
+                    <SupportAttachmentThumbnails attachments={r.attachments} />
                   </div>
                 ))}
               </div>
 
-              <div className="mt-auto space-y-4 border-t border-slate-800 pt-6">
+              <div className="mt-auto space-y-4 border-t border-slate-800 pt-6 shrink-0">
                 <textarea
-                  placeholder="Escreva sua resposta aqui..."
+                  placeholder={t('admin_support.reply_placeholder')}
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   rows={3}
                   className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-amber-500/50 transition-colors resize-none"
                 />
-                <button
-                  onClick={handleReply}
-                  disabled={sendingReply || !reply.trim()}
-                  className="w-full h-12 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-xs uppercase tracking-[0.2em] rounded-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2 italic"
-                >
-                  {sendingReply ? (
-                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4" />
-                      ENVIAR RESPOSTA
-                    </>
-                  )}
-                </button>
+                {replyFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {replyFiles.map((f, i) => (
+                      <span
+                        key={`${f.name}-${i}`}
+                        className="inline-flex items-center gap-1 text-[10px] bg-slate-800 px-2 py-1 rounded-lg text-slate-300"
+                      >
+                        {f.name}
+                        <button
+                          type="button"
+                          onClick={() => setReplyFiles((p) => p.filter((_, j) => j !== i))}
+                          aria-label={t('admin_support.remove_file')}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 cursor-pointer hover:border-amber-500/40">
+                    <ImagePlus className="w-4 h-4" />
+                    {t('admin_support.add_images')}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => addReplyFiles(e.target.files)}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleReply}
+                    disabled={sendingReply || (!reply.trim() && replyFiles.length === 0)}
+                    className="flex-1 min-w-[140px] h-12 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-xs uppercase tracking-[0.2em] rounded-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2 italic"
+                  >
+                    {sendingReply ? (
+                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        {t('admin_support.send')}
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-12 text-center opacity-30">
               <Inbox className="w-20 h-20 mb-4 text-slate-600" />
-              <h3 className="text-xl font-bold text-white uppercase tracking-tighter italic">Selecione uma mensagem</h3>
-              <p className="text-sm">Clique em uma mensagem da lista ao lado para visualizar os detalhes</p>
+              <h3 className="text-xl font-bold text-white uppercase tracking-tighter italic">
+                {t('admin_support.select_title')}
+              </h3>
+              <p className="text-sm">{t('admin_support.select_hint')}</p>
             </div>
           )}
         </div>

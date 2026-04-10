@@ -17,7 +17,9 @@ import {
     Eye,
     TrendingUp,
     Bell,
-    CalendarRange
+    CalendarRange,
+    BookOpen,
+    Layers
 } from 'lucide-react';
 
 const adminMenuItems = [
@@ -25,10 +27,12 @@ const adminMenuItems = [
   { icon: Users, label: 'Usuários', path: '/admin/users' },
   { icon: Cpu, label: 'Mineradoras', path: '/admin/miners' },
   { icon: Tag, label: 'Ofertas', path: '/admin/offer-events' },
+  { icon: Layers, label: 'Mini Pass', path: '/admin/mini-pass' },
   { icon: Wallet, label: 'Financeiro', path: '/admin/finance' },
   { icon: MessageSquare, label: 'Suporte', path: '/admin/support' },
   { icon: Megaphone, label: 'Banners', path: '/admin/banners' },
   { icon: CalendarRange, label: 'Check-in marcos', path: '/admin/checkin-milestones' },
+  { icon: BookOpen, label: 'Read & Earn', path: '/admin/read-earn' },
   { icon: Youtube, label: 'Criadores', path: '/admin/creators' },
   { icon: Eye, label: 'Transparência', path: '/admin/transparency' },
   { icon: Ticket, label: 'Dep. Tickets', path: '/admin/deposit-tickets' },

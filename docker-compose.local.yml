@@ -1,8 +1,6 @@
 # Docker Compose para testes locais - sem nginx, porta 3000 exposta diretamente
 # Uso: docker-compose -f docker-compose.local.yml up --build
 
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine

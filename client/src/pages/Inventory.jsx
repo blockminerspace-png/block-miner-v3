@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo, useRef, useId } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Lock, Plus, Zap, Trash2, Box, AlertCircle, X } from "lucide-react";
@@ -498,6 +499,7 @@ export default function Inventory() {
   const [rackDismantleLoading, setRackDismantleLoading] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [activeRoom, setActiveRoom] = useState(1);
+  const navigate = useNavigate();
 
   const fetchData = useCallback(async () => {
     try {
@@ -687,7 +689,13 @@ export default function Inventory() {
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Box className="w-5 h-5 text-primary" /> {t("sidebar.machines")}
               </h2>
-              <span className="text-xs font-bold text-gray-500">{inventory.length} {t("inventory.in_inventory")}</span>
+              <button
+                type="button"
+                onClick={() => navigate('/vault')}
+                className="rounded-2xl bg-secondary/10 border border-secondary/20 text-secondary px-3 py-2 text-xs font-bold uppercase tracking-[0.24em] hover:bg-secondary/20 transition-colors"
+              >
+                {t('inventory.go_to_warehouse', 'Ir para o Armazém')}
+              </button>
             </div>
             <div className="mb-4 rounded-3xl border border-primary/20 bg-primary/5 p-3 text-xs font-bold uppercase tracking-[0.24em] text-primary">
               {t("inventory.tip_msg")}

@@ -45,6 +45,7 @@ model User {
   // Relationships
   miners        UserMiner[]
   inventory     UserInventory[]
+  vault         UserVault[]
   transactions  Transaction[]
   payouts       Payout[]
   auditLogs     AuditLog[]
@@ -92,10 +93,16 @@ model User {
   broadcastViews         BroadcastMessageView[]
   blkRewardLogs          BlkRewardLog[]
   checkinStreakRewards   UserCheckinStreakReward[]
+  readEarnRedemptions    ReadEarnRedemption[]
   autoMiningV2Sessions           AutoMiningV2Session[]
   autoMiningV2Grants             AutoMiningV2PowerGrant[]
   autoMiningV2BannerImpressions  AutoMiningV2BannerImpression[]
   ccpaymentDepositEvents         CcpaymentDepositEvent[]
+  miniPassEnrollments            UserMiniPassEnrollment[]
+  miniPassXpLedger               UserMiniPassXpLedger[]
+  miniPassMissionProgress        UserMiniPassMissionProgress[]
+  miniPassRewardClaims           UserMiniPassRewardClaim[]
+  miniPassPurchases              UserMiniPassPurchase[]
 
   @@map("users")
 }
@@ -184,8 +191,11 @@ model Miner {
 
   userMiners    UserMiner[]
   userInventory UserInventory[]
+  userVault     UserVault[]
+  readEarnCampaigns ReadEarnCampaign[]
   faucetReward  FaucetReward?
   shortlinkRew  ShortlinkReward?
+  miniPassLevelRewards MiniPassLevelReward[]
 
   @@map("miners")
 }
@@ -229,6 +239,25 @@ model UserInventory {
 
   @@index([userId])
   @@map("user_inventory")
+}
+
+model UserVault {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  minerId    Int?     @map("miner_id")
+  minerName  String   @map("miner_name")
+  level      Int      @default(1)
+  hashRate   Float    @default(0) @map("hash_rate")
+  slotSize   Int      @default(1) @map("slot_size")
+  imageUrl   String?  @map("image_url")
+  storedAt   DateTime @default(now()) @map("stored_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user  User   @relation(fields: [userId], references: [id])
+  miner Miner? @relation(fields: [minerId], references: [id])
+
+  @@index([userId])
+  @@map("user_vault")
 }
 
 model Transaction {
@@ -542,6 +571,49 @@ model UserCheckinStreakReward {
   @@unique([userId, milestoneId])
   @@index([userId])
   @@map("user_checkin_streak_rewards")
+}
+
+/// Partner "Read & Earn" campaigns: users redeem a secret code once per campaign.
+model ReadEarnCampaign {
+  id                   Int      @id @default(autoincrement())
+  title                String
+  partnerUrl           String   @map("partner_url")
+  codeHash             String   @map("code_hash")
+  rewardType           String   @map("reward_type")
+  rewardAmount         Decimal  @default(0) @map("reward_amount") @db.Decimal(20, 8)
+  rewardMinerId        Int?     @map("reward_miner_id")
+  hashrateValidityDays Int      @default(7) @map("hashrate_validity_days")
+  startsAt             DateTime @map("starts_at")
+  expiresAt            DateTime @map("expires_at")
+  isActive             Boolean  @default(true) @map("is_active")
+  maxRedemptions       Int?     @map("max_redemptions")
+  sortOrder            Int      @default(0) @map("sort_order")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  rewardMiner Miner?               @relation(fields: [rewardMinerId], references: [id], onDelete: SetNull)
+  redemptions ReadEarnRedemption[]
+
+  @@index([isActive, startsAt, expiresAt])
+  @@map("read_earn_campaigns")
+}
+
+model ReadEarnRedemption {
+  id             Int      @id @default(autoincrement())
+  campaignId     Int      @map("campaign_id")
+  userId         Int      @map("user_id")
+  rewardSnapshot Json?    @map("reward_snapshot")
+  ip             String?  @map("ip")
+  userAgent      String?  @map("user_agent")
+  redeemedAt     DateTime @default(now()) @map("redeemed_at")
+
+  campaign ReadEarnCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, campaignId])
+  @@index([campaignId])
+  @@index([userId])
+  @@map("read_earn_redemptions")
 }
 
 model UserPowerGame {
@@ -999,6 +1071,7 @@ model EventMiner {
 
   event     OfferEvent      @relation(fields: [eventId], references: [id], onDelete: Cascade)
   purchases EventPurchase[]
+  miniPassLevelRewards MiniPassLevelReward[]
 
   @@index([eventId])
   @@map("event_miners")
@@ -1135,6 +1208,183 @@ model UserRack {
   @@unique([roomId, position])
   @@index([userId])
   @@map("user_racks")
+}
+
+// ── Mini Pass (timed progression: missions → XP → tier rewards; separate from OfferEvent shop) ──
+
+model MiniPassSeason {
+  id                   Int       @id @default(autoincrement())
+  slug                 String    @unique
+  titleI18n            Json      @map("title_i18n")
+  subtitleI18n         Json?     @map("subtitle_i18n")
+  startsAt             DateTime  @map("starts_at")
+  endsAt               DateTime  @map("ends_at")
+  maxLevel             Int       @map("max_level")
+  xpPerLevel           Int       @map("xp_per_level")
+  buyLevelPricePol     Decimal   @default(0) @map("buy_level_price_pol") @db.Decimal(20, 8)
+  completePassPricePol Decimal   @default(0) @map("complete_pass_price_pol") @db.Decimal(20, 8)
+  bannerImageUrl       String?   @map("banner_image_url")
+  isActive             Boolean   @default(true) @map("is_active")
+  deletedAt            DateTime? @map("deleted_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  levelRewards MiniPassLevelReward[]
+  missions     MiniPassMission[]
+  enrollments  UserMiniPassEnrollment[]
+  xpLedger     UserMiniPassXpLedger[]
+  purchases    UserMiniPassPurchase[]
+
+  @@index([startsAt, endsAt])
+  @@index([isActive, deletedAt])
+  @@map("mini_pass_seasons")
+}
+
+model MiniPassLevelReward {
+  id             Int      @id @default(autoincrement())
+  seasonId       Int      @map("season_id")
+  level          Int
+  rewardKind     String   @map("reward_kind")
+  minerId        Int?     @map("miner_id")
+  eventMinerId   Int?     @map("event_miner_id")
+  hashRate       Float?   @map("hash_rate")
+  hashRateDays   Int?     @map("hash_rate_days")
+  blkAmount      Decimal? @map("blk_amount") @db.Decimal(20, 8)
+  polAmount      Decimal? @map("pol_amount") @db.Decimal(20, 8)
+  titleI18n      Json?    @map("title_i18n")
+  sortOrder      Int      @default(0) @map("sort_order")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  season     MiniPassSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  miner      Miner?         @relation(fields: [minerId], references: [id], onDelete: SetNull)
+  eventMiner EventMiner?    @relation(fields: [eventMinerId], references: [id], onDelete: SetNull)
+  claims     UserMiniPassRewardClaim[]
+
+  @@unique([seasonId, level])
+  @@index([seasonId])
+  @@map("mini_pass_level_rewards")
+}
+
+model MiniPassMission {
+  id              Int      @id @default(autoincrement())
+  seasonId        Int      @map("season_id")
+  cadence         String
+  missionType     String   @map("mission_type")
+  targetValue     Decimal  @map("target_value") @db.Decimal(24, 8)
+  xpReward        Int      @map("xp_reward")
+  titleI18n       Json     @map("title_i18n")
+  descriptionI18n Json?    @map("description_i18n")
+  gameSlug        String?  @map("game_slug")
+  isActive        Boolean  @default(true) @map("is_active")
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  season   MiniPassSeason              @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  progress UserMiniPassMissionProgress[]
+  xpGrants UserMiniPassXpLedger[]
+  dedupeTicks UserMiniPassMissionDedupeTick[]
+
+  @@index([seasonId])
+  @@map("mini_pass_missions")
+}
+
+model UserMiniPassEnrollment {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  seasonId   Int      @map("season_id")
+  totalXp    Int      @default(0) @map("total_xp")
+  enrolledAt DateTime @default(now()) @map("enrolled_at")
+
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  season MiniPassSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, seasonId])
+  @@index([seasonId])
+  @@map("user_mini_pass_enrollments")
+}
+
+model UserMiniPassXpLedger {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  seasonId       Int      @map("season_id")
+  amount         Int
+  source         String
+  idempotencyKey String   @unique @map("idempotency_key")
+  missionId      Int?     @map("mission_id")
+  periodKey      String?  @map("period_key")
+  metadataJson   Json?    @map("metadata_json")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  season MiniPassSeason  @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  mission MiniPassMission? @relation(fields: [missionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, seasonId])
+  @@map("user_mini_pass_xp_ledger")
+}
+
+model UserMiniPassMissionProgress {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @map("user_id")
+  missionId    Int       @map("mission_id")
+  periodKey    String    @map("period_key")
+  currentValue Decimal   @default(0) @map("current_value") @db.Decimal(24, 8)
+  completedAt  DateTime? @map("completed_at")
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission MiniPassMission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, missionId, periodKey])
+  @@index([userId, missionId])
+  @@map("user_mini_pass_mission_progress")
+}
+
+/// Idempotent application of an external signal (e.g. one BLK reward log) to a mission.
+model UserMiniPassMissionDedupeTick {
+  id        Int      @id @default(autoincrement())
+  missionId Int      @map("mission_id")
+  dedupeKey String   @map("dedupe_key")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  mission MiniPassMission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@unique([missionId, dedupeKey])
+  @@index([missionId])
+  @@map("user_mini_pass_mission_dedupe_ticks")
+}
+
+model UserMiniPassRewardClaim {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  levelRewardId Int      @map("level_reward_id")
+  claimedAt     DateTime @default(now()) @map("claimed_at")
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  levelReward MiniPassLevelReward @relation(fields: [levelRewardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, levelRewardId])
+  @@index([userId])
+  @@map("user_mini_pass_reward_claims")
+}
+
+model UserMiniPassPurchase {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  seasonId    Int      @map("season_id")
+  kind        String
+  levelsAdded Int      @default(0) @map("levels_added")
+  xpAdded     Int      @default(0) @map("xp_added")
+  pricePaid   Decimal  @map("price_paid") @db.Decimal(20, 8)
+  currency    String   @default("POL")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  season MiniPassSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@index([userId, seasonId])
+  @@map("user_mini_pass_purchases")
 }
 
 model TransparencyEntry {

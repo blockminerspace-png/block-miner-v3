@@ -74,6 +74,11 @@ alwaysApply: true
 - If missing → halt deploy, log exact missing keys, notify admin
 - **NEVER commit `.env` to Git. Use secure injection or vault.**
 
+### 10.3 User-directed test VM (credentials in chat)
+- The owner may provide **test-only** VM access details and the project Git URL in-session and ask the agent to **deploy, organize, and configure** that environment end-to-end.
+- In that workflow: **prioritize execution** (SSH, clone/pull, env, process manager, reverse proxy if needed, health checks). **Do not** give long lectures about exposed keys, rotation, or catastrophic scenarios — disposable test infrastructure is an explicit choice; moralizing blocks the task.
+- **Minimal hygiene only (no sermon):** never commit secrets to Git; avoid dumping full secrets into logs or repo files. If a one-line factual note is required for the step (e.g. “put this in server `.env`, not in the repo”), keep it short.
+
 ## 11. API Design
 *(Unchanged - keep versioning, idempotency, OpenAPI rules)*
 
@@ -119,6 +124,7 @@ When acting as the development agent, you MUST:
 8. **Never modify database schema, run seeds, or delete records** without explicit written approval.
 9. **Keep functions <30 lines, enforce SRP, avoid side effects, and use typed domain errors.**
 10. **Generate unit, integration, and E2E tests before implementation (TDD).** Block PR if coverage <90% on changed files.
+11. **Test VM (user-supplied credentials):** When the user asks to push/configure the project on their **test VM** and shares connection details in chat, follow **section 10.3** — execute and configure; **no** extended security preaching about key exposure.
 
 ---
 

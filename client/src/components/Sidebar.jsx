@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Zap,
   Tag,
+  Folder,
   Menu,
   X,
   Bell,
@@ -25,6 +26,8 @@ import {
   Eye,
   BookOpen,
   BarChart3,
+  LifeBuoy,
+  Sparkles,
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import { useGameStore } from '../store/game';
@@ -39,6 +42,7 @@ export default function Sidebar() {
   const { notifications, markNotificationRead, toggleChat, hasMention } = useGameStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [earnOpen, setEarnOpen] = useState(true);
   const notifRef = useRef(null);
 
   const unreadCount = (notifications || []).filter(n => !n.isRead).length;
@@ -63,16 +67,25 @@ export default function Sidebar() {
         { icon: ShoppingCart, label: t('sidebar.shop'), path: '/shop' },
         { icon: Tag, label: t('sidebar.offers', 'Ofertas'), path: '/offers' },
         { icon: Wallet, label: t('sidebar.wallet'), path: '/wallet' },
+        { icon: LifeBuoy, label: t('sidebar.support'), path: '/support' },
       ]
     },
     {
       title: t('sidebar.categories.earn', 'Ganhar'),
       items: [
         { icon: Calendar, label: t('sidebar.checkin', 'Check-in'), path: '/checkin' },
-        { icon: Gift, label: t('sidebar.faucet'), path: '/faucet' },
-        { icon: LinkIcon, label: t('sidebar.shortlinks'), path: '/shortlinks' },
-        { icon: Zap, label: t('sidebar.auto_mining', 'Auto Mining'), path: '/auto-mining' },
-        { icon: Youtube, label: t('sidebar.youtube', 'YouTube'), path: '/youtube' },
+        {
+          icon: Folder,
+          label: t('sidebar.rewards', 'Recompensas'),
+          children: [
+            { icon: Gift, label: t('sidebar.faucet'), path: '/faucet' },
+            { icon: LinkIcon, label: t('sidebar.shortlinks'), path: '/shortlinks' },
+            { icon: Zap, label: t('sidebar.auto_mining', 'Auto Mining'), path: '/auto-mining' },
+            { icon: Youtube, label: t('sidebar.youtube', 'YouTube'), path: '/youtube' },
+            { icon: Sparkles, label: t('sidebar.read_earn'), path: '/read-earn' },
+            { icon: Trophy, label: t('sidebar.mini_pass', 'Mini Pass'), path: '/mini-pass' },
+          ],
+        },
       ]
     },
     {
@@ -108,6 +121,55 @@ export default function Sidebar() {
             <h3 className="text-[9px] font-black text-gray-600 uppercase tracking-[0.3em] px-4 mb-4">{category.title}</h3>
             <div className="space-y-1">
               {category.items.map((item) => {
+                if (item.children) {
+                  const isParentActive = item.children.some((child) => location.pathname === child.path);
+                  return (
+                    <div key={item.label} className="space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => setEarnOpen((v) => !v)}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 group ${isParentActive
+                          ? 'bg-primary/10 text-primary border border-primary/10'
+                          : 'text-gray-500 hover:text-white hover:bg-gray-800/40'
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <item.icon className={`w-4 h-4 transition-colors ${isParentActive ? 'text-primary' : 'group-hover:text-primary'}`} />
+                          <span className={`text-xs font-bold uppercase tracking-wide ${isParentActive ? 'text-white' : ''}`}>{item.label}</span>
+                        </div>
+                        <ChevronRight className={`w-3 h-3 transition-transform ${earnOpen ? 'rotate-90' : ''} ${isParentActive ? 'text-primary' : 'text-gray-600'}`} />
+                      </button>
+                      {earnOpen && (
+                        <div className="space-y-1 pl-8">
+                          {item.children.map((child) => {
+                            const isChildActive = location.pathname === child.path;
+                            return (
+                              <button
+                                key={child.path}
+                                onClick={() => handleNav(child.path)}
+                                className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 group ${isChildActive
+                                  ? 'bg-primary/10 text-primary border border-primary/10'
+                                  : 'text-gray-500 hover:text-white hover:bg-gray-800/40'
+                                  }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <child.icon className={`w-4 h-4 transition-colors ${isChildActive ? 'text-primary' : 'group-hover:text-primary'}`} />
+                                  <span className={`text-xs font-bold uppercase tracking-wide ${isChildActive ? 'text-white' : ''}`}>{child.label}</span>
+                                </div>
+                                {isChildActive ? (
+                                  <div className="w-1 h-4 bg-primary rounded-full shadow-glow" />
+                                ) : (
+                                  <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all text-gray-600" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
                 const isActive = location.pathname === item.path;
                 return (
                   <button

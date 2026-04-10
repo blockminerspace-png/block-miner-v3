@@ -27,9 +27,12 @@ import { shopRouter } from "./routes/shop.js";
 import { inventoryRouter } from "./routes/inventory.js";
 import { machinesRouter } from "./routes/machines.js";
 import { racksRouter } from "./routes/racks.js";
+import vaultRouter from "./routes/vault.js";
+import { readEarnRouter } from "./routes/read-earn.js";
 import { roomsRouter } from "./routes/rooms.js";
 import { checkinRouter } from "./routes/checkin.js";
 import { offerEventsRouter } from "./routes/offer-events.js";
+import { miniPassRouter } from "./routes/mini-pass.js";
 import { chatRouter } from "./routes/chat.js";
 import { rankingRouter } from "./routes/ranking.js";
 import { statsRouter } from "./routes/stats.js";
@@ -57,6 +60,10 @@ import { startDepositVerifier } from "./services/depositVerifier.js";
 import { startContractDepositSync } from "./services/contractDepositSync.js";
 import { registerMinerSocketHandlers } from "./src/socket/registerMinerSocketHandlers.js";
 import { registerGamesSocketHandlers } from "./src/socket/registerGamesSocketHandlers.js";
+import { registerSupportSocketHandlers } from "./src/socket/registerSupportSocketHandlers.js";
+import { setSupportIo } from "./services/supportRealtime.js";
+import { verifyAdminJwtToken } from "./middleware/adminAuth.js";
+import { getTokenFromRequest, getAdminTokenFromRequest } from "./utils/token.js";
 import serverDatabaseModel from "./models/database/serverDatabaseModel.js";
 import { getUserById } from "./models/userModel.js";
 import { verifyAccessToken } from "./utils/authTokens.js";
@@ -189,6 +196,15 @@ registerGamesSocketHandlers({
   engine
 });
 
+setSupportIo(io);
+registerSupportSocketHandlers({
+  io,
+  verifyAccessToken,
+  verifyAdminJwtToken,
+  getTokenFromRequest,
+  getAdminTokenFromRequest
+});
+
 // 4. Global Security Stack
 app.use(helmet({ 
   contentSecurityPolicy: false,
@@ -238,9 +254,12 @@ app.use("/api/shop", shopRouter);
 app.use("/api/inventory", inventoryRouter);
 app.use("/api/machines", machinesRouter);
 app.use("/api/racks", racksRouter);
+app.use("/api/vault", vaultRouter);
+app.use("/api/read-earn", readEarnRouter);
 app.use("/api/rooms", roomsRouter);
 app.use("/api/checkin", checkinRouter);
 app.use("/api/offer-events", offerEventsRouter);
+app.use("/api/mini-pass", miniPassRouter);
 app.use("/api/chat", chatRouter);
 app.use("/api/ranking", rankingRouter);
 app.use("/api/stats", statsRouter);

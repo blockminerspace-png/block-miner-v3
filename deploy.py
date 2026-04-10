@@ -75,8 +75,9 @@ def main() -> int:
         )
         return 1
 
-    host = cred.get("host") or secrets.get("SSH_HOST", "").strip()
-    user = cred.get("user") or secrets.get("SSH_USER", "").strip()
+    # deploy.secrets.local wins so test/staging hosts override docstring defaults.
+    host = secrets.get("SSH_HOST", "").strip() or cred.get("host", "").strip()
+    user = secrets.get("SSH_USER", "").strip() or cred.get("user", "").strip()
     if not host or not user:
         print(
             "deploy.py: faltam Server IP / SSH User no docstring ou SSH_HOST / SSH_USER em deploy.secrets.local.",

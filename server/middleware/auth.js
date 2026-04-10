@@ -89,6 +89,9 @@ export async function requireAuth(req, res, next) {
   }
 }
 
+// Backward-compatible alias used by a few older routes.
+export const authenticateToken = requireAuth;
+
 export async function requirePageAuth(req, res, next) {
   try {
     const token = getTokenFromRequest(req);

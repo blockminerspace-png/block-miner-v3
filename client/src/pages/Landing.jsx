@@ -25,8 +25,8 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 import BrandLogo from '../components/BrandLogo';
+import SiteFooter from '../components/SiteFooter';
 import { normalizeExternalUrl } from '../components/CommunityShortcuts';
-import { calcRewards } from '../utils/calculatorEngine';
 import { formatHashrate } from '../utils/machine';
 import { persistUtmParams, trackLandingEvent, initMetaPixel } from '../utils/landingAnalytics';
 import { useLandingScrollDepth } from '../hooks/useLandingScrollDepth';
@@ -35,8 +35,6 @@ const LAUNCH_DATE = new Date('2026-03-05T00:00:00.000Z');
 const EXAMPLE_POL_USD = 0.2;
 const HS_PER_ACTIVE_RIG = 4000;
 const MIN_NETWORK_HS = 800_000;
-const CALC_SLIDER_MIN = 10;
-const CALC_SLIDER_MAX = 1000;
 const STATS_POLL_MS = 30_000;
 const THEME_KEY = 'blockminer-landing-theme';
 
@@ -205,20 +203,7 @@ function LanguageSwitch({ shellClass = 'border-white/10 bg-slate-950/80', active
       {label}
     </button>
   );
-  return (
-    <div className="flex items-center gap-2">
-      <Globe className={`h-4 w-4 shrink-0 ${globeCls}`} aria-hidden />
-      <div
-        className={`flex items-center gap-0.5 rounded-full border p-0.5 ${shellClass}`}
-        role="group"
-        aria-label={t('landing.nav.language_group')}
-      >
-        {btn('en', 'EN')}
-        {btn('pt-BR', 'PT')}
-        {btn('es', 'ES')}
-      </div>
-    </div>
-  );
+  return null;
 }
 
 function LandingThemeSwitch({ light, onToggle, shellClass, activeDark }) {
@@ -262,7 +247,6 @@ export default function Landing() {
   const location = useLocation();
   const { isAuthenticated } = useAuthStore();
   const [publicStats, setPublicStats] = useState(null);
-  const [hashSlider, setHashSlider] = useState(100);
   const [light, setLight] = useState(() => {
     try {
       return typeof localStorage !== 'undefined' && localStorage.getItem(THEME_KEY) === 'light';
@@ -303,11 +287,6 @@ export default function Landing() {
   }, [light]);
 
   const networkHs = useMemo(() => estimateNetworkHashRate(publicStats), [publicStats]);
-  const calc = useMemo(
-    () => calcRewards(hashSlider, networkHs, EXAMPLE_POL_USD),
-    [hashSlider, networkHs],
-  );
-
   const faqItems = useMemo(
     () => [
       { id: 'faq1', qKey: 'landing.faq.q1', aKey: 'landing.faq.a1' },
@@ -527,23 +506,6 @@ export default function Landing() {
           <Link to="/" className="flex items-center gap-3" aria-label={t('landing.nav.brand_aria')}>
             <BrandLogo variant="header" interactive />
           </Link>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <LanguageSwitch shellClass={skin.langShell} activeDark={!light} />
-            <Link
-              to="/login"
-              className={`hidden min-h-[44px] items-center justify-center sm:inline-flex sm:text-sm font-medium transition-colors ${skin.navLink}`}
-              onClick={() => trackLandingEvent('landing_cta_click', { cta_id: 'nav_login', destination: '/login' })}
-            >
-              {t('landing.nav.login')}
-            </Link>
-            <Link
-              to="/register"
-              className={`${gradientBtn} !min-h-[44px] !px-5 !py-2 !text-sm !font-semibold`}
-              onClick={() => trackLandingEvent('landing_cta_click', { cta_id: 'nav_register', destination: '/register' })}
-            >
-              {t('landing.nav.register')}
-            </Link>
-          </div>
         </div>
       </header>
 
@@ -679,73 +641,6 @@ export default function Landing() {
                 <p className={`mt-3 text-sm leading-relaxed ${skin.body}`}>{t(card.bodyKey)}</p>
               </div>
             ))}
-          </div>
-        </section>
-
-        <section id="calculator" className={`border-y py-16 sm:py-24 ${skin.sectionMuted} ${skin.borderSubtle}`}>
-          <div className="mx-auto max-w-6xl px-5 sm:px-8">
-            <div className="text-center mb-10">
-              <h2 className={`text-3xl font-black sm:text-4xl ${skin.h1}`}>{t('landing.calculator.title')}</h2>
-              <p className={`mt-3 max-w-2xl mx-auto text-sm sm:text-base ${skin.body}`}>
-                {t('landing.calculator.subtitle')}
-              </p>
-            </div>
-            <div className={`mx-auto max-w-xl ${skin.card} p-8`}>
-              <label htmlFor="landing-hash-slider" className={`block text-sm font-semibold ${skin.h1}`}>
-                {t('landing.calculator.slider_label')}
-              </label>
-              <input
-                id="landing-hash-slider"
-                type="range"
-                min={CALC_SLIDER_MIN}
-                max={CALC_SLIDER_MAX}
-                step={10}
-                value={hashSlider}
-                onChange={(e) => setHashSlider(Number(e.target.value))}
-                className="mt-4 w-full accent-sky-500"
-              />
-              <div className="mt-2 flex justify-between text-xs text-slate-500">
-                <span>{CALC_SLIDER_MIN} H/s</span>
-                <span className="font-mono text-sky-500">{formatHashrate(hashSlider)}</span>
-                <span>{CALC_SLIDER_MAX} H/s</span>
-              </div>
-              <p className="mt-4 text-xs text-slate-500">{t('landing.calculator.network_note')}</p>
-              <p className="mt-1 text-xs text-slate-500">
-                {t('landing.stats.network_label')}: <span className="font-mono">{formatHashrate(networkHs)}</span>
-              </p>
-              <dl className="mt-8 space-y-4">
-                <div className="flex justify-between gap-4">
-                  <dt className={skin.body}>{t('landing.calculator.per_day')}</dt>
-                  <dd className="font-mono font-semibold text-sky-400">
-                    {calc.perDay.toFixed(4)} POL
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className={skin.body}>{t('landing.calculator.per_week')}</dt>
-                  <dd className="font-mono font-semibold text-sky-400">
-                    {calc.perWeek.toFixed(4)} POL
-                  </dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className={skin.body}>{t('landing.calculator.per_month')}</dt>
-                  <dd className="font-mono font-semibold text-sky-400">
-                    {calc.perMonth.toFixed(4)} POL
-                  </dd>
-                </div>
-              </dl>
-              <p className="mt-6 text-xs text-slate-500">
-                ~${calc.toUSD(calc.perDay)} USD / {t('landing.calculator.per_day').toLowerCase()} —{' '}
-                {t('landing.calculator.usd_note')}
-              </p>
-              <p className="mt-3 text-xs text-slate-500">{t('landing.calculator.disclaimer')}</p>
-              <Link
-                to="/register"
-                className={`${gradientBtn} mt-8 w-full sm:w-auto`}
-                onClick={() => trackLandingEvent('landing_cta_click', { cta_id: 'calculator_register', destination: '/register' })}
-              >
-                {t('landing.calculator.cta')}
-              </Link>
-            </div>
           </div>
         </section>
 
@@ -1061,27 +956,24 @@ export default function Landing() {
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{t('landing.footer.col_legal')}</p>
             <ul className="mt-4 space-y-2 text-sm">
-              <li>
-                <Link to="/manual" className="hover:text-sky-400">
-                  {t('landing.footer.link_terms')}
-                </Link>
-              </li>
-              <li>
-                <Link to="/transparency" className="hover:text-sky-400">
-                  {t('landing.footer.link_privacy')}
-                </Link>
-              </li>
-            </ul>
+                <li>
+                  <Link to="/terms-of-use" className="hover:text-sky-400">
+                  {t('legal.footer.termsOfUse')}
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/privacy-policy" className="hover:text-sky-400">
+                  {t('legal.footer.privacyPolicy')}
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </div>
-        </div>
         <div className={`mx-auto mt-12 flex max-w-6xl flex-col gap-4 border-t pt-8 sm:flex-row sm:items-center sm:justify-between ${skin.footerBar}`}>
           <p className="text-sm">{t('landing.footer.copyright', { year: new Date().getFullYear() })}</p>
-          <div className="flex flex-wrap items-center gap-3">
-            <LandingThemeSwitch light={light} onToggle={setLight} shellClass={skin.langShell} activeDark={!light} />
-            <LanguageSwitch shellClass={skin.langShell} activeDark={!light} />
-          </div>
         </div>
       </footer>
+      <SiteFooter compact />
     </div>
   );
 }

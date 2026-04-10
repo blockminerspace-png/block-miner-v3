@@ -1,16 +1,64 @@
+import { z } from "zod";
 import prisma from "../src/db/prisma.js";
+import { parseSupportPayload, serializeSupportPayload } from "../utils/supportMessagePayload.js";
+import { toPublicSupportReply } from "../services/supportRealtime.js";
+import { addUserReply } from "../services/supportTicketService.js";
+
+const attachmentSchema = z.object({
+  url: z.string().min(1).max(512),
+  mimeType: z.string().max(120).optional()
+});
+
+const createMessageSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  email: z.string().trim().email().max(255),
+  subject: z.string().trim().min(1).max(200),
+  message: z.string().trim().min(1).max(12000),
+  attachments: z.array(attachmentSchema).max(5).optional()
+});
+
+const replySchema = z.object({
+  message: z.string().trim().min(1).max(12000),
+  attachments: z.array(attachmentSchema).max(5).optional()
+});
 
 /**
- * Public: Create a new support message.
+ * @param {import("@prisma/client").SupportMessage & { replies?: import("@prisma/client").SupportReply[] }} row
+ */
+function enrichTicket(row) {
+  const { message: rawBody, replies, ...rest } = row;
+  const root = parseSupportPayload(rawBody);
+  const publicReplies = (replies || []).map((r) => toPublicSupportReply(r)).filter(Boolean);
+  return {
+    ...rest,
+    body: root.body,
+    attachments: root.attachments,
+    /** @deprecated Use `body`; kept for older clients */
+    message: root.body,
+    replies: publicReplies
+  };
+}
+
+function parsePagination(req) {
+  const limit = Math.min(50, Math.max(1, parseInt(String(req.query.limit), 10) || 20));
+  const page = Math.max(1, parseInt(String(req.query.page), 10) || 1);
+  const skip = (page - 1) * limit;
+  return { limit, page, skip };
+}
+
+/**
+ * Public: Create a new support message (ticket).
  */
 export const createMessage = async (req, res) => {
   try {
-    const { name, email, subject, message } = req.body;
-    const userId = req.user?.id || null;
-
-    if (!name || !email || !subject || !message) {
-      return res.status(400).json({ ok: false, message: "All fields are required" });
+    const parsed = createMessageSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, message: "Invalid request body", issues: parsed.error.flatten() });
     }
+    const { name, email, subject, message, attachments } = parsed.data;
+    const userId = req.user?.id ?? null;
+
+    const stored = serializeSupportPayload(message, attachments || []);
 
     const newMessage = await prisma.supportMessage.create({
       data: {
@@ -18,35 +66,48 @@ export const createMessage = async (req, res) => {
         name,
         email,
         subject,
-        message,
-      },
+        message: stored
+      }
     });
 
-    res.status(201).json({ ok: true, message: "Support message sent successfully", id: newMessage.id });
+    res.status(201).json({ ok: true, message: "Created", id: newMessage.id });
   } catch (error) {
     console.error("[SupportController] Error creating message:", error);
     res.status(500).json({ ok: false, message: "Error sending support message" });
   }
 };
 
-
 /**
- * Public: List user's support messages.
+ * Authenticated: List current user's support tickets.
  */
 export const listMessages = async (req, res) => {
   try {
     const userId = req.user?.id;
-    
+
     if (!userId) {
       return res.status(401).json({ ok: false, message: "Unauthorized" });
     }
 
-    const messages = await prisma.supportMessage.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' }
-    });
+    const { limit, page, skip } = parsePagination(req);
 
-    res.json({ ok: true, messages });
+    const [messages, total] = await Promise.all([
+      prisma.supportMessage.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          subject: true,
+          isRead: true,
+          isReplied: true,
+          createdAt: true
+        }
+      }),
+      prisma.supportMessage.count({ where: { userId } })
+    ]);
+
+    res.json({ ok: true, messages, page, limit, total });
   } catch (error) {
     console.error("[SupportController] Error listing messages:", error);
     res.status(500).json({ ok: false, message: "Error listing messages" });
@@ -54,31 +115,34 @@ export const listMessages = async (req, res) => {
 };
 
 /**
- * Public: Get user's specific support message with replies.
+ * Authenticated: Get one ticket with parsed thread.
  */
 export const getMessage = async (req, res) => {
   try {
     const userId = req.user?.id;
-    const { id } = req.params;
+    const id = parseInt(req.params.id, 10);
 
     if (!userId) {
       return res.status(401).json({ ok: false, message: "Unauthorized" });
     }
+    if (!id || Number.isNaN(id)) {
+      return res.status(400).json({ ok: false, message: "Invalid id" });
+    }
 
-    const message = await prisma.supportMessage.findUnique({
-      where: { id: parseInt(id) },
+    const row = await prisma.supportMessage.findUnique({
+      where: { id },
       include: {
         replies: {
-          orderBy: { createdAt: 'asc' }
+          orderBy: { createdAt: "asc" }
         }
       }
     });
 
-    if (!message || message.userId !== userId) {
+    if (!row || row.userId !== userId) {
       return res.status(404).json({ ok: false, message: "Message not found" });
     }
 
-    res.json({ ok: true, message });
+    res.json({ ok: true, message: enrichTicket(row) });
   } catch (error) {
     console.error("[SupportController] Error getting message:", error);
     res.status(500).json({ ok: false, message: "Error getting message" });
@@ -86,35 +150,51 @@ export const getMessage = async (req, res) => {
 };
 
 /**
- * Public: User replies to a support message.
+ * Authenticated: User reply on a ticket.
  */
+/**
+ * Authenticated: Upload one image for attachment to a ticket message.
+ */
+export const uploadSupportImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ ok: false, message: "No file uploaded" });
+    }
+    const url = `/uploads/${req.file.filename}`;
+    res.json({ ok: true, url, mimeType: req.file.mimetype || null });
+  } catch (error) {
+    console.error("[SupportController] upload error:", error);
+    res.status(500).json({ ok: false, message: "Upload failed" });
+  }
+};
+
 export const replyToMessage = async (req, res) => {
   try {
     const userId = req.user?.id;
-    const { id } = req.params;
-    const { message: replyContent } = req.body;
+    const id = parseInt(req.params.id, 10);
 
     if (!userId) return res.status(401).json({ ok: false, message: "Unauthorized" });
-    if (!replyContent) return res.status(400).json({ ok: false, message: "Message content is required" });
+    if (!id || Number.isNaN(id)) return res.status(400).json({ ok: false, message: "Invalid id" });
 
-    const originalMessage = await prisma.supportMessage.findUnique({
-      where: { id: parseInt(id) }
-    });
-
-    if (!originalMessage || originalMessage.userId !== userId) {
-      return res.status(404).json({ ok: false, message: "Support ticket not found" });
+    const parsed = replySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ ok: false, message: "Invalid request body", issues: parsed.error.flatten() });
     }
 
-    const newReply = await prisma.supportReply.create({
-      data: {
-        supportMessageId: parseInt(id),
-        senderId: userId,
-        message: replyContent,
-        isAdmin: false
+    try {
+      const newReply = await addUserReply({
+        supportMessageId: id,
+        userId,
+        body: parsed.data.message,
+        attachments: parsed.data.attachments
+      });
+      res.status(201).json({ ok: true, reply: toPublicSupportReply(newReply) });
+    } catch (e) {
+      if (/** @type {any} */ (e).code === "NOT_FOUND") {
+        return res.status(404).json({ ok: false, message: "Support ticket not found" });
       }
-    });
-
-    res.status(201).json({ ok: true, reply: newReply });
+      throw e;
+    }
   } catch (error) {
     console.error("[SupportController] Error replying to message:", error);
     res.status(500).json({ ok: false, message: "Error sending reply" });

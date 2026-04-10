@@ -13,6 +13,18 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(pt.games.temporary_power_label).toBeTruthy();
     expect(es.games.temporary_power_label).toBeTruthy();
 
+    expect(en.minerGames.hash_score_label).toBeTruthy();
+    expect(pt.minerGames.hash_score_label).toBeTruthy();
+    expect(es.minerGames.hash_score_label).toBeTruthy();
+
+    expect(en.minerGames.socket_errors.invalid_session).toBeTruthy();
+    expect(pt.minerGames.socket_errors.invalid_session).toBeTruthy();
+    expect(es.minerGames.socket_errors.invalid_session).toBeTruthy();
+
+    expect(en.minerGames.game_reward.full_term).toContain("{{days}}");
+    expect(pt.minerGames.game_reward.full_term).toContain("{{days}}");
+    expect(es.minerGames.game_reward.full_term).toContain("{{days}}");
+
     expect(en.checkin.error_balance_insufficient).toBeTruthy();
     expect(pt.checkin.error_balance_insufficient).toBeTruthy();
     expect(es.checkin.error_balance_insufficient).toBeTruthy();
@@ -36,5 +48,31 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(en.wallet.web3_deposit.disconnect_to_switch).toBeTruthy();
     expect(pt.wallet.web3_deposit.hint_disconnect_for_contract).toBeTruthy();
     expect(es.wallet.web3_deposit.hint_disconnect_for_wc).toBeTruthy();
+  });
+
+  it("exposes Read & Earn strings in en, pt-BR, and es", () => {
+    expect(en.readEarn.title).toBeTruthy();
+    expect(pt.readEarn.title).toBeTruthy();
+    expect(es.readEarn.title).toBeTruthy();
+    expect(en.adminReadEarn.title).toBeTruthy();
+    expect(pt.adminReadEarn.title).toBeTruthy();
+    expect(es.adminReadEarn.title).toBeTruthy();
+    expect(en.sidebar.read_earn).toBeTruthy();
+    expect(pt.sidebar.read_earn).toBeTruthy();
+    expect(es.sidebar.read_earn).toBeTruthy();
+  });
+
+  it("exposes support tickets and admin support strings in en, pt-BR, and es", () => {
+    expect(en.sidebar.support).toBeTruthy();
+    expect(pt.sidebar.support).toBeTruthy();
+    expect(es.sidebar.support).toBeTruthy();
+
+    expect(en.support_tickets.title).toBeTruthy();
+    expect(pt.support_tickets.title).toBeTruthy();
+    expect(es.support_tickets.title).toBeTruthy();
+
+    expect(en.admin_support.title).toBeTruthy();
+    expect(pt.admin_support.title).toBeTruthy();
+    expect(es.admin_support.title).toBeTruthy();
   });
 });

@@ -11,6 +11,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import Shop from './pages/Shop';
 import Inventory from './pages/Inventory';
+import Vault from './pages/Vault';
 import Wallet from './pages/Wallet';
 import Faucet from './pages/Faucet';
 import Shortlinks from './pages/Shortlinks';
@@ -30,6 +31,7 @@ import CalculatorPage from './pages/Calculator';
 import ChatSidebar from './components/ChatSidebar';
 import AdBlockDetector from './components/AdBlockDetector';
 import AdBanner from './components/AdBanner';
+import SiteFooter from './components/SiteFooter';
 
 import AdminLogin from './pages/AdminLogin';
 import AdminLayout from './components/AdminLayout';
@@ -50,10 +52,18 @@ import AdminTransparency from './pages/AdminTransparency';
 import AdminAnalytics from './pages/AdminAnalytics';
 import AdminBroadcast from './pages/AdminBroadcast';
 import AdminCheckinMilestones from './pages/AdminCheckinMilestones';
+import AdminReadEarn from './pages/AdminReadEarn';
+import AdminMiniPass from './pages/AdminMiniPass';
+import AdminMiniPassSeason from './pages/AdminMiniPassSeason';
+import ReadEarn from './pages/ReadEarn';
+import MiniPass from './pages/MiniPass';
 import BroadcastPopup from './components/BroadcastPopup';
 import Transparency from './pages/Transparency';
 import TransparencyErrorBoundary from './components/TransparencyErrorBoundary';
 import Landing from './pages/Landing';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfUse from './pages/TermsOfUse';
+import Support from './pages/Support';
 
 const ProtectedLayout = () => {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -82,6 +92,7 @@ const ProtectedLayout = () => {
             <Outlet />
             <AdBanner size="728x90" />
           </div>
+          <SiteFooter compact />
         </main>
         <ChatSidebar />
       </div>
@@ -132,6 +143,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-use" element={<TermsOfUse />} />
 
         <Route element={<ProtectedLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
@@ -139,16 +152,21 @@ function App() {
           <Route path="/shop" element={<Shop />} />
           <Route path="/offers" element={<PopularOffers />} />
           <Route path="/inventory" element={<Inventory />} />
+          <Route path="/vault" element={<Vault />} />
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/wallets" element={<Navigate to="/wallet" replace />} />
           <Route path="/faucet" element={<Faucet />} />
           <Route path="/shortlinks" element={<Shortlinks />} />
           <Route path="/checkin" element={<Checkin />} />
+          <Route path="/read-earn" element={<ReadEarn />} />
+          <Route path="/mini-pass" element={<MiniPass />} />
+          <Route path="/mini-pass/:seasonId" element={<MiniPass />} />
           <Route path="/youtube" element={<YouTubeWatch />} />
           <Route path="/auto-mining" element={<AutoMining />} />
           <Route path="/ranking" element={<Ranking />} />
           <Route path="/room/:username" element={<PublicRoom />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/support" element={<Support />} />
           <Route path="/games" element={<Games />} />
           <Route path="/roadmap" element={<Roadmap />} />
           <Route path="/manual" element={<Manual />} />
@@ -177,6 +195,10 @@ function App() {
           <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="/admin/broadcast" element={<AdminBroadcast />} />
           <Route path="/admin/checkin-milestones" element={<AdminCheckinMilestones />} />
+          <Route path="/admin/read-earn" element={<AdminReadEarn />} />
+          <Route path="/admin/mini-pass" element={<AdminMiniPass />} />
+          <Route path="/admin/mini-pass/new" element={<AdminMiniPassSeason />} />
+          <Route path="/admin/mini-pass/:id" element={<AdminMiniPassSeason />} />
         </Route>
       </Routes>
     </BrowserRouter>

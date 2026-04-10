@@ -44,3 +44,23 @@ export function requireAdminAuth(req, res, next) {
     return res.status(500).json({ ok: false, message: "Unable to authenticate." });
   }
 }
+
+/**
+ * Verify an admin session JWT (e.g. Socket.IO handshake or event payload).
+ * @param {string | null | undefined} token
+ * @returns {import("jsonwebtoken").JwtPayload | null}
+ */
+export function verifyAdminJwtToken(token) {
+  try {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret || !token) return null;
+    const payload = jwt.verify(String(token).trim(), jwtSecret, {
+      issuer: "blockminer-admin",
+      algorithms: ["HS256"]
+    });
+    if (payload.role !== "admin" || payload.type !== "admin_session") return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}

@@ -172,6 +172,362 @@
       "theme_dark": "Escuro"
     }
   },
+  "legal": {
+    "common": {
+      "lastUpdated": "Última atualização: {{date}}",
+      "lastUpdatedDate": "10 de abril de 2026",
+      "sectionNavigationAriaLabel": "Navegação das seções legais",
+      "onThisPage": "Nesta página",
+      "backToRegistration": "Voltar para o cadastro",
+      "readTermsOfUse": "Ler Termos de Uso",
+      "readPrivacyPolicy": "Ler Política de Privacidade",
+      "skipToContent": "Ir para o conteúdo legal",
+      "backToHome": "Início",
+      "scrollToTop": "Voltar ao topo"
+    },
+    "footer": {
+      "description": "Informações legais públicas para usuários e visitantes do BlockMiner.",
+      "navigationAriaLabel": "Navegação legal do rodapé",
+      "home": "Início",
+      "privacyPolicy": "Política de Privacidade",
+      "termsOfUse": "Termos de Uso",
+      "copyright": "© {{year}} BlockMiner. Todos os direitos reservados.",
+      "complianceNote": "O acesso público apoia os requisitos de transparência da LGPD e do GDPR."
+    },
+    "privacyPolicy": {
+      "meta": {
+        "title": "Política de Privacidade | BlockMiner",
+        "description": "Como o BlockMiner coleta, usa, armazena, partilha e protege dados pessoais em blockminer.space (GDPR, LGPD e práticas de privacidade nos EUA)."
+      },
+      "eyebrow": "Legal",
+      "title": "Política de Privacidade",
+      "intro": "Esta Política de Privacidade descreve como o BlockMiner (“nós”, “nos”, “nosso”) trata dados pessoais quando visita blockminer.space, utiliza a aplicação web, cria conta, associa carteira, participa em jogo, recompensas ou indicações, ou contacta o suporte. Visa transparência conforme o RGPD (UE/Reino Unido), a LGPD (Brasil) e práticas comuns de leis estaduais dos EUA (incluindo Califórnia), quando aplicável. Se não concordar, deixe de usar os Serviços.",
+      "sections": {
+        "controllerContact": {
+          "title": "1. Responsável pelo tratamento, contactos e âmbito",
+          "paragraphs": [
+            "O responsável pelo tratamento dos dados pessoais processados através do BlockMiner é a entidade operacional identificada nas páginas legais ou de transparência da plataforma, comercialmente como BlockMiner. O contacto para questões de privacidade é principalmente pelos canais oficiais de suporte publicados em blockminer.space (por exemplo Discord, Telegram ou e-mail de suporte publicado).",
+            "Se nomearmos um Encarregado de Proteção de Dados (DPO) ou um representante na UE/Reino Unido quando a lei exigir, publicaremos os contactos nesta secção ou numa página de conformidade ligada. Até essa publicação, os pedidos de privacidade devem ser enviados pelos mesmos canais oficiais de suporte.",
+            "Esta política aplica-se ao tratamento relacionado com o nosso site, aplicação autenticada, APIs, suporte ao cliente, operações de segurança, prevenção a fraude, comunicações de marketing (quando utilizadas) e integrações com fornecedores de carteira, pagamento, analytics ou infraestrutura que configuramos."
+          ],
+          "bullets": [
+            "Identidade do responsável: publicada na plataforma (nome comercial BlockMiner).",
+            "Contacto principal: canal oficial de suporte listado em blockminer.space.",
+            "Autoridades de supervisão: ver Secção 15."
+          ]
+        },
+        "scopeDefinitions": {
+          "title": "2. Definições e papéis",
+          "paragraphs": [
+            "“Dados pessoais” significa informação relativa a uma pessoa singular identificada ou identificável. “Tratamento” inclui recolha, armazenamento, uso, divulgação, limitação, eliminação e operações semelhantes. “Você” significa visitantes e utilizadores registados.",
+            "Quando tratamos dados pessoais em nome de outra entidade como subcontratante, aplicam-se termos contratuais; esta política descreve as nossas práticas como responsável pelo produto BlockMiner salvo indicação em contrário."
+          ]
+        },
+        "categoriesCollected": {
+          "title": "3. Categorias de dados pessoais que tratamos",
+          "paragraphs": [
+            "Podemos tratar as seguintes categorias, consoante a utilização dos Serviços:"
+          ],
+          "bullets": [
+            "Conta e perfil: nome de utilizador, e-mail, hash da palavra-passe, códigos de indicação, preferências de idioma e definições de perfil.",
+            "Segurança e sessão: tokens de autenticação, identificadores de sessão, metadados de dispositivo/navegador, endereço IP, localização aproximada derivada do IP, carimbos de data/hora, sinais antifraude e registos de auditoria.",
+            "Jogo e economia: saldos internos, métricas de mineração ou hashrate, histórico de recompensas, eventos de loja ou inventário, registos de tarefas e registos operacionais associados à conta.",
+            "Carteira e contexto on-chain: endereços de carteira que associa, identificadores de rede, referências de transação relevantes para depósitos/saques e resultados de triagem de risco (não armazenamos chaves privadas nem frases-semente).",
+            "Suporte e comunicações: mensagens que nos envia, detalhes de litígios e anexos que opte por fornecer.",
+            "Marketing (opcional): e-mail ou identificadores in-app para newsletters ou promoções quando der consentimento."
+          ]
+        },
+        "purposesLegalBases": {
+          "title": "4. Finalidades e bases legais (RGPD / UK GDPR e LGPD)",
+          "paragraphs": [
+            "Quando o RGPD ou UK GDPR se aplica, podemos fundamentar o tratamento na execução de contrato (art. 6(1)(b)), interesses legítimos (art. 6(1)(f)), consentimento (art. 6(1)(a)) e obrigação legal (art. 6(1)(c)). Sob a LGPD, podemos fundamentar em bases compatíveis como execução de serviços, cumprimento de obrigações legais, interesse legítimo, consentimento quando necessário e prevenção a fraude.",
+            "Tratamos dados de conta e segurança para criar e manter contas, autenticar utilizadores, prevenir fraude e abuso, aplicar políticas e proteger a plataforma — tipicamente necessidade contratual e interesses legítimos em segurança.",
+            "Tratamos dados de jogo e economia para operar funcionalidades, calcular recompensas, fornecer rankings ou estatísticas quando oferecidos e melhorar o equilíbrio — tipicamente necessidade contratual e interesses legítimos.",
+            "Tratamos dados relacionados com carteiras para facilitar depósitos/saques opcionais, reconciliar transações e cumprir obrigações de conformidade — tipicamente contrato, obrigação legal e interesse legítimo na prevenção a fraude.",
+            "Podemos enviar mensagens de serviço (alertas de segurança ou atualizações de políticas) sem consentimento de marketing quando permitido. Mensagens de marketing exigem consentimento ou outra base válida."
+          ]
+        },
+        "cookiesIdentifiers": {
+          "title": "5. Cookies, armazenamento local e tecnologias semelhantes",
+          "paragraphs": [
+            "Utilizamos cookies e tecnologias semelhantes para manter sessões, proteger contra CSRF e ataques de repetição, memorizar preferências e medir desempenho básico. Cookies estritamente necessários podem ser colocados sem consentimento quando indispensáveis à prestação segura do serviço.",
+            "Se implementarmos analytics ou publicidade não essenciais, forneceremos mecanismo de consentimento quando a lei exigir e descreveremos as opções no produto ou nas definições do navegador.",
+            "Pode controlar cookies no navegador; desativar cookies necessários pode impedir o início de sessão ou funcionalidades de segurança."
+          ]
+        },
+        "walletsBlockchain": {
+          "title": "6. Dados de carteira, transparência blockchain e redes de terceiros",
+          "paragraphs": [
+            "Blockchains públicas não são controladas pelo BlockMiner. Endereços e transações que difunda podem ficar visíveis on-chain indefinidamente e ser tratados por mineradores, indexadores e fornecedores de analytics independentes de nós.",
+            "Não pedimos frases-semente nem chaves privadas. Nunca as partilhe com quem alegue ser suporte.",
+            "Para reduzir risco, use apenas fluxos oficiais na aplicação, verifique rede e token, e tenha em conta que transferências erradas podem ser irreversíveis."
+          ]
+        },
+        "minors": {
+          "title": "7. Crianças e menores",
+          "paragraphs": [
+            "O BlockMiner não se dirige a crianças abaixo da idade necessária para celebrar contrato na sua jurisdição. Não recolhemos conscientemente dados de menores abaixo dessa idade. Se acreditar que um menor forneceu dados, contacte-nos e adotaremos medidas para eliminar ou restringir o tratamento, conforme a lei."
+          ]
+        },
+        "sources": {
+          "title": "8. Origens dos dados pessoais",
+          "paragraphs": [
+            "Recolhemos dados diretamente de si (formulários, jogo, ligações de carteira), automaticamente do dispositivo e dos nossos servidores (registos, telemetria necessária à segurança) e ocasionalmente de terceiros como fornecedores antifraude, verificação de identidade (se usada) ou parceiros de publicidade/atribuição (se consentir)."
+          ]
+        },
+        "recipients": {
+          "title": "9. Destinatários, subcontratantes e transferências subsequentes",
+          "paragraphs": [
+            "Podemos divulgar dados pessoais a fornecedores de alojamento e cloud, serviços de e-mail e mensagens, bases de dados e monitorização, parceiros de pagamento ou infraestrutura de carteiras, plataformas de suporte, fornecedores de analytics (quando permitido), consultores e autoridades quando a lei o exigir.",
+            "Utilizamos salvaguardas contratuais com subcontratantes (incluindo acordos de tratamento de dados) exigindo confidencialidade, medidas de segurança e assistência em pedidos dos titulares quando aplicável."
+          ]
+        },
+        "internationalTransfers": {
+          "title": "10. Transferências internacionais",
+          "paragraphs": [
+            "Podemos tratar ou armazenar dados fora do seu país, incluindo fora do EEE, Reino Unido ou Brasil. Quando exigido, implementamos garantias adequadas como Cláusulas Contratuais-Tipo (SCC), Addendum do Reino Unido ou outros mecanismos reconhecidos.",
+            "Pode solicitar mais informação sobre garantias contactando-nos; cópias podem ser redigidas por confidencialidade quando permitido."
+          ]
+        },
+        "retentionSecurity": {
+          "title": "11. Conservação e segurança",
+          "paragraphs": [
+            "Conservamos dados pessoais apenas pelo tempo necessário às finalidades descritas, incluindo segurança, resolução de litígios e cumprimento legal. Critérios incluem estado da conta, investigações em curso, prazos legais e ciclos de cópia de segurança. Dados agregados ou pseudonimizados podem ser conservados por mais tempo.",
+            "Aplicamos medidas administrativas, técnicas e organizacionais para proteger dados pessoais, incluindo controlos de acesso, encriptação em trânsito quando apropriado, registos, gestão de vulnerabilidades e formação. Nenhum método é 100% seguro."
+          ]
+        },
+        "breachesAutomation": {
+          "title": "12. Violações de dados e decisões automatizadas",
+          "paragraphs": [
+            "Mantemos procedimentos internos para detetar, avaliar e (quando exigido) notificar autoridades de supervisão e titulares sobre violações de dados pessoais sem demora indevida.",
+            "Podemos usar sistemas automatizados para pontuar risco, detetar batotas ou priorizar suporte. Quando uma decisão produz efeitos jurídicos ou significativos apenas por meios automatizados, forneceremos informação exigida pela lei, incluindo lógica, importância e direitos de revisão humana quando aplicável."
+          ]
+        },
+        "rights": {
+          "title": "13. Os seus direitos de privacidade",
+          "paragraphs": [
+            "Consoante a jurisdição, pode ter direitos de acesso, retificação, apagamento, limitação do tratamento, oposição a certos tratamentos, retirada do consentimento, portabilidade e informação sobre decisões automatizadas. A LGPD prevê confirmação de tratamento, acesso, correção, anonimização/bloqueio, eliminação, portabilidade, informação sobre partilhas e revogação do consentimento."
+          ],
+          "bullets": [
+            "Acesso: pedir cópia ou resumo dos dados que conservamos sobre si.",
+            "Retificação: corrigir dados inexatos ou incompletos.",
+            "Eliminação: pedir apagamento sujeito a exceções legais (ex.: retenção antifraude).",
+            "Limitação / oposição: limitar ou opor-se a tratamentos baseados em interesses legítimos ou marketing direto.",
+            "Portabilidade: receber dados estruturados que forneceu quando tecnicamente viável.",
+            "Reclamações: apresentar reclamação a uma autoridade de supervisão (ver Secção 15)."
+          ]
+        },
+        "marketingOptOut": {
+          "title": "14. Preferências de marketing e Do Not Track",
+          "paragraphs": [
+            "Pode cancelar marketing por e-mail através de links de cancelamento de subscrição ou contactando o suporte. Algumas jurisdições concedem direitos para limitar a “venda” ou “partilha” para publicidade entre contextos; quando aplicável, forneceremos mecanismo claro ou honraremos sinais legais reconhecidos.",
+            "Salvo obrigação legal, não respondemos de forma uniforme a sinais “Do Not Track” por ausência de padrão único."
+          ]
+        },
+        "updatesComplaints": {
+          "title": "15. Alterações, reclamações e contacto",
+          "paragraphs": [
+            "Podemos atualizar esta Política publicando uma versão revista e atualizando a data de “Última atualização”. Quando as alterações forem materiais e o consentimento for exigido, solicitaremos consentimento ou daremos aviso conforme a lei.",
+            "Utilizadores da UE/EEE podem contactar a autoridade de proteção de dados local. No Reino Unido, a ICO. No Brasil, a ANPD. Residentes na Califórnia podem contactar a CPPA ou exercer outros direitos aplicáveis.",
+            "Para pedidos de privacidade, contacte o suporte oficial do BlockMiner com detalhes suficientes para verificar a identidade. Podemos solicitar informação adicional para prevenir pedidos fraudulentos. Responderemos nos prazos legais (frequentemente até 30 dias no RGPD/LGPD, com extensões quando permitido)."
+          ]
+        }
+      }
+    },
+    "termsOfUse": {
+      "meta": {
+        "title": "Termos de Uso | BlockMiner",
+        "description": "Leia os termos que regem o acesso e o uso do BlockMiner em blockminer.space."
+      },
+      "eyebrow": "Legal",
+      "title": "Termos de Uso",
+      "intro": "Estes Termos de Uso regem o acesso e o uso do BlockMiner, incluindo o site e o aplicativo disponíveis em blockminer.space e serviços relacionados (em conjunto, os \"Serviços\"). Ao usar os Serviços, você concorda com estes Termos e com a nossa Política de Privacidade.",
+      "sections": {
+        "generalProvisions": {
+          "title": "1. Disposições gerais",
+          "paragraphs": [
+            "Ao usar blockminer.space e os Serviços do BlockMiner, você confirma que leu estes Termos de Uso e a nossa Política de Privacidade, que os compreende e que concorda incondicionalmente em ficar vinculado a eles. Você concorda em cumprir todas as leis e regulamentos aplicáveis e é responsável pelo cumprimento das leis locais. Este site e o seu conteúdo são protegidos pela lei de direitos autorais e propriedade intelectual aplicável. Reservamo-nos o direito de recusar serviço a qualquer pessoa, a qualquer momento e sem motivo, quando permitido pela lei.",
+            "Este acordo regula a relação jurídica entre o usuário do BlockMiner (\"Usuário\") e o operador dos Serviços (\"Administração\", \"nós\", \"nos\", \"nosso\"). Ele descreve direitos e obrigações básicas e as consequências do descumprimento.",
+            "Usuário é a pessoa que atingiu a maioridade plena na sua jurisdição, que se registra no site (abre uma conta) e que leu e concordou com a Política de Privacidade. Você deve ser maior de idade independentemente de onde se registra ou usa os Serviços.",
+            "O titular da conta é quem controla a senha e o e-mail associados à conta. Você é responsável por manter a confidencialidade da senha e da conta e é integralmente responsável por todas as atividades realizadas na sua conta. Você concorda em: (a) notificar imediatamente o BlockMiner sobre qualquer uso não autorizado da sua senha ou conta ou qualquer outra violação de segurança; e (b) encerrar a sessão ao final de cada uso. O BlockMiner não pode e não será responsável por perdas ou danos decorrentes da sua falha em cumprir este parágrafo.",
+            "Sujeito a estes Termos, você pode usar jogos e mecânicas de mineração simulada, ganhar recompensas na plataforma, vincular uma carteira para depósitos e saques quando oferecidos, e fazer compras opcionais no jogo ou na plataforma conforme as regras publicadas no produto.",
+            "Usuários que praticarem atividades proibidas por esta política de uso aceitável podem estar sujeitos a suspensão, encerramento, cancelamento de ganhos abusivos e, em casos extremos, podemos ser legalmente obrigados a reportar a conduta às autoridades competentes.",
+            "O BlockMiner é um projeto de jogo e simulação no estilo Web3. Não deve ser representado ou tratado como plataforma de investimento, instrumento financeiro, renda garantida, emprego ou como software que executa mineração real proof-of-work em redes blockchain externas sem a sua ação explícita.",
+            "Você é o único responsável por garantir que o uso do BlockMiner seja lícito na sua jurisdição. Você não deve usar os Serviços para fins ilegais ou fraudulentos, incluindo, entre outros, lavagem de dinheiro, financiamento ao terrorismo, evasão de sanções e outros crimes financeiros.",
+            "Você deve cumprir todas as leis e regulamentos aplicáveis relacionados a criptomoedas, ativos digitais e tecnologia blockchain quando forem relevantes para o seu uso.",
+            "Reservamo-nos o direito de solicitar informações adicionais, incluindo documentos de identificação, para verificar identidade e garantir conformidade com leis aplicáveis e políticas antifraude.",
+            "É proibido usar scripts automatizados, bots ou outros softwares para interagir com os Serviços, salvo autorização expressa nossa por escrito ou por API ou recurso documentado.",
+            "Reservamo-nos o direito de modificar, suspender ou encerrar os Serviços, qualquer recurso ou estes Termos a qualquer momento. Quando exigido por lei, forneceremos aviso ou data de vigência conforme a seção Alterações.",
+            "Na máxima extensão permitida pela lei, o BlockMiner não será responsável por danos ou perdas decorrentes do seu uso dos Serviços, incluindo, entre outros, lucros cessantes, dados, reputação ou outras perdas intangíveis, exceto onde a responsabilidade não possa ser excluída por lei imperativa.",
+            "Podemos coletar e tratar dados pessoais conforme a Política de Privacidade. Você pode exercer direitos de privacidade contactando a nossa equipa de suporte pelos canais oficiais.",
+            "Saldos na plataforma, hashrate, itens e recompensas são regidos por regras no servidor e podem ser ajustados por equidade, equilíbrio económico ou conformidade. Salvo e até serem sacados com sucesso segundo os nossos procedimentos, esses valores não representam crédito equivalente a saldo bancário.",
+            "Reservamo-nos o direito de alterar regras, multiplicadores, recompensas, itens virtuais e parâmetros económicos a qualquer momento, com ou sem aviso prévio quando permitido pela lei."
+          ]
+        },
+        "useOfServicesAndConduct": {
+          "title": "2. Uso dos serviços e regras de conduta",
+          "paragraphs": [
+            "Você deve estar autorizado a usar os Serviços para os quais se regista, de acordo com estes Termos e quaisquer termos adicionais mostrados no produto.",
+            "Os Serviços destinam-se a entretenimento pessoal e não comercial, salvo acordo expresso nosso por escrito. Você não deve vender, alugar ou comercializar conteúdo visual, áudio, texto ou outro no Site (\"Conteúdo\"), exceto conforme permitido pelo uso pessoal ordinário; vender, alugar ou comprar uma conta BlockMiner existente; fazer engenharia reversa, scraping em larga escala ou extração sistemática do Conteúdo; automatizar interações exceto quando permitido; ou transferir o Conteúdo fora do uso pessoal normal dos Serviços.",
+            "Onde permitirmos downloads ou impressão, você deve manter avisos de direitos autorais e marcas intactos, não redistribuir o Conteúdo exceto como parte do uso ordinário, e não usar o Conteúdo de forma que sugira endosso falso pelo BlockMiner.",
+            "Se copiar ou descarregar qualquer parte do Site em violação destes Termos, o seu direito de usar os Serviços pode cessar imediatamente e você deve devolver ou destruir cópias conforme indicarmos.",
+            "Você é o único responsável por danos causados ao BlockMiner, parceiros, outros usuários ou terceiros por uso ilícito ou violação destes Termos.",
+            "Se fornecer informações desatualizadas, falsas, incompletas ou enganosas, podemos eliminar, suspender ou banir a conta e restringir canais de comunicação relacionados.",
+            "Você é o único responsável pelo material que carregar, transmitir ou publicar através dos Serviços e por ter direitos sobre obras de terceiros que incluir.",
+            "Você só pode usar os Serviços para fins lícitos. Você não deve: violar a lei aplicável; infringir propriedade intelectual ou privacidade; assediar, ameaçar ou discriminar; tentar acesso não autorizado a sistemas ou contas; interferir ou sobrecarregar os Serviços; distribuir malware; usar batotas, hacks, mods não autorizados ou emuladores de servidor; personificar outros ou usar a conta de outro usuário; phishing ou recolha de credenciais; abusar de suporte ou sistemas de denúncia; recolher diretórios de utilizadores; alegar falsamente ser nosso pessoal; ou envolver-se em spam, esquemas em pirâmide ou mensagens comerciais em massa não solicitadas.",
+            "Assédio, discurso de ódio, conteúdo sexual envolvendo menores, glorificação da violência ou conteúdo que ameace saúde e segurança é estritamente proibido e pode levar a encerramento imediato e encaminhamento às autoridades quando apropriado.",
+            "Você não deve usar os Serviços para facilitar jogos de azar ilegais, terrorismo, tráfico de narcóticos ou armas, ou proliferação de armas de destruição em massa, ou para apoiar pessoas ou entidades sujeitas a sanções aplicáveis, quando tal uso for proibido por lei.",
+            "Se acreditarmos, a nosso exclusivo critério, que a conduta é injusta ou contrária ao espírito dos Serviços, podemos desqualificar, suspender ou encerrar contas e ajustar saldos ligados a abuso.",
+            "Não somos responsáveis por perdas ou danos resultantes da participação nos Serviços, retirada de recursos ou alterações a estes Termos, exceto onde a lei imperativa disponha o contrário.",
+            "Não somos responsáveis por interrupções, paragens ou eventos de força maior fora do nosso controlo razoável."
+          ]
+        },
+        "personalDataConsent": {
+          "title": "3. Dados pessoais, marketing e cookies",
+          "paragraphs": [
+            "Ao usar o BlockMiner, você consente na recolha, tratamento e armazenamento de dados pessoais conforme descrito na Política de Privacidade. Os dados podem ser usados para prestar e melhorar os Serviços, proteger contas, prevenir fraude e, quando permitido, para marketing e comunicações de serviço. Você pode retirar o consentimento de marketing quando aplicável contactando o suporte ou usando ferramentas de cancelamento de subscrição que fornecermos."
+          ]
+        },
+        "inactiveAccounts": {
+          "title": "4. Contas inativas",
+          "paragraphs": [
+            "Podemos aplicar políticas administrativas a contas inativas por longos períodos, incluindo regras de inatividade, taxas de manutenção ou encerramento, quando permitido por lei. Qualquer política desse tipo, incluindo prazos de aviso e valores, será descrita no produto ou numa página de política complementar. Se uma política exigir aviso, envidaremos esforços razoáveis para comunicar por e-mail ou mensagens na aplicação antes da entrada em vigor de alterações materiais."
+          ]
+        },
+        "contentStandards": {
+          "title": "5. Padrões de conteúdo",
+          "paragraphs": [
+            "Você não pode criar, partilhar ou publicar através dos Serviços qualquer material que consideremos razoavelmente ilegal, ameaçador, difamatório, obsceno, odioso, violento, discriminatório ou de outro modo inaceitável.",
+            "Você não pode assediar utilizadores, enviar publicidade não solicitada, realizar inquéritos ou concursos não autorizados, ou usar os Serviços para spam em massa."
+          ]
+        },
+        "monitoring": {
+          "title": "6. Monitorização e moderação",
+          "paragraphs": [
+            "Não endossamos opiniões, conselhos ou recomendações de utilizadores publicadas em áreas públicas. Esse conteúdo é responsabilidade exclusiva do autor.",
+            "Não somos obrigados a monitorizar todo o conteúdo de utilizadores, mas podemos moderar, rever ou remover conteúdo quando apropriado para conformidade legal, segurança ou integridade do produto.",
+            "Podemos recusar nomes de utilizador, nomes de exibição ou palavras-passe que violem política, personifiquem marcas ou sejam inapropriados."
+          ]
+        },
+        "noProfessionalAdvice": {
+          "title": "7. Sem aconselhamento de investimento, fiscal ou jurídico",
+          "paragraphs": [
+            "O BlockMiner não fornece aconselhamento de investimento, financeiro, fiscal ou jurídico. Informações no site e na aplicação são para fins gerais informativos e de entretenimento. Você deve fazer a sua própria pesquisa e procurar profissionais qualificados antes de decisões financeiras ou jurídicas.",
+            "Nada no BlockMiner constitui recomendação para comprar, vender ou manter qualquer ativo digital, nem endosso de token, protocolo ou projeto de terceiros.",
+            "O BlockMiner não é consultor de investimentos registado, intermediário financeiro ou consultor fiscal em qualquer jurisdição, salvo declaração expressa por escrito para um produto regulamentado específico, o que não descreve o serviço de jogo atual."
+          ]
+        },
+        "userWarranties": {
+          "title": "8. Garantias do utilizador e indemnização",
+          "paragraphs": [
+            "Você garante que não usará o BlockMiner para lavar dinheiro ou cometer atos ilícitos e que fundos ou ativos que usar cumprem regras aplicáveis de antilavagem e sanções.",
+            "Você garante que não oferecerá subornos ou vantagens impróprias a funcionários públicos ou terceiros em conexão com o uso dos Serviços.",
+            "Na medida permitida pela lei, você concorda em indemnizar e isentar o BlockMiner e afiliadas, diretores, dirigentes e funcionários de reclamações, perdas e despesas (incluindo honorários razoáveis de advogados) decorrentes da sua violação destes Termos, do seu conteúdo ou da violação de direitos de terceiros.",
+            "Se submeter conteúdo criativo gerado pelo utilizador onde os recursos o permitam, declara que tem os direitos necessários para nos conceder uma licença para alojar e exibir esse conteúdo para operar os Serviços."
+          ]
+        },
+        "intellectualProperty": {
+          "title": "9. Propriedade intelectual",
+          "paragraphs": [
+            "Materiais no Site e na aplicação são de titularidade ou licenciados ao BlockMiner e protegidos por direitos autorais, marcas e outras leis.",
+            "Onde concursos ou recursos convidem obras ou media, você concede ao BlockMiner uma licença não exclusiva para reproduzir e exibir submissões para promoção e operação dos Serviços, conforme as regras do recurso relevante."
+          ]
+        },
+        "liability": {
+          "title": "10. Limitação de responsabilidade",
+          "paragraphs": [
+            "Na máxima extensão permitida pela lei, o BlockMiner não é responsável por confiança em informações no site, por perdas de negociação ou carteira, ou por resultados de transações on-chain fora do nosso controlo razoável.",
+            "Recompensas, estimativas e calculadoras são ilustrativas; não garantem pagamentos futuros nem preços de mercado de POL."
+          ]
+        },
+        "risksAndRestrictions": {
+          "title": "11. Riscos de cripto e restrições geográficas",
+          "paragraphs": [
+            "Ativos digitais podem ser voláteis, experimentais e sujeitos a mudança regulatória. Você pode perder valor ao enviar ativos on-chain. Você é o único responsável pela segurança da carteira, frases-semente e taxas de rede.",
+            "Informações sobre ativos digitais podem estar incompletas ou imprecisas. Consulte os reguladores da sua jurisdição. Exemplos de orientação pública a investidores incluem materiais publicados pela SEC dos EUA, FCA do Reino Unido, ESMA da UE e autoridades comparáveis; ligações e listas podem mudar e não são exaustivas.",
+            "Podemos recusar registo ou serviço a pessoas localizadas em países ou regiões abrangidos por sanções abrangentes, ou quando exigido por leis de sanções comerciais e controlo de exportações aplicáveis. Locais restritos podem mudar sem aviso. É seu dever não usar os Serviços se estiver proibido de o fazer.",
+            "Tokens ou representações no jogo não são depósitos garantidos por esquemas públicos de seguro, salvo declaração expressa em contrário numa oferta regulamentada separada."
+          ]
+        },
+        "payments": {
+          "title": "12. Pagamentos, carteiras e saques",
+          "paragraphs": [
+            "Depósitos, saques e certas compras podem envolver redes blockchain (por exemplo Polygon e POL conforme descrito no produto). Não possuímos nem controlamos blockchains públicas, carteiras ou fornecedores RPC de terceiros.",
+            "Transações on-chain podem ser irreversíveis. Se enviar cripto na rede errada, token errado ou endereço errado, os fundos podem perder-se. Você é responsável por verificar endereços e redes.",
+            "Podemos não ter visibilidade ou controlo sobre transações de carteiras de terceiros e em geral não podemos reverter transferências on-chain.",
+            "Você é responsável por impostos associados ao uso dos Serviços, excluindo impostos sobre o nosso rendimento líquido, conforme exigido pela sua jurisdição.",
+            "Taxas de rede e processamento cobradas por terceiros são da sua responsabilidade salvo indicação em contrário para um produto específico.",
+            "Você deve proteger o acesso à conta para evitar roubo de saldos ou credenciais.",
+            "Compras ou depósitos podem ser não reembolsáveis quando violar regras materiais nas Secções 2 e 5, ou quando a entrega digital ocorreu, sujeito a direitos de consumidor obrigatórios no seu país.",
+            "Podemos rever saques para prevenção a fraude e conformidade. Os prazos de processamento dependem de filas internas e controlos de risco e podem levar vários dias úteis.",
+            "Podemos congelar temporariamente saldos para investigação quando legalmente permitido ou quando necessário para proteger a plataforma.",
+            "Você só pode sacar saldos disponíveis mostrados no produto após cumprir mínimos e requisitos de verificação publicados."
+          ]
+        },
+        "referralProgram": {
+          "title": "13. Programa de indicação",
+          "paragraphs": [
+            "Os termos de indicação (incluindo duração de cookies, atribuição e estrutura de comissões) estão definidos na secção de indicações do produto e podem mudar. \"Indicador\" significa um utilizador que partilha um link de indicação; \"Indicado\" significa um novo utilizador atribuído segundo as regras do programa.",
+            "Auto-indicações, indicações circulares, compras artificiais para gerar comissões ou abuso de mecânicas de indicação podem resultar em suspensão permanente e reversão de recompensas abusivas.",
+            "Podemos remover indicações ou ajustar estatísticas se detectarmos fraude ou violações de política."
+          ]
+        },
+        "thirdPartyAndAdvertising": {
+          "title": "14. Sites de terceiros e publicidade",
+          "paragraphs": [
+            "Os Serviços podem ligar a sites de terceiros ou exibir conteúdo de terceiros. Não controlamos nem somos responsáveis pelos termos, práticas de privacidade ou precisão de terceiros. O uso de serviços de terceiros é por sua conta e risco.",
+            "Se exibirmos anúncios, os anunciantes são responsáveis pelos anúncios e ofertas. Fornecemos apenas espaço publicitário salvo declaração expressa de que somos vendedores de um item específico."
+          ]
+        },
+        "amendments": {
+          "title": "15. Alterações",
+          "paragraphs": [
+            "Podemos modificar estes Termos ou políticas relacionadas publicando uma versão revista no site. A versão revista entra em vigor no mais cedo entre: (a) o seu primeiro uso dos Serviços após a publicação; ou (b) a data de vigência indicada no aviso, ou, se não houver, quinze (15) dias após a publicação, quando exigido pela lei aplicável."
+          ]
+        },
+        "finalProvisions": {
+          "title": "19. Disposições finais",
+          "paragraphs": [
+            "Estes Termos permanecem em vigor enquanto usar os Serviços. Podemos negar acesso, incluindo bloqueio de IP, ou encerrar contas sem aviso quando permitido por lei, incluindo por violação destes Termos.",
+            "Se a conta for encerrada, não deve criar nova conta para contornar a aplicação, incluindo identidades falsas ou de terceiros.",
+            "Não somos responsáveis por perdas por acesso não autorizado causado pela falha em proteger credenciais ou dispositivos, salvo lei imperativa.",
+            "Para questões técnicas, contacte o suporte pelos canais oficiais. Envidaremos esforços comercialmente razoáveis para responder em tempo razoável; SLAs podem ser publicados separadamente.",
+            "Se alguma disposição for inválida, as restantes permanecem exequíveis na máxima medida. A falha em fazer cumprir não constitui renúncia.",
+            "Estes Termos, juntamente com a Política de Privacidade e regras específicas publicadas, constituem o acordo integral sobre a matéria e substituem entendimentos orais ou escritos prévios, salvo lei imperativa."
+          ]
+        },
+        "contact": {
+          "title": "20. Contato",
+          "paragraphs": [
+            "Para questões sobre estes Termos de Uso, contacte o BlockMiner pelo canal oficial de suporte publicado em blockminer.space (por exemplo Discord, Telegram ou e-mail se listado)."
+          ]
+        },
+        "electronicCommunications": {
+          "title": "16. Comunicações eletrónicas, registos e assinaturas",
+          "paragraphs": [
+            "Concorda que podemos enviar avisos, recibos, acordos e atualizações de políticas eletronicamente para o e-mail associado à conta, mensagens na aplicação ou avisos publicados em blockminer.space.",
+            "É responsável por manter o e-mail correto. Registos eletrónicos mantidos pelos nossos sistemas podem ser usados como evidência de transações, consentimentos e atividade da conta, conforme a lei e requisitos de autenticação."
+          ]
+        },
+        "governingLawDisputes": {
+          "title": "17. Lei aplicável, foro, resolução informal e ações coletivas",
+          "paragraphs": [
+            "Salvo lei consumerista imperativa no seu país, estes Termos e a Política de Privacidade regem-se pelas leis indicadas nas divulgações corporativas publicadas ou, se não houver, pelas leis da jurisdição onde a entidade operadora está estabelecida, sem conflito de leis que imponha outra ordem jurídica.",
+            "Concorda em contactar primeiro o suporte e tentar resolver litígios de boa-fé por pelo menos trinta (30) dias antes de iniciar processos formais, quando tal requisito seja exigível.",
+            "Na máxima extensão permitida pela lei, os litígios devem ser intentados individualmente e não como autor ou membro de classe em qualquer processo coletivo ou representativo. Se for consumidor numa jurisdição que proíba tal renúncia, esta subsecção aplica-se apenas na medida permitida."
+          ]
+        },
+        "regulatoryCompliancePrograms": {
+          "title": "18. Sanções, controlos de exportação e programas de conformidade",
+          "paragraphs": [
+            "Declara que não está identificado em listas restritivas governamentais e que não usará os Serviços para violar sanções comerciais, controlos de exportação ou regras antiboicote aplicáveis a si ou ao BlockMiner.",
+            "Podemos filtrar atividade, bloquear acesso, congelar funcionalidades ou encerrar contas quando a lei o exija ou quando razoavelmente acreditarmos que uma transação ou utilizador apresenta risco de sanções, fraude ou financiamento ilícito.",
+            "Nada nestes Termos nos obriga a processar um saque, pagamento ou transferência que razoavelmente acreditemos violar a lei aplicável."
+          ]
+        }
+      }
+    }
+  },
   "common": {
     "loading": "Carregando...",
     "error": "Erro",
@@ -196,6 +552,11 @@
     "maintenance": {
       "title": "Plataforma em BETA",
       "message": "Estamos realizando manutenção e melhorias no sistema. Podem ocorrer instabilidades temporárias. Agradecemos a sua paciência."
+    }
+  },
+  "validation": {
+    "errors": {
+      "termsRequired": "Voc? precisa aceitar os Termos de Uso antes de criar uma conta."
     }
   },
   "auth": {
@@ -236,25 +597,44 @@
         "password_min": "A senha deve ter no mínimo 8 caracteres.",
         "user_already_exists": "Usuário já existe.",
         "registration_limit_reached": "Limite de cadastro atingido para esta conexão.",
-        "registration_failed": "Falha no cadastro."
-      }
+        "registration_failed": "Falha no cadastro.",
+        "username_too_short": "O nome de usu?rio deve ter pelo menos 3 caracteres.",
+        "username_too_long": "O nome de usu?rio deve ter no m?ximo 24 caracteres.",
+        "username_invalid": "O nome de usu?rio s? pode conter letras, n?meros, pontos, underlines e h?fens.",
+        "email_invalid": "Informe um endere?o de e-mail v?lido."
+      },
+      "privacyDisclosure": "O cadastro exige aceita??o dos Termos de Uso. As informa??es de privacidade ficam dispon?veis publicamente a qualquer momento.",
+      "termsConsent": {
+        "prefix": "Li e concordo com os",
+        "linkLabel": "Termos de Uso",
+        "helpText": "Voc? pode abrir a p?gina legal antes de criar a sua conta."
+      },
+      "username_placeholder": "Exemplo: minerador_pro",
+      "email_placeholder": "exemplo@email.com",
+      "password_placeholder": "Digite sua senha",
+      "referral_label": "C?digo de indica??o (opcional)",
+      "referral_placeholder": "Exemplo: a1b2c3d4e5"
     }
   },
   "sidebar": {
     "dashboard": "Dashboard Central",
     "machines": "Minhas Máquinas",
+    "vault": "Cofre",
     "shop": "Loja",
     "offers": "Ofertas",
     "wallet": "Carteira",
     "faucet": "Faucet",
     "shortlinks": "Shortlinks",
     "checkin": "Check-in",
+    "read_earn": "Ler e ganhar",
+    "mini_pass": "Mini Pass",
     "auto_mining": "Auto Mining",
     "youtube": "YouTube",
     "games": "Jogos",
     "calculator": "Calculadora",
     "ranking": "Ranking",
     "power_stats": "Estatísticas e poder",
+    "support": "Suporte",
     "logout": "Sair da Conta",
     "menu_title": "Menu Principal",
     "categories": {
@@ -262,6 +642,173 @@
       "earn": "Ganhar",
       "social": "Social & Fun"
     }
+  },
+  "miniPass": {
+    "title": "Mini Pass",
+    "subtitle": "Missões sazonais, níveis de XP e recompensas exclusivas",
+    "no_seasons": "Nenhuma temporada ativa no momento.",
+    "back": "Todas as temporadas",
+    "level_label": "Nível",
+    "buy_level": "Comprar nível",
+    "complete_pass": "Completar passe",
+    "missions": "Missões",
+    "rewards_track": "Trilha de recompensas",
+    "done": "Concluída",
+    "claim": "Resgatar",
+    "claimed": "Resgatado",
+    "locked": "Bloqueado",
+    "claim_ok": "Recompensa resgatada",
+    "claim_already": "Já resgatado",
+    "buy_ok": "Compra de nível concluída",
+    "complete_ok": "Passe completado",
+    "errors": {
+      "load_failed": "Não foi possível carregar o Mini Pass",
+      "network": "Erro de rede",
+      "not_eligible": "Alcance o nível do tier primeiro",
+      "claim_failed": "Falha ao resgatar",
+      "insufficient_pol": "POL insuficiente",
+      "purchase_failed": "Falha na compra"
+    }
+  },
+  "readEarn": {
+    "title": "Ler e ganhar",
+    "subtitle": "Abra os artigos dos parceiros, encontre o código secreto e resgate recompensas uma vez por campanha.",
+    "load_error": "Não foi possível carregar as campanhas.",
+    "empty": "Não há campanhas ativas no momento. Volte em breve.",
+    "read_article": "Ler artigo",
+    "submit_code": "Enviar código",
+    "modal_title": "Resgatar código do parceiro",
+    "code_label": "Código do parceiro",
+    "code_placeholder": "Digite o código do artigo",
+    "cancel": "Cancelar",
+    "submit": "Resgatar",
+    "submitting": "Resgatando…",
+    "success_title": "Recompensa desbloqueada!",
+    "success_hint": "A recompensa foi adicionada à sua conta.",
+    "reward_hashrate": "+{{value}} GH/s por {{days}} dias",
+    "reward_blk": "+{{value}} BLK",
+    "reward_machine": "Máquina concedida (catálogo ID {{minerId}}, nível {{level}})",
+    "error_unavailable": "Este código não pode ser resgatado. Verifique o artigo, as datas ou tente mais tarde.",
+    "error_claimed": "Você já resgatou esta campanha.",
+    "error_invalid": "Pedido inválido.",
+    "ends": "Termina",
+    "partner_link": "Link do parceiro",
+    "done": "Concluir"
+  },
+  "adminReadEarn": {
+    "title": "Campanhas Ler e ganhar",
+    "subtitle": "Crie campanhas de artigos parceiros e acompanhe os resgates.",
+    "load_error": "Não foi possível carregar as campanhas.",
+    "migration_pending": "É necessária migração no banco. Aplique as migrações Prisma no servidor.",
+    "create": "Nova campanha",
+    "edit": "Editar",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "confirm_delete": "Excluir esta campanha? Só é permitido se não houver resgates.",
+    "redemptions": "Resgates",
+    "redemptions_load_error": "Não foi possível carregar os resgates.",
+    "redemptions_empty": "Ainda não há resgates.",
+    "field_title": "Título",
+    "field_partner_url": "URL do artigo do parceiro",
+    "field_reward_code": "Código da recompensa (secreto)",
+    "field_reward_code_hint": "Armazenado com hash. Mín. 6 caracteres.",
+    "code_new_placeholder": "Código secreto (mín. 6 caracteres)",
+    "code_optional_placeholder": "Novo código (opcional — deixe em branco para manter o atual)",
+    "field_reward_type": "Tipo de recompensa",
+    "type_hashrate": "Hashrate (temporário)",
+    "type_blk": "Saldo BLK",
+    "type_machine": "Máquina (inventário)",
+    "field_reward_amount": "Valor da recompensa",
+    "amount_hashrate_hint": "Impulso em GH/s",
+    "amount_blk_hint": "BLK creditados",
+    "amount_machine_hint": "Nível da máquina (1–100)",
+    "field_miner": "Máquina do catálogo",
+    "field_validity_days": "Validade do hashrate (dias)",
+    "field_starts": "Início",
+    "field_expires": "Expira em",
+    "field_max_redemptions": "Máx. resgates (opcional)",
+    "field_max_placeholder": "Ilimitado se vazio",
+    "field_sort": "Ordem",
+    "field_active": "Ativa",
+    "toast_created": "Campanha criada.",
+    "toast_updated": "Campanha atualizada.",
+    "toast_deleted": "Campanha removida.",
+    "toast_save_error": "Não foi possível salvar a campanha.",
+    "toast_delete_error": "Não foi possível excluir a campanha.",
+    "table_redemptions": "Resgates",
+    "table_title": "Título",
+    "table_dates": "Janela",
+    "table_type": "Tipo",
+    "table_active": "Ativa",
+    "redeemed_at": "Resgatado em",
+    "user": "Usuário"
+  },
+  "support_tickets": {
+    "title": "Suporte",
+    "subtitle": "Abra um chamado e converse com a equipe em tempo real.",
+    "refresh": "Atualizar",
+    "new_ticket": "Novo chamado",
+    "list_heading": "Seus chamados",
+    "empty_list": "Você ainda não tem chamados. Crie um para pedir ajuda.",
+    "status_replied": "Respondido",
+    "status_open": "Aberto",
+    "load_more": "Carregar mais",
+    "error_list": "Não foi possível carregar os chamados.",
+    "error_thread": "Não foi possível carregar este chamado.",
+    "select_prompt": "Selecione um chamado na lista ou crie um novo.",
+    "protocol": "Protocolo #{{id}}",
+    "you": "Você",
+    "team": "Equipe de suporte",
+    "reply_placeholder": "Escreva sua mensagem…",
+    "add_images": "Adicionar imagens",
+    "send": "Enviar",
+    "reply_sent": "Mensagem enviada.",
+    "error_reply": "Não foi possível enviar a mensagem.",
+    "created": "Chamado criado.",
+    "error_create": "Não foi possível criar o chamado.",
+    "validation_required": "Assunto e mensagem são obrigatórios.",
+    "validation_profile": "Seu perfil precisa ter nome e e-mail.",
+    "modal_title": "Novo chamado de suporte",
+    "close": "Fechar",
+    "field_subject": "Assunto",
+    "field_message": "Mensagem",
+    "submitting": "Enviando…",
+    "submit": "Enviar chamado",
+    "files_count": "{{count}} arquivo(s) selecionado(s)",
+    "back_list": "Voltar à lista",
+    "remove_file": "Remover arquivo",
+    "attachment_alt": "Pré-visualização do anexo",
+    "reply_image_only": "(anexo de imagem)"
+  },
+  "admin_support": {
+    "title": "Chamados de suporte",
+    "subtitle": "Gerencie solicitações dos usuários com atualizações ao vivo.",
+    "refresh": "Atualizar",
+    "search_placeholder": "Buscar…",
+    "filter_all": "Todas",
+    "filter_unread": "Não lidas",
+    "filter_pending": "Pendentes",
+    "filter_replied": "Respondidas",
+    "empty": "Nenhum chamado encontrado.",
+    "badge_replied": "Respondido",
+    "badge_pending": "Pendente",
+    "load_more": "Carregar mais",
+    "error_list": "Não foi possível carregar os chamados.",
+    "error_details": "Não foi possível carregar os detalhes.",
+    "protocol": "Protocolo #{{id}}",
+    "label_user": "Usuário",
+    "label_team": "Equipe de suporte",
+    "legacy_reply": "Resposta legada",
+    "reply_placeholder": "Escreva sua resposta…",
+    "add_images": "Adicionar imagens",
+    "send": "Enviar resposta",
+    "reply_sent": "Resposta enviada.",
+    "error_reply": "Não foi possível enviar a resposta.",
+    "select_title": "Selecione um chamado",
+    "select_hint": "Escolha um chamado na lista para ver a conversa.",
+    "remove_file": "Remover arquivo",
+    "reply_image_only": "(anexo de imagem)"
   },
   "header": {
     "community_discord": "Comunidade Discord",
@@ -316,6 +863,8 @@
     "empty_inventory": "Seu inventário está vazio.",
     "buy_miners_msg": "Compre mineradoras na loja para começar.",
     "tip_msg": "Dica: Clique em um slot vazio para instalar uma máquina do seu inventário. Máquinas elite ocupam 2 slots.",
+    "warehouse": "Armazém",
+    "go_to_warehouse": "Ir para o Armazém",
     "room_locked": "Sala {{room}} bloqueada",
     "room_locked_desc": "24 racks · 192 slots disponíveis após desbloqueio",
     "unlock_free": "Desbloquear grátis",
@@ -877,7 +1426,42 @@
     "loading_power": "Carregando…",
     "power_error": "Não foi possível carregar o poder dos jogos.",
     "retry": "Tentar de novo",
-    "sync_hint": "Atualiza ao terminar um jogo ou quando os bônus expiram."
+    "sync_hint": "Atualiza ao terminar um jogo ou quando os bônus expiram.",
+    "hash_score_label": "Pontuação hash",
+    "time_sync_label": "Tempo",
+    "brand_prefix": "Miner",
+    "brand_suffix": "Games",
+    "exit_session_aria": "Sair da sessão",
+    "final_report_title": "Relatório final",
+    "bonus_granted_title": "Bônus concedido!",
+    "mission_failed_title": "Missão falhou",
+    "restart_link": "Reiniciar link",
+    "wait_seconds": "Aguarde {{seconds}}s",
+    "back_to_terminal": "Voltar ao terminal",
+    "syncing": "Sincronizando…",
+    "memory_sync_title": "Memory Sync",
+    "memory_sync_desc": "Combine pares de moedas em alta velocidade.",
+    "power_match_title": "Power Match",
+    "power_match_desc": "Gere cascatas de energia minerando ativos.",
+    "cooldown_label": "Espera: {{seconds}}s",
+    "cta_start": "Iniciar link",
+    "time_value_seconds": "{{seconds}}s",
+    "socket_errors": {
+      "invalid_session": "Sessão inválida.",
+      "cooldown": "Aguarde {{seconds}}s para iniciar este jogo novamente.",
+      "unknown_game": "Jogo indisponível.",
+      "game_paused": "Jogo pausado temporariamente.",
+      "start_failed": "Erro ao iniciar o jogo. Tente novamente."
+    },
+    "game_finish": {
+      "anti_cheat_timing": "Ação suspeita detectada: tempo de jogo irreal.",
+      "session_ended": "Sessão encerrada."
+    },
+    "game_reward": {
+      "full_term": "Bônus de +50 H/s ativo por {{days}} dias!",
+      "short_term": "Bônus de +50 H/s ativo por 24 horas! Faça check-in para até {{days}} dias.",
+      "persist_ok": "Bônus registrado com sucesso."
+    }
   },
   "autoMiningGpuPage": {
     "loading": "Sincronizando sessão…",
@@ -1078,5 +1662,24 @@
     "toast_load_error": "Não foi possível carregar os marcos.",
     "toast_migration_pending": "Faltam migrações na base de dados do servidor. Executa Prisma migrate deploy e tenta de novo.",
     "confirm_delete": "Eliminar este marco? Recompensas já atribuídas mantêm-se registadas."
+  },
+  "vault": {
+    "title": "Cofre de Mineradores",
+    "subtitle": "Armazene seus mineradores com segurança longe da interface principal.",
+    "empty": "Seu cofre está vazio.",
+    "empty_hint": "Mova mineradores aqui do seu inventário para escondê-los da visualização principal.",
+    "stored_machines": "Máquinas Armazenadas",
+    "move_to_vault": "Mover para Cofre",
+    "retrieve_from_vault": "Retirar do Cofre",
+    "move_success": "Máquina movida para o cofre com sucesso!",
+    "retrieve_success": "Máquina retirada do cofre com sucesso!",
+    "move_error": "Falha ao mover máquina para o cofre.",
+    "retrieve_error": "Falha ao retirar máquina do cofre.",
+    "confirm_move": "Mover para Cofre",
+    "confirm_move_desc": "Isso irá esconder a máquina do seu inventário e sala de mineração.",
+    "confirm_retrieve": "Retirar do Cofre",
+    "confirm_retrieve_desc": "Isso irá retornar a máquina para seu inventário.",
+    "loading": "Carregando cofre...",
+    "error_loading": "Erro ao carregar cofre."
   }
 }
