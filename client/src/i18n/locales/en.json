@@ -875,6 +875,44 @@
     "recent_confirmed": "credited",
     "load_error_toast": "Could not load PTC data"
   },
+  "offerwallPage": {
+    "title": "Offerwall",
+    "subtitle": "Complete partner tasks and surveys. Rewards are credited when Offerwall.me calls our postback URL.",
+    "badge": "Offer hub",
+    "login_title": "Sign in required",
+    "login_body": "Log in to open the offer wall and receive POL to your account.",
+    "loading": "Loading offer wall…",
+    "load_error": "Could not load the offer wall configuration.",
+    "not_configured": "Offerwall.me is not configured on this server (missing API key).",
+    "open_board": "Open offer wall",
+    "open_embed": "Open embedded",
+    "open_hint": "Opens in a new tab. Allow pop-ups if nothing appears.",
+    "postback_title": "Postback URL (dashboard)",
+    "postback_body": "Paste this exact URL as the Postback URL in your Offerwall.me app settings. Our server must return \"ok\" (lowercase) for payouts to succeed.",
+    "copy_postback": "Copy URL",
+    "copied_toast": "Postback URL copied",
+    "walls": {
+      "offerwall_me": {
+        "name": "Offerwall.me",
+        "description": "Surveys, tasks, and PTC-style offers. Rewards post to your BlockMiner balance after verification.",
+        "badge": "Recommended"
+      },
+      "time_wall": {
+        "name": "TimeWall",
+        "description": "Engagement tasks and quick surveys.",
+        "badge": "Coming soon"
+      },
+      "cpx_research": {
+        "name": "CPX Research",
+        "description": "Higher-payout surveys.",
+        "badge": "Coming soon"
+      },
+      "access": "Open offers",
+      "unavailable": "Unavailable"
+    },
+    "modal_subtitle": "Complete tasks to earn balance",
+    "iframe_title": "Offerwall"
+  },
   "readEarn": {
     "title": "Read & Earn",
     "subtitle": "Open partner articles, find the secret code, and claim rewards once per campaign.",

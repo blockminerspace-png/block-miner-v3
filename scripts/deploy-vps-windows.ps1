@@ -178,6 +178,16 @@ try {
             $mergedEnvText = Apply-ViteOverridesToEnvText -Content $mergedEnvText -ViteMap $zeradsMap
             Write-Host "==> Merged ZERADS_* from deploy.secrets.local into .env.production payload."
         }
+        $offerwallMap = @{}
+        foreach ($key in $deploySecrets.Keys) {
+            if ($key -match '^OFFERWALL_' -and $deploySecrets[$key] -and $deploySecrets[$key].Trim()) {
+                $offerwallMap[$key] = $deploySecrets[$key].Trim()
+            }
+        }
+        if ($offerwallMap.Count -gt 0) {
+            $mergedEnvText = Apply-ViteOverridesToEnvText -Content $mergedEnvText -ViteMap $offerwallMap
+            Write-Host "==> Merged OFFERWALL_* from deploy.secrets.local into .env.production payload."
+        }
         $requireWc = $deploySecrets['DEPLOY_REQUIRE_WALLETCONNECT'] -eq '1' -or $deploySecrets['DEPLOY_REQUIRE_WALLETCONNECT'] -eq 'true'
         $hasWc = Test-MergedEnvHasWalletConnectId -Text $mergedEnvText
         if (-not $hasWc) {

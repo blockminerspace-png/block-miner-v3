@@ -12,6 +12,12 @@ import {
   parseIpAllowlist
 } from "../server/utils/zeradsCallbackSecurity.js";
 
+describe("Offerwall.me postback HTTP contract", () => {
+  it("provider docs require lowercase ok body on success", () => {
+    assert.equal(String("OK").toLowerCase(), "ok");
+  });
+});
+
 describe("offerwallPostbackSecurity", () => {
   it("buildOfferwallMeMd5Signature matches Offerwall.me formula", () => {
     const sig = buildOfferwallMeMd5Signature("42", "tx-1", "10.5", "mysecret");

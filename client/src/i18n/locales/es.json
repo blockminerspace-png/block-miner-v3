@@ -511,6 +511,44 @@
     "recent_confirmed": "acreditado",
     "load_error_toast": "No se pudieron cargar los datos de PTC"
   },
+  "offerwallPage": {
+    "title": "Offerwall",
+    "subtitle": "Completa tareas y encuestas de socios. Las recompensas se acreditan cuando Offerwall.me llama a nuestra URL de postback.",
+    "badge": "Centro de ofertas",
+    "login_title": "Inicia sesión",
+    "login_body": "Inicia sesión para abrir el muro de ofertas y recibir POL en tu cuenta.",
+    "loading": "Cargando muro de ofertas…",
+    "load_error": "No se pudo cargar la configuración del offer wall.",
+    "not_configured": "Offerwall.me no está configurado en este servidor (falta la API key).",
+    "open_board": "Abrir muro de ofertas",
+    "open_embed": "Abrir incrustado",
+    "open_hint": "Se abre en una pestaña nueva. Permite ventanas emergentes si no aparece nada.",
+    "postback_title": "URL de postback (panel)",
+    "postback_body": "Pega esta URL exacta como Postback URL en la configuración de tu app en Offerwall.me. Nuestro servidor debe responder \"ok\" (minúsculas) para que los pagos cuenten como correctos.",
+    "copy_postback": "Copiar URL",
+    "copied_toast": "URL de postback copiada",
+    "walls": {
+      "offerwall_me": {
+        "name": "Offerwall.me",
+        "description": "Encuestas, tareas y ofertas tipo PTC. Las recompensas se publican en tu saldo BlockMiner tras la verificación.",
+        "badge": "Recomendado"
+      },
+      "time_wall": {
+        "name": "TimeWall",
+        "description": "Tareas de engagement y encuestas rápidas.",
+        "badge": "Próximamente"
+      },
+      "cpx_research": {
+        "name": "CPX Research",
+        "description": "Encuestas con mayor remuneración.",
+        "badge": "Próximamente"
+      },
+      "access": "Abrir ofertas",
+      "unavailable": "No disponible"
+    },
+    "modal_subtitle": "Completa tareas para ganar saldo",
+    "iframe_title": "Offerwall"
+  },
   "readEarn": {
     "title": "Leer y ganar",
     "subtitle": "Abre los artículos de los socios, encuentra el código secreto y reclama recompensas una vez por campaña.",

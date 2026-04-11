@@ -876,6 +876,44 @@
     "recent_confirmed": "creditado",
     "load_error_toast": "Não foi possível carregar os dados de PTC"
   },
+  "offerwallPage": {
+    "title": "Offerwall",
+    "subtitle": "Complete tarefas e pesquisas dos parceiros. As recompensas são creditadas quando o Offerwall.me chama a URL de postback do nosso servidor.",
+    "badge": "Central de ofertas",
+    "login_title": "Login necessário",
+    "login_body": "Entre na conta para abrir a parede de ofertas e receber POL na sua conta.",
+    "loading": "Carregando parede de ofertas…",
+    "load_error": "Não foi possível carregar a configuração do offer wall.",
+    "not_configured": "Offerwall.me não está configurado neste servidor (falta a API key).",
+    "open_board": "Abrir parede de ofertas",
+    "open_embed": "Abrir incorporado",
+    "open_hint": "Abre numa nova aba. Permita pop-ups se nada aparecer.",
+    "postback_title": "URL de postback (painel)",
+    "postback_body": "Cole esta URL exata como Postback URL nas definições da app no Offerwall.me. O nosso servidor tem de responder \"ok\" (minúsculas) para os pagamentos serem aceites.",
+    "copy_postback": "Copiar URL",
+    "copied_toast": "URL de postback copiada",
+    "walls": {
+      "offerwall_me": {
+        "name": "Offerwall.me",
+        "description": "Pesquisas, tarefas e ofertas estilo PTC. As recompensas aparecem no saldo BlockMiner após verificação.",
+        "badge": "Recomendado"
+      },
+      "time_wall": {
+        "name": "TimeWall",
+        "description": "Tarefas de engajamento e pesquisas rápidas.",
+        "badge": "Em breve"
+      },
+      "cpx_research": {
+        "name": "CPX Research",
+        "description": "Pesquisas com remuneração mais alta.",
+        "badge": "Em breve"
+      },
+      "access": "Acessar ofertas",
+      "unavailable": "Indisponível"
+    },
+    "modal_subtitle": "Conclua tarefas para ganhar saldo",
+    "iframe_title": "Offerwall"
+  },
   "readEarn": {
     "title": "Ler e ganhar",
     "subtitle": "Abra os artigos dos parceiros, encontre o código secreto e resgate recompensas uma vez por campanha.",

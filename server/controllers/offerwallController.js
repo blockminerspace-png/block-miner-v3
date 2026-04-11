@@ -1,6 +1,7 @@
 import prisma from "../src/db/prisma.js";
 import loggerNamespace from "../utils/logger.js";
 import { verifyOfferwallMeSignature } from "../utils/offerwallPostbackSecurity.js";
+import { resolveRequestPublicOrigin } from "../utils/requestPublicOrigin.js";
 
 const logger = loggerNamespace.child("OfferwallController");
 
@@ -25,6 +26,31 @@ function logPostbackMeta(req, fields) {
     path: req.path,
     ...fields
   });
+}
+
+/**
+ * Authenticated URL for embedding or opening Offerwall.me (API key stays server-side).
+ */
+export async function getOfferwallMeFrameUrl(req, res) {
+  try {
+    const apiKey = String(
+      process.env.OFFERWALL_ME_API_KEY || process.env.OFFERWALL_ME_PUBLISHER_KEY || ""
+    ).trim();
+    if (!apiKey) {
+      return res.status(503).json({
+        ok: false,
+        code: "OFFERWALL_NOT_CONFIGURED",
+        message: "Offerwall.me API key is not configured on this server."
+      });
+    }
+    const userId = req.user.id;
+    const frameUrl = `https://offerwall.me/offerwall/${encodeURIComponent(apiKey)}/${encodeURIComponent(String(userId))}`;
+    const origin = resolveRequestPublicOrigin(req);
+    const postbackUrl = origin ? `${origin.replace(/\/$/, "")}/api/offerwall/postback` : "";
+    res.json({ ok: true, frameUrl, postbackUrl });
+  } catch {
+    res.status(500).json({ ok: false, message: "Error building Offerwall.me URL." });
+  }
 }
 
 export async function offerwallMePostback(req, res) {
@@ -66,7 +92,7 @@ export async function offerwallMePostback(req, res) {
         return res.status(503).send("unconfigured");
       }
       logPostbackMeta(req, { result: "debug_ok", userId, transId: String(txId).slice(0, 24) });
-      return res.status(200).send("OK");
+      return res.status(200).send("ok");
     }
 
     if (!secretConfigured) {
@@ -179,7 +205,7 @@ export async function offerwallMePostback(req, res) {
     }
 
     logPostbackMeta(req, { result: "ok", userId, transId: String(txId).slice(0, 24) });
-    return res.status(200).send("OK");
+    return res.status(200).send("ok");
   } catch (error) {
     logger.error("Error processing offerwall.me postback", { error: error.message });
     return res.status(500).send("Internal Server Error");
