@@ -282,9 +282,8 @@ $composeEnv stop app nginx 2>/dev/null || true
 $composeEnv rm -f app nginx 2>/dev/null || true
 # Compose sometimes leaves a named container behind; force by stable project names (docker-compose.yml: name: block-miner)
 docker rm -f block-miner-app-1 block-miner-nginx-1 2>/dev/null || true
-for f in block-miner-app block-miner-nginx; do
-  docker ps -aq --filter name="$f" | while read -r id; do [ -z "$id" ] || docker rm -f "$id"; done
-done
+docker ps -aq --filter name=block-miner-app | while read -r id; do [ -z "`$id" ] || docker rm -f "`$id"; done
+docker ps -aq --filter name=block-miner-nginx | while read -r id; do [ -z "`$id" ] || docker rm -f "`$id"; done
 $composeEnv up -d db
 $buildStep
 $composeEnv up -d nginx
