@@ -140,3 +140,58 @@ export async function saveSidebarNavEntries(bodyEntries) {
   });
   return { ok: true, entries: v.entries, categories: buildResolvedCategories(v.entries) };
 }
+
+/**
+ * Normalize app paths for comparison (matches client router paths).
+ * @param {string} path
+ */
+export function normalizeSidebarPath(path) {
+  if (typeof path !== "string" || !path.startsWith("/")) return "";
+  const base = path.split("?")[0];
+  if (base.length > 1 && base.endsWith("/")) return base.slice(0, -1);
+  return base;
+}
+
+/**
+ * Collect visible user-app paths from resolved sidebar categories (public nav payload).
+ * @param {unknown} categories
+ * @returns {Set<string>}
+ */
+export function collectVisiblePathsFromCategories(categories) {
+  const paths = new Set();
+  if (!Array.isArray(categories)) return paths;
+  for (const cat of categories) {
+    for (const item of cat.items || []) {
+      if (typeof item.path === "string") {
+        const n = normalizeSidebarPath(item.path);
+        if (n) paths.add(n);
+      }
+      for (const child of item.children || []) {
+        if (typeof child.path === "string") {
+          const n = normalizeSidebarPath(child.path);
+          if (n) paths.add(n);
+        }
+      }
+    }
+  }
+  return paths;
+}
+
+/**
+ * @returns {Promise<Set<string>>}
+ */
+export async function getVisibleSidebarPaths() {
+  const categories = await getSidebarNavCategoriesPublic();
+  return collectVisiblePathsFromCategories(categories);
+}
+
+/**
+ * @param {string} path
+ * @returns {Promise<boolean>}
+ */
+export async function isSidebarPathVisible(path) {
+  const normalized = normalizeSidebarPath(path);
+  if (!normalized) return false;
+  const paths = await getVisibleSidebarPaths();
+  return paths.has(normalized);
+}

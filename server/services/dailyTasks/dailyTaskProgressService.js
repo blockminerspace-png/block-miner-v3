@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../../src/db/prismaNamespace.js";
 import prisma from "../../src/db/prisma.js";
 import { getDailyTaskPeriodKey } from "./dailyTaskPeriod.js";
 

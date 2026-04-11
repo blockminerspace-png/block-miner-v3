@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../../src/db/prismaNamespace.js";
 import {
   REWARD_BLK,
   REWARD_EVENT_MINER,

@@ -16,6 +16,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Generate Prisma client
+        run: npx prisma generate --schema=server/prisma/schema.prisma
       - name: Create data directory
         run: mkdir -p data
       - name: Run tests

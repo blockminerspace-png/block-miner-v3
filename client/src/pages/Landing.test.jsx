@@ -75,11 +75,6 @@ describe("Landing page", () => {
     expect(h1).toHaveTextContent("landing.hero.headline_line2");
   });
 
-  it("renders nav login link", () => {
-    renderLanding();
-    expect(screen.getByText("landing.nav.login")).toBeInTheDocument();
-  });
-
   it("hero secondary CTA links to login", () => {
     renderLanding();
     const link = screen.getByRole("link", { name: "landing.hero.cta_secondary" });
@@ -126,9 +121,10 @@ describe("Landing page", () => {
     expect(screen.getByText("landing.features.title")).toBeInTheDocument();
   });
 
-  it("renders calculator section title", () => {
+  it("renders calculator link in footer", () => {
     renderLanding();
-    expect(screen.getByText("landing.calculator.title")).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: "landing.footer.link_calc" });
+    expect(link).toHaveAttribute("href", "/calculator");
   });
 
   it("renders FAQ section title", () => {

@@ -554,6 +554,9 @@
       "message": "We are performing system maintenance and improvements. Temporary instabilities may occur. Thank you for your patience."
     }
   },
+  "feature_gate": {
+    "unavailable": "This page is not available."
+  },
   "validation": {
     "errors": {
       "termsRequired": "You must accept the Terms of Use before creating an account."
@@ -699,7 +702,7 @@
   },
   "admin_daily_tasks": {
     "title": "Daily tasks",
-    "subtitle": "Task definitions drive the user Daily Tasks page. They are seeded by migration; editing here is view-only until CRUD is added.",
+    "subtitle": "Turn tasks on or off and change their order. The check-in daily task is hidden from users when the Check-in sidebar link is disabled.",
     "loading": "Loading definitions…",
     "load_error": "Could not load daily task definitions.",
     "empty": "No definitions found. Run database migrations.",
@@ -710,6 +713,12 @@
     "col_reward": "Reward",
     "col_active": "Active",
     "col_order": "Order",
+    "col_actions": "Actions",
+    "toggle_aria": "Toggle task active",
+    "order_placeholder": "Order",
+    "save_order": "Save order",
+    "saved": "Changes saved.",
+    "save_error": "Could not save changes.",
     "yes": "Yes",
     "no": "No"
   },
@@ -1781,6 +1790,7 @@
     "move_success": "Machine moved to vault successfully!",
     "retrieve_success": "Machine retrieved from vault successfully!",
     "move_error": "Failed to move machine to vault.",
+    "move_conflict": "This machine is still linked to a rack. Refresh the page and try again.",
     "retrieve_error": "Failed to retrieve machine from vault.",
     "confirm_move": "Move to Vault",
     "confirm_move_desc": "This will hide the machine from your inventory and mining room.",

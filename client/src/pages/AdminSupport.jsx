@@ -211,8 +211,8 @@ export default function AdminSupport() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="flex flex-col flex-1 min-h-0 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
             <Inbox className="w-8 h-8 text-amber-500" />
@@ -230,8 +230,8 @@ export default function AdminSupport() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[360px] h-[calc(100dvh-200px)] max-h-[calc(100dvh-200px)]">
-        <div className="lg:col-span-4 flex flex-col space-y-4 overflow-hidden min-h-0">
+      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] gap-6 min-h-[min(360px,calc(100dvh-11rem))] h-[calc(100dvh-11rem)] max-h-[calc(100dvh-11rem)] lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)]">
+        <div className="lg:col-span-4 flex min-h-0 flex-col space-y-4 overflow-hidden max-lg:max-h-[min(40vh,320px)] max-lg:shrink-0">
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -308,7 +308,7 @@ export default function AdminSupport() {
           )}
         </div>
 
-        <div className="lg:col-span-8 bg-slate-950/50 border border-slate-800 rounded-3xl overflow-hidden flex flex-col min-h-0">
+        <div className="lg:col-span-8 flex min-h-0 flex-col overflow-hidden rounded-3xl border border-slate-800 bg-slate-950/50 max-lg:min-h-[min(50vh,480px)]">
           {loadingDetails ? (
             <div className="flex-1 flex items-center justify-center">
               <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
@@ -347,11 +347,11 @@ export default function AdminSupport() {
               </div>
 
               <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain space-y-6 pr-4 scrollbar-thin scrollbar-thumb-slate-800">
-                <div className="bg-slate-900/30 p-6 rounded-3xl border border-slate-800/50">
-                  <div className="flex items-center gap-2 mb-2 text-[10px] font-black text-slate-500 uppercase">
+                <div className="rounded-3xl border border-slate-800/50 bg-slate-900/30 p-6">
+                  <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase text-slate-500">
                     <User className="w-3 h-3" /> {t('admin_support.label_user')}
                   </div>
-                  <p className="text-slate-300 whitespace-pre-wrap leading-relaxed">
+                  <p className="break-words text-base leading-7 text-slate-300 whitespace-pre-wrap">
                     {selectedMessage.body ?? selectedMessage.message}
                   </p>
                   <SupportAttachmentThumbnails attachments={selectedMessage.attachments} />

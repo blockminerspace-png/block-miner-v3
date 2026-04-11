@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../src/db/prismaNamespace.js";
 import { ZodError } from "zod";
 import prisma from "../src/db/prisma.js";
 import loggerLib from "../utils/logger.js";

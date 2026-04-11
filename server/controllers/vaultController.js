@@ -120,6 +120,13 @@ export async function moveToVault(req, res) {
 
   } catch (error) {
     console.error("Move to Vault Error:", error);
+    const code = error?.code;
+    if (code === "P2003" || code === "P2014") {
+      return res.status(409).json({
+        ok: false,
+        message: "Machine is still linked to a rack. Refresh the page and try again."
+      });
+    }
     res.status(500).json({ ok: false, message: "Internal server error during vault storage." });
   }
 }

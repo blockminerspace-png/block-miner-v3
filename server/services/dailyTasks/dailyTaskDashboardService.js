@@ -1,12 +1,30 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../../src/db/prismaNamespace.js";
 import prisma from "../../src/db/prisma.js";
+import { SIDEBAR_ITEM_REGISTRY } from "../sidebarNavRegistry.js";
+import { getVisibleSidebarPaths } from "../sidebarNavService.js";
 import {
   STATUS_AVAILABLE,
   STATUS_CLAIMED,
   STATUS_COMPLETED,
-  STATUS_IN_PROGRESS
+  STATUS_IN_PROGRESS,
+  TASK_LOGIN_DAY
 } from "./dailyTaskConstants.js";
 import { getDailyTaskPeriodKey, getNextDailyTaskResetAt } from "./dailyTaskPeriod.js";
+
+const CHECKIN_APP_PATH = SIDEBAR_ITEM_REGISTRY.checkin.path;
+
+/**
+ * Hides login-day tasks when the check-in page is disabled in sidebar nav.
+ * @param {Array<{ taskType: string }>} defs
+ * @param {Set<string>} visiblePaths
+ */
+export function filterDailyTaskDefsForSidebar(defs, visiblePaths) {
+  const checkinOn = visiblePaths.has(CHECKIN_APP_PATH);
+  return defs.filter((def) => {
+    if (def.taskType === TASK_LOGIN_DAY) return checkinOn;
+    return true;
+  });
+}
 
 /**
  * @param {import("@prisma/client").UserDailyTaskProgress | null | undefined} row
@@ -49,7 +67,8 @@ function rewardSummary(def) {
 export async function getDailyTasksDashboard(userId) {
   const now = new Date();
   const periodKey = getDailyTaskPeriodKey(now);
-  const defs = await prisma.dailyTaskDefinition.findMany({
+  const visiblePaths = await getVisibleSidebarPaths();
+  const defsRaw = await prisma.dailyTaskDefinition.findMany({
     where: {
       isActive: true,
       AND: [
@@ -59,6 +78,7 @@ export async function getDailyTasksDashboard(userId) {
     },
     orderBy: { sortOrder: "asc" }
   });
+  const defs = filterDailyTaskDefsForSidebar(defsRaw, visiblePaths);
 
   const progressRows = await prisma.userDailyTaskProgress.findMany({
     where: { userId, periodKey }

@@ -211,71 +211,77 @@ function SlotModal({ slot, inventory, onInstall, onRemove, onMoveToVault, onClos
                 </div>
               </div>
               <div className="space-y-4">
-                <p className="text-sm text-gray-400 leading-6">{t("inventory.modal.remove_options_intro")}</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={async () => {
-                      if (confirmingAction === "inventory") {
-                        setBusy(true);
-                        try {
-                          await onRemove(slot.rack.id);
-                        } finally {
-                          setBusy(false);
+                <p className="text-sm text-gray-400 leading-relaxed">{t("inventory.modal.remove_options_intro")}</p>
+                <div className="flex flex-col gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={async () => {
+                        if (confirmingAction === "inventory") {
+                          setBusy(true);
+                          try {
+                            await onRemove(slot.rack.id);
+                          } finally {
+                            setBusy(false);
+                          }
+                          return;
                         }
-                        return;
-                      }
-                      setConfirmingAction("inventory");
-                    }}
-                    className={`w-full py-4 rounded-2xl font-bold text-sm transition-all border flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none ${
-                      confirmingAction === "inventory"
-                        ? "bg-red-500 text-white border-red-500"
-                        : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
-                    }`}
-                  >
-                    <Trash2 className="w-4 h-4 shrink-0" aria-hidden />
-                    {confirmingAction === "inventory"
-                      ? t("inventory.modal.confirm_remove_button")
-                      : t("inventory.modal.remove_to_inventory")}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy || !Number.isFinite(Number(machine.id))}
-                    onClick={async () => {
-                      if (confirmingAction === "vault") {
-                        setBusy(true);
-                        try {
-                          await onMoveToVault(Number(machine.id));
-                        } finally {
-                          setBusy(false);
+                        setConfirmingAction("inventory");
+                      }}
+                      className={`group w-full min-h-[3.25rem] px-4 py-3.5 rounded-2xl font-bold text-sm transition-all border flex flex-col sm:flex-row items-center justify-center gap-2 text-center sm:text-left disabled:opacity-50 disabled:pointer-events-none ${
+                        confirmingAction === "inventory"
+                          ? "bg-red-500 text-white border-red-500 shadow-lg shadow-red-500/20"
+                          : "bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/15 hover:border-red-500/50"
+                      }`}
+                    >
+                      <Trash2 className="w-5 h-5 shrink-0 opacity-90" aria-hidden />
+                      <span className="leading-snug whitespace-normal">
+                        {confirmingAction === "inventory"
+                          ? t("inventory.modal.confirm_remove_button")
+                          : t("inventory.modal.remove_to_inventory")}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || !Number.isFinite(Number(machine.id))}
+                      onClick={async () => {
+                        if (confirmingAction === "vault") {
+                          setBusy(true);
+                          try {
+                            await onMoveToVault(Number(machine.id));
+                          } finally {
+                            setBusy(false);
+                          }
+                          return;
                         }
-                        return;
-                      }
-                      setConfirmingAction("vault");
-                    }}
-                    className={`w-full py-4 rounded-2xl font-bold text-sm transition-all border flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none ${
-                      confirmingAction === "vault"
-                        ? "bg-violet-600 text-white border-violet-600"
-                        : "bg-violet-500/10 text-violet-300 border-violet-500/25 hover:bg-violet-500/20"
-                    }`}
-                  >
-                    <Warehouse className="w-4 h-4 shrink-0" aria-hidden />
-                    {confirmingAction === "vault"
-                      ? t("inventory.modal.confirm_move_warehouse")
-                      : t("inventory.modal.move_to_warehouse")}
-                  </button>
+                        setConfirmingAction("vault");
+                      }}
+                      className={`group w-full min-h-[3.25rem] px-4 py-3.5 rounded-2xl font-bold text-sm transition-all border flex flex-col sm:flex-row items-center justify-center gap-2 text-center sm:text-left disabled:opacity-50 disabled:pointer-events-none ${
+                        confirmingAction === "vault"
+                          ? "bg-violet-600 text-white border-violet-500 shadow-lg shadow-violet-600/25"
+                          : "bg-violet-500/15 text-violet-200 border-violet-500/35 hover:bg-violet-500/25 hover:border-violet-400/50"
+                      }`}
+                    >
+                      <Warehouse className="w-5 h-5 shrink-0 opacity-90" aria-hidden />
+                      <span className="leading-snug whitespace-normal">
+                        {confirmingAction === "vault"
+                          ? t("inventory.modal.confirm_move_warehouse")
+                          : t("inventory.modal.move_to_warehouse")}
+                      </span>
+                    </button>
+                  </div>
+                  {confirmingAction != null && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setConfirmingAction(null)}
+                      className="w-full min-h-[2.75rem] py-3 bg-gray-900/90 text-gray-400 rounded-2xl font-semibold text-sm transition-all border border-gray-800 hover:bg-gray-800 hover:text-gray-200 disabled:opacity-50"
+                    >
+                      {t("common.cancel")}
+                    </button>
+                  )}
                 </div>
-                {confirmingAction != null && (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => setConfirmingAction(null)}
-                    className="w-full py-4 bg-gray-800/80 text-gray-300 rounded-2xl font-bold text-sm transition-all border border-gray-700 hover:bg-gray-700 disabled:opacity-50"
-                  >
-                    {t("common.cancel")}
-                  </button>
-                )}
               </div>
             </div>
           ) : (
@@ -617,7 +623,11 @@ export default function Inventory() {
         toast.error(res.data.message || t("vault.move_error"));
       }
     } catch (err) {
-      toast.error(err?.response?.data?.message || t("vault.move_error"));
+      if (err?.response?.status === 409) {
+        toast.error(t("vault.move_conflict"));
+      } else {
+        toast.error(err?.response?.data?.message || t("vault.move_error"));
+      }
     }
   };
 

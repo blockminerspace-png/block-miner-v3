@@ -92,6 +92,7 @@ adminRouter.get("/sidebar-nav", sidebarNavController.getAdminNav);
 adminRouter.put("/sidebar-nav", sidebarNavController.putAdminNav);
 
 adminRouter.get("/daily-tasks/definitions", adminDailyTasksController.listDefinitions);
+adminRouter.patch("/daily-tasks/definitions/:id", adminDailyTasksController.patchDefinition);
 
 // Dashboard Stats
 adminRouter.get("/stats", adminController.getStats);

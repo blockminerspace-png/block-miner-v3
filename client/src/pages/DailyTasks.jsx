@@ -178,16 +178,16 @@ export default function DailyTasks() {
                       </p>
                     </div>
                   </div>
-                  <div className="shrink-0">
+                  <div className="shrink-0 w-full md:w-auto md:min-w-[12rem]">
                     <button
                       type="button"
                       disabled={!canClaim || claimingId === task.id}
                       onClick={() => claim(task.id)}
-                      className="w-full md:w-auto px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
+                      className="w-full px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-[0.2em] bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 disabled:opacity-35 disabled:cursor-not-allowed text-white transition-all shadow-lg shadow-emerald-900/30 border border-emerald-400/20 disabled:border-transparent disabled:shadow-none"
                     >
                       {claimingId === task.id ? (
                         <span className="flex items-center justify-center gap-2">
-                          <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+                          <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden />
                           {t('dailyTasks.claiming')}
                         </span>
                       ) : (

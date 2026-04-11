@@ -1,11 +1,16 @@
 import prisma from "../../src/db/prisma.js";
+import { SIDEBAR_ITEM_REGISTRY } from "../sidebarNavRegistry.js";
+import { getVisibleSidebarPaths } from "../sidebarNavService.js";
 import { REWARD_POL } from "../miniPass/miniPassConstants.js";
 import {
   applyPolDeltaInEngine,
   fulfillMiniPassLevelReward,
   syncMiningAfterMiniPassReward
 } from "../miniPass/miniPassRewardFulfillmentService.js";
+import { TASK_LOGIN_DAY } from "./dailyTaskConstants.js";
 import { getDailyTaskPeriodKey } from "./dailyTaskPeriod.js";
+
+const CHECKIN_APP_PATH = SIDEBAR_ITEM_REGISTRY.checkin.path;
 
 /**
  * Maps a daily task definition row to the reward shape expected by `fulfillMiniPassLevelReward`.
@@ -30,6 +35,8 @@ function rewardPayloadFromDefinition(def) {
 export async function claimDailyTaskReward(userId, taskDefinitionId) {
   try {
     const periodKey = getDailyTaskPeriodKey();
+    const visiblePaths = await getVisibleSidebarPaths();
+    const checkinEnabled = visiblePaths.has(CHECKIN_APP_PATH);
     const out = await prisma.$transaction(async (tx) => {
       const user = await tx.user.findUnique({ where: { id: userId } });
       if (!user || user.isBanned) {
@@ -42,6 +49,11 @@ export async function claimDailyTaskReward(userId, taskDefinitionId) {
         where: { id: taskDefinitionId, isActive: true }
       });
       if (!def) {
+        const err = new Error("TASK_NOT_FOUND");
+        err.code = "NOT_FOUND";
+        throw err;
+      }
+      if (def.taskType === TASK_LOGIN_DAY && !checkinEnabled) {
         const err = new Error("TASK_NOT_FOUND");
         err.code = "NOT_FOUND";
         throw err;

@@ -93,6 +93,12 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(en.admin_daily_tasks.title).toBeTruthy();
     expect(pt.admin_daily_tasks.title).toBeTruthy();
     expect(es.admin_daily_tasks.title).toBeTruthy();
+    expect(en.admin_daily_tasks.col_actions).toBeTruthy();
+    expect(pt.admin_daily_tasks.col_actions).toBeTruthy();
+    expect(es.admin_daily_tasks.col_actions).toBeTruthy();
+    expect(en.feature_gate.unavailable).toBeTruthy();
+    expect(pt.feature_gate.unavailable).toBeTruthy();
+    expect(es.feature_gate.unavailable).toBeTruthy();
     expect(en.adminSidebar.nav.daily_tasks).toBeTruthy();
     expect(pt.adminSidebar.nav.daily_tasks).toBeTruthy();
     expect(es.adminSidebar.nav.daily_tasks).toBeTruthy();

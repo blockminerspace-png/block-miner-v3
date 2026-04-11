@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../../src/db/prismaNamespace.js";
 import prisma from "../../src/db/prisma.js";
 import { applyUserBalanceDelta } from "../../src/runtime/miningRuntime.js";
 import { PURCHASE_BUY_LEVEL, PURCHASE_COMPLETE_PASS, XP_SOURCE_PURCHASE } from "./miniPassConstants.js";

@@ -67,6 +67,7 @@ import Landing from './pages/Landing';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfUse from './pages/TermsOfUse';
 import Support from './pages/Support';
+import SidebarPathGate from './components/SidebarPathGate';
 
 const ProtectedLayout = () => {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -160,7 +161,14 @@ function App() {
           <Route path="/wallets" element={<Navigate to="/wallet" replace />} />
           <Route path="/faucet" element={<Faucet />} />
           <Route path="/shortlinks" element={<Shortlinks />} />
-          <Route path="/checkin" element={<Checkin />} />
+          <Route
+            path="/checkin"
+            element={
+              <SidebarPathGate requiredPath="/checkin">
+                <Checkin />
+              </SidebarPathGate>
+            }
+          />
           <Route path="/read-earn" element={<ReadEarn />} />
           <Route path="/mini-pass" element={<MiniPass />} />
           <Route path="/mini-pass/:seasonId" element={<MiniPass />} />

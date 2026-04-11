@@ -49,6 +49,8 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 .vscode/
+.claude/
+.openclaude-profile.json
 
 # Certs / backups (never commit real TLS keys; pasta existe via .gitkeep)
 nginx/certs/*.pem

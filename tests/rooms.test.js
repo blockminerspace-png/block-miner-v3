@@ -397,11 +397,13 @@ test("buyRoom retorna 404 quando usuÃ¡rio nÃ£o existe", async () => {
 // 16. buyRoom â€” sala 1 grÃ¡tis (sem deduÃ§Ã£o de saldo)
 test("buyRoom desbloqueia sala 1 gratuitamente sem deduzir saldo", async () => {
   const origFindMany = prisma.userRoom.findMany;
+  const origFindUnique = prisma.user.findUnique;
   const origTransaction = prisma.$transaction;
   // applyUserBalanceDelta é ESM read-only; é no-op quando sem engine (miningEngine = null)
 
   let userUpdateCalled = false;
   prisma.userRoom.findMany = async () => []; // nenhuma sala → nextRoom=1, price=0
+  prisma.user.findUnique = async () => ({ polBalance: 0 });
   prisma.$transaction = async (fn) => {
     const fakeTx = {
       user: { update: async () => { userUpdateCalled = true; } },
@@ -422,6 +424,7 @@ test("buyRoom desbloqueia sala 1 gratuitamente sem deduzir saldo", async () => {
     assert.equal(userUpdateCalled, false);
   } finally {
     prisma.userRoom.findMany = origFindMany;
+    prisma.user.findUnique = origFindUnique;
     prisma.$transaction = origTransaction;
   }
 });

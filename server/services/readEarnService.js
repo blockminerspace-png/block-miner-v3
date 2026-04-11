@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "../src/db/prismaNamespace.js";
 import prisma from "../src/db/prisma.js";
 import { syncUserBaseHashRate } from "../models/minerProfileModel.js";
 import { getMiningEngine } from "../src/miningEngineInstance.js";

@@ -554,6 +554,9 @@
       "message": "Estamos realizando manutenção e melhorias no sistema. Podem ocorrer instabilidades temporárias. Agradecemos a sua paciência."
     }
   },
+  "feature_gate": {
+    "unavailable": "Esta página não está disponível."
+  },
   "validation": {
     "errors": {
       "termsRequired": "Voc? precisa aceitar os Termos de Uso antes de criar uma conta."
@@ -700,7 +703,7 @@
   },
   "admin_daily_tasks": {
     "title": "Tarefas diárias",
-    "subtitle": "As definições alimentam a página de Tarefas diárias do usuário. São criadas pela migração; aqui é só leitura até existir edição no painel.",
+    "subtitle": "Ative ou desative tarefas e altere a ordem. A tarefa de check-in diário deixa de aparecer quando o link Check-in na barra lateral está desativado.",
     "loading": "A carregar definições…",
     "load_error": "Não foi possível carregar as definições de tarefas diárias.",
     "empty": "Nenhuma definição encontrada. Execute as migrações da base de dados.",
@@ -711,6 +714,12 @@
     "col_reward": "Recompensa",
     "col_active": "Ativo",
     "col_order": "Ordem",
+    "col_actions": "Ações",
+    "toggle_aria": "Alternar tarefa ativa",
+    "order_placeholder": "Ordem",
+    "save_order": "Guardar ordem",
+    "saved": "Alterações guardadas.",
+    "save_error": "Não foi possível guardar.",
     "yes": "Sim",
     "no": "Não"
   },
@@ -1786,6 +1795,7 @@
     "move_success": "Máquina movida para o cofre com sucesso!",
     "retrieve_success": "Máquina retirada do cofre com sucesso!",
     "move_error": "Falha ao mover máquina para o cofre.",
+    "move_conflict": "A máquina ainda está ligada a um rack. Atualize a página e tente novamente.",
     "retrieve_error": "Falha ao retirar máquina do cofre.",
     "confirm_move": "Mover para Cofre",
     "confirm_move_desc": "Isso irá esconder a máquina do seu inventário e sala de mineração.",

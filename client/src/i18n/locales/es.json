@@ -338,7 +338,7 @@
   },
   "admin_daily_tasks": {
     "title": "Tareas diarias",
-    "subtitle": "Las definiciones alimentan la página de tareas diarias del usuario. Se crean con la migración; aquí es solo lectura hasta que exista edición en el panel.",
+    "subtitle": "Activa o desactiva tareas y cambia el orden. La tarea de check-in diario deja de mostrarse cuando el enlace Check-in de la barra lateral está desactivado.",
     "loading": "Cargando definiciones…",
     "load_error": "No se pudieron cargar las definiciones de tareas diarias.",
     "empty": "No hay definiciones. Ejecuta las migraciones de la base de datos.",
@@ -349,6 +349,12 @@
     "col_reward": "Recompensa",
     "col_active": "Activo",
     "col_order": "Orden",
+    "col_actions": "Acciones",
+    "toggle_aria": "Activar o desactivar tarea",
+    "order_placeholder": "Orden",
+    "save_order": "Guardar orden",
+    "saved": "Cambios guardados.",
+    "save_error": "No se pudieron guardar los cambios.",
     "yes": "Sí",
     "no": "No"
   },
@@ -1288,6 +1294,7 @@
     "move_success": "¡Máquina movida a la bóveda exitosamente!",
     "retrieve_success": "¡Máquina retirada de la bóveda exitosamente!",
     "move_error": "Error al mover máquina a la bóveda.",
+    "move_conflict": "La máquina sigue vinculada a un rack. Actualiza la página e inténtalo de nuevo.",
     "retrieve_error": "Error al retirar máquina de la bóveda.",
     "confirm_move": "Mover a Bóveda",
     "confirm_move_desc": "Esto ocultará la máquina de tu inventario y sala de minería.",
@@ -1295,6 +1302,9 @@
     "confirm_retrieve_desc": "Esto devolverá la máquina a tu inventario.",
     "loading": "Cargando bóveda...",
     "error_loading": "Error al cargar bóveda."
+  },
+  "feature_gate": {
+    "unavailable": "Esta página no está disponible."
   },
   "validation": {
     "errors": {
