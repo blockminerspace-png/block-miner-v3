@@ -13,6 +13,7 @@ Optional docstring hints (no secrets):
   - SSH User: root
   - Repository: https://github.com/blockminerspace-png/block-miner-v3.git
   - Application URL: https://blockminer.space
+  - Troubleshooting: see deploy.md (health retries, APP_HOST_PORT, Prisma order)
 """
 from __future__ import annotations
 
