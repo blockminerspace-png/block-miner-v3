@@ -28,6 +28,12 @@ $ErrorActionPreference = 'Stop'
 $RepoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
 Set-Location $RepoRoot
 
+# PuTTY passes the remote command string literally; Windows CRLF breaks bash (set -e\r, cd ...\r).
+function ConvertTo-UnixLf([string]$Text) {
+    if ($null -eq $Text) { return '' }
+    return ($Text -replace "`r`n", "`n" -replace "`r", "`n")
+}
+
 # --- Le credenciais de deploy.secrets.local ---
 $deploySecretsPath = Join-Path $RepoRoot 'deploy.secrets.local'
 $deploySecrets = @{}
@@ -53,10 +59,14 @@ if (-not $PSBoundParameters.ContainsKey('RemotePath') -and $deploySecrets['REMOT
     $RemotePath = $deploySecrets['REMOTE_PATH']
 }
 
+$SshHost = ($SshHost -replace "`r", '').Trim()
+$SshUser = ($SshUser -replace "`r", '').Trim()
+$RemotePath = ($RemotePath -replace "`r", '').Trim()
+
 # Branch on the remote for git reset (default: main). Test VM: set DEPLOY_GIT_BRANCH=develop in deploy.secrets.local
 $DeployGitBranch = 'main'
 if ($deploySecrets['DEPLOY_GIT_BRANCH'] -and $deploySecrets['DEPLOY_GIT_BRANCH'].Trim()) {
-    $DeployGitBranch = $deploySecrets['DEPLOY_GIT_BRANCH'].Trim()
+    $DeployGitBranch = ($deploySecrets['DEPLOY_GIT_BRANCH'] -replace "`r", '').Trim()
 }
 if (-not $PSBoundParameters.ContainsKey('LetsEncryptDomain') -and $deploySecrets['LE_SYNC_DOMAIN']) {
     $LetsEncryptDomain = $deploySecrets['LE_SYNC_DOMAIN']
@@ -161,7 +171,7 @@ try {
     }
 
     # Primeiro faz git reset no VPS
-    $remoteGitCmd = "set -e`ncd $RemotePath`ngit fetch origin`ngit reset --hard origin/$DeployGitBranch`n"
+    $remoteGitCmd = ConvertTo-UnixLf "set -e`ncd $RemotePath`ngit fetch origin`ngit reset --hard origin/$DeployGitBranch`n"
     Write-Host "==> git reset no VPS ($SshHost) branch=$DeployGitBranch ..."
     & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" $remoteGitCmd
 
@@ -215,7 +225,7 @@ else
   echo "WARNING: LE_SYNC_DOMAIN=$le but /etc/letsencrypt/live/$le missing — HTTPS pode falhar"
 fi
 "@
-        & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" $syncCmd
+        & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" (ConvertTo-UnixLf $syncCmd)
     }
 
     # Por último faz o build e restart (host port = APP_HOST_PORT in .env.production, default 3000)
@@ -247,7 +257,7 @@ sleep 2
 curl -sS -o /dev/null -w 'health_http:%{http_code}\n' http://127.0.0.1:${healthPort}/health || true
 "@
     Write-Host "==> docker compose build no VPS ($SshHost)..."
-    & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" $remoteBuildCmd
+    & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" (ConvertTo-UnixLf $remoteBuildCmd)
 
     $runMigrate = $deploySecrets['DEPLOY_PRISMA_MIGRATE_DEPLOY']
     if ($runMigrate -eq '1' -or ($runMigrate -and $runMigrate.ToLower() -eq 'true')) {
@@ -260,7 +270,7 @@ set -e
 cd $RemotePath
 docker compose exec -T $ComposeService npx prisma migrate resolve --rolled-back $resolveRb --schema=server/prisma/schema.prisma
 "@
-            & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" $resolveRemote
+            & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" (ConvertTo-UnixLf $resolveRemote)
         }
         Write-Host "==> prisma migrate deploy no contentor ($ComposeService)..."
         $migrateRemote = @"
@@ -268,7 +278,7 @@ set -e
 cd $RemotePath
 docker compose exec -T $ComposeService npx prisma migrate deploy --schema=server/prisma/schema.prisma
 "@
-        & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" $migrateRemote
+            & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" (ConvertTo-UnixLf $migrateRemote)
     }
 
     Write-Host '==> Feito.'
