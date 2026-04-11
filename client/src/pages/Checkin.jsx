@@ -425,7 +425,7 @@ export default function Checkin() {
                                         type="button"
                                         onClick={handleCheckinWallet}
                                         disabled={isPaying || !isConnected || isConnecting || status.pending}
-                                        className="flex w-full items-center justify-center gap-3 rounded-[2rem] bg-amber-500 py-5 text-sm font-black uppercase tracking-widest text-slate-950 shadow-xl shadow-amber-500/20 hover:bg-amber-600 disabled:opacity-50"
+                                        className="flex w-full items-center justify-center gap-3 rounded-[2rem] bg-amber-500 py-5 text-xs font-black uppercase tracking-[0.2em] text-slate-950 shadow-xl shadow-amber-500/20 hover:bg-amber-600 disabled:opacity-50 sm:text-sm"
                                     >
                                         {isPaying ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5 fill-current" />}
                                         {t('checkin.cta_wallet_payment')}

@@ -331,7 +331,21 @@ app.get("/api/transparency", transparencyController.getPublicEntries);
 app.use('/uploads', express.static('/app/uploads'));
 
 const publicPath = path.join(__dirname, "..", "client", "dist");
-app.use(express.static(publicPath, { index: false })); // Don't serve index.html statically automatically
+// Hashed Vite assets can be cached forever; unhashed JS/CSS must revalidate so users never
+// stick on an old bundle after deploy (stale check-in UI, etc.).
+app.use(
+  express.static(publicPath, {
+    index: false,
+    setHeaders(res, filePath) {
+      const base = path.basename(filePath);
+      if (/[-.][0-9A-Za-z_-]{7,}\.(m?js|css|wasm)$/i.test(base)) {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      } else if (/\.(m?js|css|wasm)$/i.test(base)) {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    },
+  })
+);
 
 // Express 5 / path-to-regexp 8+ catch-all syntax
 app.get("/{*all}", async (req, res) => {
