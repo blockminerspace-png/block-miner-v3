@@ -60,6 +60,16 @@ export async function startLiveRtmpPipeline(opts) {
     });
     const page = await context.newPage();
     await page.goto(captureUrl, { waitUntil: "domcontentloaded", timeout: 120000 });
+    await page
+      .evaluate(async () => {
+        try {
+          const el = document.documentElement;
+          if (el.requestFullscreen) await el.requestFullscreen();
+        } catch {
+          /* ignore — may require user gesture in some browsers */
+        }
+      })
+      .catch(() => {});
 
     const ffmpegInput = `${display}.0+0,0`;
     const buf = Math.max(1000, Math.floor(videoBitrateK * 2));

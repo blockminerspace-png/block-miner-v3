@@ -1,8 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Activity, RefreshCw, Coins, Radio, Wifi, TrendingUp, Zap } from "lucide-react";
 
-const YOUTUBE_VIDEO_ID = "JLonk07l88Q";
+function getYoutubeEmbedId() {
+  const direct = String(import.meta.env.VITE_LIVE_SERVER_YOUTUBE_ID || "").trim();
+  if (direct) return direct;
+  const url = String(import.meta.env.VITE_YOUTUBE_URL || "").trim();
+  const m = url.match(/[?&]v=([^&]+)/);
+  if (m) return m[1];
+  const short = url.match(/youtu\.be\/([^?/]+)/);
+  if (short) return short[1];
+  return "JLonk07l88Q";
+}
 
 function formatPol(n) {
   const x = Number(n);
@@ -48,9 +57,10 @@ function AnimatedNumber({ value, className = "" }) {
   );
 }
 
-function VideoPlayer() {
+function VideoPlayer({ videoId }) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}?autoplay=1&mute=1&loop=1&playlist=${encodeURIComponent(videoId)}&controls=0&modestbranding=1&playsinline=1&rel=0&enablejsapi=1`;
 
   return (
     <div className="relative rounded-2xl border border-white/10 bg-slate-950 overflow-hidden aspect-video">
@@ -72,16 +82,16 @@ function VideoPlayer() {
       ) : (
         <iframe
           className="relative z-10 w-full h-full"
-          src={`https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&mute=1&loop=1&playlist=${YOUTUBE_VIDEO_ID}&controls=0&showinfo=0&rel=0&modestbranding=1`}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          src={src}
+          title="YouTube Live Stream"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
           allowFullScreen
-          sandbox="allow-scripts allow-same-origin allow-presentation"
+          referrerPolicy="strict-origin-when-cross-origin"
           onLoad={() => setIsLoading(false)}
           onError={() => {
             setIsLoading(false);
             setHasError(true);
           }}
-          title="YouTube Live Stream"
         />
       )}
     </div>
@@ -104,8 +114,10 @@ function LiveIndicator() {
 }
 
 export default function LiveServer() {
+  const rootRef = useRef(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const videoId = getYoutubeEmbedId();
 
   const load = useCallback(async () => {
     try {
@@ -113,6 +125,7 @@ export default function LiveServer() {
       const data = await res.json();
       if (data?.ok && data.stats) setStats(data.stats);
     } catch {
+      /* ignore */
     } finally {
       setLoading(false);
     }
@@ -124,13 +137,29 @@ export default function LiveServer() {
     return () => clearInterval(id);
   }, [load]);
 
+  useEffect(() => {
+    const tryFs = () => {
+      const el = rootRef.current || document.documentElement;
+      if (el?.requestFullscreen) {
+        void el.requestFullscreen().catch(() => {});
+      }
+    };
+    const q = new URLSearchParams(window.location.search).get("fullscreen");
+    const delay = q === "0" ? null : q === "1" ? 300 : 600;
+    if (delay == null) return undefined;
+    const t = window.setTimeout(tryFs, delay);
+    return () => window.clearTimeout(t);
+  }, []);
+
   const activeMiners = stats?.activeMiners ?? 0;
   const hashrate = stats?.networkHashRate ?? 0;
+  const recentBlocks = Array.isArray(stats?.recentBlocks) ? stats.recentBlocks : [];
+  const diffT = Number(stats?.networkDifficulty);
+  const difficultyLabel = Number.isFinite(diffT) && diffT > 0 ? `${diffT.toFixed(1)}T` : "—";
 
   return (
-    <div className="min-h-screen bg-[#030712] text-white overflow-x-hidden">
+    <div ref={rootRef} className="min-h-screen bg-[#030712] text-white overflow-x-hidden">
       <div className="mx-auto max-w-[1920px] p-4 lg:p-6">
-        {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -148,6 +177,23 @@ export default function LiveServer() {
               </span>
             </div>
             <motion.button
+              type="button"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                const el = rootRef.current || document.documentElement;
+                if (document.fullscreenElement) {
+                  void document.exitFullscreen().catch(() => {});
+                } else if (el?.requestFullscreen) {
+                  void el.requestFullscreen().catch(() => {});
+                }
+              }}
+              className="rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-200 hover:bg-white/10"
+            >
+              Fullscreen
+            </motion.button>
+            <motion.button
+              type="button"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={load}
@@ -159,9 +205,7 @@ export default function LiveServer() {
           </div>
         </motion.header>
 
-        {/* Main Grid */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
-          {/* Left Sidebar */}
           <aside className="flex flex-col gap-4 lg:col-span-2">
             <StatsCard delay={0.1}>
               <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-yellow-400">
@@ -182,11 +226,15 @@ export default function LiveServer() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-400">Block Time</span>
-                  <span className="text-lg font-bold text-purple-400">10:00</span>
+                  <span className="text-lg font-bold text-purple-400">
+                    {stats?.blockTimeLabel ?? "—"}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-400">Reward</span>
-                  <span className="text-lg font-bold text-amber-400">0.15 POL</span>
+                  <span className="text-lg font-bold text-amber-400">
+                    {stats?.rewardPolLabel ?? "—"}
+                  </span>
                 </div>
               </div>
             </StatsCard>
@@ -197,30 +245,29 @@ export default function LiveServer() {
                 RECENT BLOCKS
               </h3>
               <div className="space-y-3">
-                {[
-                  { num: 1247, time: "17:01", reward: "+0.15" },
-                  { num: 1246, time: "17:00", reward: "+0.15" },
-                  { num: 1245, time: "16:59", reward: "+0.15" }
-                ].map((block, i) => (
-                  <motion.div
-                    key={block.num}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + i * 0.1 }}
-                    className="flex items-center justify-between rounded-lg bg-white/5 p-2"
-                  >
-                    <span className="font-mono text-sm text-sky-400">#{block.num}</span>
-                    <span className="text-xs text-slate-500">{block.time}</span>
-                    <span className="text-sm font-bold text-emerald-400">{block.reward}</span>
-                  </motion.div>
-                ))}
+                {recentBlocks.length === 0 ? (
+                  <p className="text-sm text-slate-500">No blocks yet.</p>
+                ) : (
+                  recentBlocks.map((block, i) => (
+                    <motion.div
+                      key={block.num}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 + i * 0.1 }}
+                      className="flex items-center justify-between rounded-lg bg-white/5 p-2"
+                    >
+                      <span className="font-mono text-sm text-sky-400">#{block.num}</span>
+                      <span className="text-xs text-slate-500">{block.time}</span>
+                      <span className="text-sm font-bold text-emerald-400">{block.reward}</span>
+                    </motion.div>
+                  ))
+                )}
               </div>
             </StatsCard>
           </aside>
 
-          {/* Main Content */}
           <section className="flex flex-col gap-4 lg:col-span-7">
-            <VideoPlayer />
+            <VideoPlayer videoId={videoId} />
 
             <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               {[
@@ -245,7 +292,6 @@ export default function LiveServer() {
             </div>
           </section>
 
-          {/* Right Sidebar */}
           <aside className="flex flex-col gap-4 lg:col-span-3">
             <StatsCard delay={0.15}>
               <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-sky-400">
@@ -262,17 +308,19 @@ export default function LiveServer() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-slate-400">Difficulty</span>
-                  <span className="font-mono text-base font-bold text-sky-400">
-                    {(stats?.networkDifficulty ?? 82).toFixed(0)}T
+                  <span className="font-mono text-base font-bold text-sky-400">{difficultyLabel}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">BLK / cycle</span>
+                  <span className="font-mono text-base font-bold text-amber-400">
+                    {stats?.rewardBlkLabel ?? "—"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-400">Reward</span>
-                  <span className="font-mono text-base font-bold text-amber-400">0.15 POL</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-400">Frequency</span>
-                  <span className="text-base font-bold text-emerald-400">10 min</span>
+                  <span className="text-sm text-slate-400">BLK frequency</span>
+                  <span className="text-base font-bold text-emerald-400">
+                    {stats?.frequencyLabel ?? "—"}
+                  </span>
                 </div>
               </div>
             </StatsCard>
@@ -289,7 +337,7 @@ export default function LiveServer() {
                   transition={{ delay: 0.4 }}
                   className="truncate"
                 >
-                  Hashrate: {formatHashrate(hashrate)}/s
+                  Hashrate: {formatHashrate(hashrate)}
                 </motion.p>
                 <motion.p
                   initial={{ opacity: 0 }}
@@ -335,7 +383,6 @@ export default function LiveServer() {
           </aside>
         </div>
 
-        {/* Footer */}
         <motion.footer
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
