@@ -244,8 +244,9 @@ fi
     }
     # Sobe DB + reverse proxy: antes só o app era reiniciado (--no-deps) e o nginx ficava parado.
     $bashCleanupV3 = @'
-v3_ids=$(docker ps -aq -f name=block-miner-v3)
-if [ -n "$v3_ids" ]; then docker rm -f $v3_ids; fi
+docker ps -aq -f name=block-miner-v3 | while read -r id; do
+  [ -z "$id" ] || docker rm -f "$id"
+done
 '@
     $remoteBuildCmd = @"
 set -e
