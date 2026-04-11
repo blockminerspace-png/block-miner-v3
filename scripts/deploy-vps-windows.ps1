@@ -75,6 +75,8 @@ function Get-ViteEnvOverrideMap {
     $map = @{}
     $names = @(
         'APP_HOST_PORT',
+        'NGINX_PUBLISH_HTTP',
+        'NGINX_PUBLISH_HTTPS',
         'VITE_WALLETCONNECT_PROJECT_ID',
         'VITE_PUBLIC_WALLET_APP_URL',
         'VITE_POLYGON_RPC_URL',
