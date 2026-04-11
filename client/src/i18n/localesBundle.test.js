@@ -31,11 +31,11 @@ describe("locale bundles (pt-BR / es parity)", () => {
 
     expect(en.checkin.payment_method_heading).toBeTruthy();
     expect(pt.checkin.payment_tab_wallet).toBeTruthy();
-    expect(es.checkin.cta_balance_claim).toBeTruthy();
+    expect(es.checkin.cta_wallet_payment).toBeTruthy();
 
-    expect(en.checkin.internal_balance_vs_wallet_hint).toBeTruthy();
-    expect(pt.checkin.internal_balance_available).toBeTruthy();
-    expect(es.checkin.internal_balance_vs_wallet_hint).toBeTruthy();
+    expect(en.checkin.wallet_only_heading).toBeTruthy();
+    expect(pt.checkin.wallet_only_hint).toBeTruthy();
+    expect(es.checkin.view_on_polygonscan).toBeTruthy();
 
     expect(en.wallet.hero_subtitle).toBeTruthy();
     expect(pt.wallet.ledger_title).toBeTruthy();

@@ -69,7 +69,16 @@ export default function AdminMiniPassSeason() {
   });
 
   const load = useCallback(async () => {
-    if (isNew || !seasonId) return;
+    if (isNew || seasonId == null) {
+      setLoading(false);
+      return;
+    }
+    if (Number.isNaN(seasonId)) {
+      setLoading(false);
+      toast.error('Invalid season id');
+      navigate('/admin/mini-pass');
+      return;
+    }
     try {
       setLoading(true);
       const res = await api.get(`/admin/mini-pass/seasons/${seasonId}`);

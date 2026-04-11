@@ -213,7 +213,6 @@ function App() {
           <Route path="/admin/read-earn" element={<AdminReadEarn />} />
           <Route path="/admin/user-sidebar" element={<AdminUserSidebar />} />
           <Route path="/admin/mini-pass" element={<AdminMiniPass />} />
-          <Route path="/admin/mini-pass/new" element={<AdminMiniPassSeason />} />
           <Route path="/admin/mini-pass/:id" element={<AdminMiniPassSeason />} />
         </Route>
       </Routes>

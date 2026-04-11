@@ -457,106 +457,12 @@ export async function checkinWallet(req, res) {
 }
 
 /**
- * Balance-based check-in: Deduct 0.02 POL from internal balance.
+ * Balance-based check-in was removed; check-in is wallet-only (on-chain POL).
  */
-export async function checkinBalance(req, res) {
-  try {
-    const userId = req.user.id;
-    const amount = 0.02;
-    const today = getBrazilCheckinDateKey();
-    const balanceTxHash = `balance-${userId}-${today}`;
-    const existing = await prisma.dailyCheckin.findUnique({
-      where: { userId_checkinDate: { userId, checkinDate: today } }
-    });
-
-    if (existing?.status === "confirmed") {
-      return res.status(400).json({
-        ok: false,
-        code: "CHECKIN_ALREADY_TODAY",
-        message: "Already checked in today."
-      });
-    }
-
-    // Atomic deduction
-    const result = await prisma.$transaction(async (tx) => {
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        select: { polBalance: true }
-      });
-
-      const bal = user ? Number(user.polBalance) : 0;
-      if (!user || !(bal >= amount)) {
-        throw new Error("Insufficient POL balance.");
-      }
-
-      await tx.user.update({
-        where: { id: userId },
-        data: { polBalance: { decrement: amount } }
-      });
-
-      const row = await tx.dailyCheckin.upsert({
-        where: { userId_checkinDate: { userId, checkinDate: today } },
-        update: {
-          status: "confirmed",
-          confirmedAt: new Date(),
-          paymentMethod: "balance",
-          amount,
-          txHash: balanceTxHash
-        },
-        create: {
-          userId,
-          checkinDate: today,
-          txHash: balanceTxHash,
-          status: "confirmed",
-          confirmedAt: new Date(),
-          paymentMethod: "balance",
-          amount
-        }
-      });
-
-      return row;
-    });
-
-    await applyStreakMilestoneRewards(userId);
-    notifyMiniPassLoginDay(userId, today).catch(() => {});
-    notifyDailyTaskLoginDay(userId, today).catch(() => {});
-    const streak = await computeCheckinStreak(userId);
-
-    const userAfter = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { polBalance: true }
-    });
-
-    // Audit log
-    await prisma.auditLog.create({
-      data: {
-        userId,
-        action: "daily_checkin_balance",
-        detailsJson: JSON.stringify({ amount, streak }),
-        userAgent: req.get("User-Agent") || null
-      }
-    });
-
-    res.json({
-      ok: true,
-      message: "Check-in confirmed via balance.",
-      streak,
-      txHash: result.txHash,
-      newBalance: userAfter ? Number(userAfter.polBalance) : undefined
-    });
-  } catch (e) {
-    console.error("Checkin balance error", { error: e.message, userId: req.user.id });
-    if (e.message === "Insufficient POL balance.") {
-      return res.status(400).json({
-        ok: false,
-        code: "CHECKIN_BALANCE_INSUFFICIENT",
-        message: "Insufficient POL balance."
-      });
-    }
-    res.status(500).json({
-      ok: false,
-      code: "CHECKIN_BALANCE_FAILED",
-      message: "Balance check-in failed."
-    });
-  }
+export async function checkinBalance(_req, res) {
+  return res.status(410).json({
+    ok: false,
+    code: "CHECKIN_BALANCE_DISABLED",
+    message: "Balance check-in is disabled. Pay 0.01 POL from your wallet on Polygon; the server verifies on-chain."
+  });
 }
