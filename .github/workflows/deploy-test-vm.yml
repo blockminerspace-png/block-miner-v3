@@ -8,6 +8,7 @@
 #
 # Optional: use SSH key instead of password — set secrets TEST_VPS_SSH_PRIVATE_KEY
 # and leave TEST_VPS_PASSWORD empty (then add key to the action step below).
+# Optional: secrets.TEST_VPS_SSH_FINGERPRINT (SHA256 host key) if host key verification fails.
 name: Deploy Test VM
 
 on:
@@ -39,8 +40,10 @@ jobs:
           username: ${{ vars.TEST_VPS_USER || 'root' }}
           password: ${{ secrets.TEST_VPS_PASSWORD }}
           port: ${{ vars.TEST_VPS_PORT || '22' }}
+          fingerprint: ${{ secrets.TEST_VPS_SSH_FINGERPRINT }}
+          request_pty: true
           script_stop: true
-          command_timeout: 20m
+          command_timeout: 30m
           script: |
             set -euo pipefail
             APP_ROOT="${{ vars.TEST_VPS_APP_PATH }}"
@@ -87,4 +90,7 @@ jobs:
               echo "ERROR: scripts/deploy-production-safe.sh missing in $APP_ROOT"
               exit 1
             fi
+            export SKIP_APP_TARBALL=1
+            export DEPLOY_GIT_MODE=reset
+            export START_NGINX_PROXY=1
             bash scripts/deploy-production-safe.sh
