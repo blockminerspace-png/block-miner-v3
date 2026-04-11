@@ -85,7 +85,7 @@ describe('sidebarNavMap', () => {
     expect(miniIx).toBe(checkIx + 1);
   });
 
-  it('normalizeMiniPassOutOfRewardsGroup pulls internal_offerwall out of Rewards children', () => {
+  it('normalizeMiniPassOutOfRewardsGroup keeps internal_offerwall inside Rewards children', () => {
     const raw = [
       {
         section: 'earn',
@@ -112,8 +112,8 @@ describe('sidebarNavMap', () => {
     const fixed = normalizeMiniPassOutOfRewardsGroup(raw);
     const items = fixed[0].items;
     const group = items.find((i) => i.itemId === 'rewards_group');
-    expect(group.children.some((c) => c.itemId === 'internal_offerwall')).toBe(false);
-    expect(items.some((i) => i.itemId === 'internal_offerwall')).toBe(true);
+    expect(group.children.some((c) => c.itemId === 'internal_offerwall')).toBe(true);
+    expect(items.filter((i) => i.itemId === 'internal_offerwall')).toHaveLength(0);
   });
 
   it('normalizeMiniPassOutOfRewardsGroup pulls daily_tasks out of Rewards children', () => {

@@ -133,7 +133,7 @@ export const SIDEBAR_ITEM_REGISTRY = {
     labelKey: "sidebar.internal_offerwall",
     icon: "LayoutGrid",
     section: "earn",
-    defaultParentItemId: null
+    defaultParentItemId: "rewards_group"
   },
   daily_tasks: {
     path: "/daily-tasks",
@@ -226,7 +226,7 @@ export function buildAdminItemMeta() {
  * @returns {{ entries: object[], changed: boolean }}
  */
 /**
- * Lifts internal offerwall to earn root when registry default is root (legacy rows had it under rewards_group).
+ * Aligns internal offerwall `parentItemId` with the registry default (under rewards_group; legacy rows may have null).
  * @param {unknown[]} entries
  * @returns {{ entries: object[], changed: boolean }}
  */
@@ -308,8 +308,8 @@ export function buildDefaultSidebarEntries() {
     { itemId: "checkin", visible: true, sortOrder: 110, section: "earn", parentItemId: null },
     { itemId: "mini_pass", visible: true, sortOrder: 115, section: "earn", parentItemId: null },
     { itemId: "daily_tasks", visible: true, sortOrder: 118, section: "earn", parentItemId: null },
-    { itemId: "internal_offerwall", visible: true, sortOrder: 119, section: "earn", parentItemId: null },
     { itemId: "rewards_group", visible: true, sortOrder: 120, section: "earn", parentItemId: null },
+    { itemId: "internal_offerwall", visible: true, sortOrder: 125, section: "earn", parentItemId: "rewards_group" },
     { itemId: "faucet", visible: true, sortOrder: 130, section: "earn", parentItemId: "rewards_group" },
     { itemId: "shortlinks", visible: true, sortOrder: 140, section: "earn", parentItemId: "rewards_group" },
     { itemId: "auto_mining", visible: true, sortOrder: 150, section: "earn", parentItemId: "rewards_group" },
