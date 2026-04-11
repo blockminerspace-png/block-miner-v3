@@ -7,13 +7,24 @@ import assert from "node:assert/strict";
 import {
   validateSidebarEntriesPayload,
   buildDefaultSidebarEntries,
-  coerceParentLockedSidebarEntries
+  coerceParentLockedSidebarEntries,
+  mergeMissingSidebarRegistryEntries
 } from "../server/services/sidebarNavRegistry.js";
 import { buildResolvedCategories } from "../server/services/sidebarNavService.js";
 
 test("default entries pass validation", () => {
   const d = buildDefaultSidebarEntries();
   const v = validateSidebarEntriesPayload(d);
+  assert.equal(v.ok, true);
+});
+
+test("mergeMissingSidebarRegistryEntries adds ptc when snapshot omits it", () => {
+  const full = buildDefaultSidebarEntries();
+  const withoutPtc = full.filter((e) => e.itemId !== "ptc");
+  const { entries, changed } = mergeMissingSidebarRegistryEntries(withoutPtc);
+  assert.equal(changed, true);
+  assert.ok(entries.some((e) => e.itemId === "ptc"));
+  const v = validateSidebarEntriesPayload(entries);
   assert.equal(v.ok, true);
 });
 

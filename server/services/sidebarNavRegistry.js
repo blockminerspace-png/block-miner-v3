@@ -244,6 +244,34 @@ export function coerceParentLockedSidebarEntries(entries) {
   return { entries: next, changed };
 }
 
+/**
+ * Appends rows for any new `SIDEBAR_ITEM_REGISTRY` ids missing from stored nav (survives DB snapshots from older builds).
+ * @param {unknown[]} entries
+ * @returns {{ entries: object[], changed: boolean }}
+ */
+export function mergeMissingSidebarRegistryEntries(entries) {
+  if (!Array.isArray(entries)) {
+    return { entries: buildDefaultSidebarEntries(), changed: true };
+  }
+  const present = new Set(
+    entries
+      .filter((e) => e && typeof e === "object")
+      .map((e) => String(/** @type {{ itemId?: string }} */ (e).itemId || "").trim())
+      .filter(Boolean)
+  );
+  const defaults = buildDefaultSidebarEntries();
+  let changed = false;
+  const next = [...entries];
+  for (const row of defaults) {
+    if (!present.has(row.itemId)) {
+      next.push({ ...row });
+      present.add(row.itemId);
+      changed = true;
+    }
+  }
+  return { entries: next, changed };
+}
+
 export function buildDefaultSidebarEntries() {
   return [
     { itemId: "dashboard", visible: true, sortOrder: 10, section: "main", parentItemId: null },

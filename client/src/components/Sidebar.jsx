@@ -33,7 +33,8 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   /** @type {[Record<string, boolean>, import('react').Dispatch<import('react').SetStateAction<Record<string, boolean>>>]} */
-  const [openGroups, setOpenGroups] = useState({});
+  /** Rewards group holds PTC, faucet, etc. — start expanded so nested links are visible without an extra click. */
+  const [openGroups, setOpenGroups] = useState(() => ({ rewards_group: true }));
   const [navCategoriesSource, setNavCategoriesSource] = useState(
     () => defaultPublicSidebarNav
   );

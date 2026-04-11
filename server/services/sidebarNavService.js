@@ -3,6 +3,7 @@ import {
   buildDefaultSidebarEntries,
   CATEGORY_TITLE_KEYS,
   coerceParentLockedSidebarEntries,
+  mergeMissingSidebarRegistryEntries,
   SIDEBAR_ITEM_REGISTRY,
   SIDEBAR_SECTIONS,
   validateSidebarEntriesPayload
@@ -101,7 +102,14 @@ export async function getSidebarNavForAdmin() {
       data: { entries: coerced }
     });
   }
-  const parsed = validateSidebarEntriesPayload(coerced);
+  const { entries: merged, changed: mergeChanged } = mergeMissingSidebarRegistryEntries(coerced);
+  if (mergeChanged) {
+    await prisma.sidebarNavConfig.update({
+      where: { id: SINGLETON_ID },
+      data: { entries: merged }
+    });
+  }
+  const parsed = validateSidebarEntriesPayload(merged);
   if (!parsed.ok) {
     const defaults = buildDefaultSidebarEntries();
     await prisma.sidebarNavConfig.update({
