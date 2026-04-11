@@ -5,7 +5,8 @@ BlockMiner deploy entrypoint (Windows + PuTTY).
 
 Do not store SSH passwords in this file. Use one of:
   - Environment variable BLOCKMINER_VPS_PW
-  - deploy.secrets.local at repo root (see deploy.secrets.example)
+  - deploy.secrets.local key SSH_PASSWORD (see deploy.secrets.example)
+  - Single-line file .deploy-pw.txt at repo root (gitignored; password only)
 
 Optional docstring hints (no secrets):
   - Server IP: 89.167.119.164
@@ -43,6 +44,17 @@ def _parse_simple_env_file(path: Path) -> dict[str, str]:
     return out
 
 
+def _read_deploy_pw_txt(repo: Path) -> str:
+    path = repo / ".deploy-pw.txt"
+    if not path.is_file():
+        return ""
+    try:
+        lines = path.read_text(encoding="utf-8").strip().splitlines()
+        return (lines[0] if lines else "").strip()
+    except OSError:
+        return ""
+
+
 def _parse_credentials(doc: str) -> dict[str, str]:
     """Non-secret defaults from docstring (host, user, repo, url)."""
     out: dict[str, str] = {}
@@ -68,9 +80,14 @@ def main() -> int:
     if not password:
         password = secrets.get("SSH_PASSWORD", "").strip()
     if not password:
+        password = _read_deploy_pw_txt(REPO)
+    if not password:
+        pw_file = REPO / ".deploy-pw.txt"
         print(
-            "deploy.py: define BLOCKMINER_VPS_PW ou SSH_PASSWORD em deploy.secrets.local "
-            f"({SECRETS_LOCAL}).",
+            "deploy.py: SSH password missing. Use ONE of:\n"
+            "  - $env:BLOCKMINER_VPS_PW = '...' (PowerShell) then python deploy.py\n"
+            f"  - SSH_PASSWORD=... in {SECRETS_LOCAL}\n"
+            f"  - Create {pw_file} with a single line (root password only; file is gitignored)\n",
             file=sys.stderr,
         )
         return 1

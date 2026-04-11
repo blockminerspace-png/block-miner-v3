@@ -191,7 +191,8 @@ try {
         [System.IO.File]::WriteAllText($tmpMergedEnv, $mergedEnvText, [System.Text.UTF8Encoding]::new($false))
         Write-Host "==> Uploading merged .env.production to VPS (VITE_* from deploy.secrets.local + vm-backup)..."
         $pscpExe = Join-Path (Split-Path $PlinkExe) 'pscp.exe'
-        & $pscpExe -batch @plinkHostKeyArgs -pw $SshPassword $tmpMergedEnv "${SshUser}@${SshHost}:${RemotePath}/.env.production"
+        # Use -pwfile like plink: -pw can fail with special characters or quoting differences.
+        & $pscpExe -batch @plinkHostKeyArgs -pwfile $tmpPw $tmpMergedEnv "${SshUser}@${SshHost}:${RemotePath}/.env.production"
         if ($LASTEXITCODE -ne 0) { throw "pscp falhou ao enviar .env.production" }
     } else {
         Write-Host "==> Skip .env.production upload (DEPLOY_SKIP_ENV_UPLOAD)."
