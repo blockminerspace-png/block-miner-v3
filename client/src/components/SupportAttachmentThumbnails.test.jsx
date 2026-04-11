@@ -68,6 +68,22 @@ describe('SupportAttachmentThumbnails', () => {
     expect(img).toHaveClass('max-h-32');
   });
 
+  it('adminStrip uses horizontal strip with small fixed tiles', () => {
+    const { container } = renderThumbnails({
+      variant: 'adminStrip',
+      attachments: [
+        { url: 'https://example.com/1.png' },
+        { url: 'https://example.com/2.png' },
+      ],
+    });
+    const strip = container.querySelector('.overflow-x-auto');
+    expect(strip).toBeTruthy();
+    const imgs = screen.getAllByRole('img', { name: /attachment preview/i });
+    expect(imgs).toHaveLength(2);
+    expect(imgs[0]).toHaveClass('object-cover');
+    expect(imgs[0]).toHaveClass('h-24');
+  });
+
   it('shows a fallback message when the image fails to load', () => {
     renderThumbnails({
       attachments: [{ url: 'https://example.com/broken.png' }],

@@ -347,14 +347,25 @@ export default function AdminSupport() {
               </div>
 
               <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain space-y-6 pr-4 scrollbar-thin scrollbar-thumb-slate-800">
-                <div className="rounded-3xl border border-slate-800/50 bg-slate-900/30 p-6">
-                  <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase text-slate-500">
-                    <User className="w-3 h-3" /> {t('admin_support.label_user')}
+                <div className="rounded-3xl border border-slate-800/50 bg-slate-900/30 p-4 sm:p-5">
+                  <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase text-slate-500">
+                    <User className="h-3 w-3" /> {t('admin_support.label_user')}
                   </div>
-                  <p className="break-words text-base leading-7 text-slate-300 whitespace-pre-wrap">
-                    {selectedMessage.body ?? selectedMessage.message}
-                  </p>
-                  <SupportAttachmentThumbnails attachments={selectedMessage.attachments} />
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch lg:gap-6">
+                    <div className="min-w-0 flex-1 rounded-xl border border-slate-800/40 bg-slate-950/30 p-4">
+                      <p className="break-words whitespace-pre-wrap text-base leading-7 text-slate-300">
+                        {selectedMessage.body ?? selectedMessage.message}
+                      </p>
+                    </div>
+                    {selectedMessage.attachments?.length ? (
+                      <div className="shrink-0 lg:max-w-[min(100%,26rem)] lg:border-l lg:border-slate-800/50 lg:pl-6">
+                        <SupportAttachmentThumbnails
+                          attachments={selectedMessage.attachments}
+                          variant="adminStrip"
+                        />
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
 
                 {selectedMessage.reply &&
@@ -389,14 +400,22 @@ export default function AdminSupport() {
                         {new Date(r.createdAt).toLocaleString()}
                       </span>
                     </div>
-                    <p
-                      className={`${
-                        r.isAdmin ? 'text-amber-100/80' : 'text-slate-300'
-                      } whitespace-pre-wrap leading-relaxed`}
-                    >
-                      {r.body ?? r.message}
-                    </p>
-                    <SupportAttachmentThumbnails attachments={r.attachments} />
+                    <div className="flex flex-col gap-3 md:flex-row md:items-stretch md:gap-4">
+                      <div className="min-w-0 flex-1 rounded-xl border border-slate-800/30 bg-slate-950/20 p-3 md:p-4">
+                        <p
+                          className={`whitespace-pre-wrap leading-relaxed ${
+                            r.isAdmin ? 'text-amber-100/80' : 'text-slate-300'
+                          }`}
+                        >
+                          {r.body ?? r.message}
+                        </p>
+                      </div>
+                      {r.attachments?.length ? (
+                        <div className="shrink-0 md:max-w-[min(100%,22rem)] md:border-l md:border-slate-700/40 md:pl-4">
+                          <SupportAttachmentThumbnails attachments={r.attachments} variant="adminStrip" />
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 ))}
               </div>

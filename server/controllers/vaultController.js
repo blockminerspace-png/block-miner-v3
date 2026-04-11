@@ -1,11 +1,23 @@
 import * as vaultModel from "../models/vaultModel.js";
 import * as inventoryModel from "../models/inventoryModel.js";
-import * as minersModel from "../models/minersModel.js";
-import { getOrCreateMinerProfile, syncUserBaseHashRate } from "../models/minerProfileModel.js";
+import { syncUserBaseHashRate } from "../models/minerProfileModel.js";
 import { getMiningEngine } from "../src/miningEngineInstance.js";
 import { createNotification } from "./notificationController.js";
 import prisma from "../src/db/prisma.js";
 import { releaseUserMinerFromRacksTx } from "../utils/rackMinerRelease.js";
+
+/**
+ * user_vault.miner_id FK → miners.id. Stale catalog rows would make inserts fail (P2003).
+ * @param {import("@prisma/client").Prisma.TransactionClient} tx
+ * @param {number | null | undefined} minerId
+ * @returns {Promise<number | null>}
+ */
+async function safeVaultMinerId(tx, minerId) {
+  const id = minerId == null ? null : Number(minerId);
+  if (!Number.isInteger(id) || id < 1) return null;
+  const row = await tx.miner.findUnique({ where: { id }, select: { id: true } });
+  return row ? id : null;
+}
 
 export async function getVault(req, res) {
   try {
@@ -35,11 +47,11 @@ export async function moveToVault(req, res) {
       }
 
       await prisma.$transaction(async (tx) => {
-        // Add to vault
+        const minerId = await safeVaultMinerId(tx, inventoryItem.minerId);
         await tx.userVault.create({
           data: {
             userId: req.user.id,
-            minerId: inventoryItem.minerId,
+            minerId,
             minerName: inventoryItem.minerName,
             level: inventoryItem.level,
             hashRate: inventoryItem.hashRate,
@@ -70,15 +82,13 @@ export async function moveToVault(req, res) {
       }
 
       await prisma.$transaction(async (tx) => {
-        // Release from rack
         await releaseUserMinerFromRacksTx(tx, req.user.id, userMiner.id);
-
-        // Add to vault
+        const minerId = await safeVaultMinerId(tx, userMiner.minerId);
         await tx.userVault.create({
           data: {
             userId: req.user.id,
-            minerId: userMiner.minerId,
-            minerName: userMiner.miner?.name || userMiner.minerName || 'Miner',
+            minerId,
+            minerName: userMiner.miner?.name || "Miner",
             level: userMiner.level,
             hashRate: userMiner.hashRate,
             slotSize: userMiner.slotSize,
@@ -119,8 +129,9 @@ export async function moveToVault(req, res) {
     res.json({ ok: true, message: "Machine moved to vault successfully!" });
 
   } catch (error) {
-    console.error("Move to Vault Error:", error);
     const code = error?.code;
+    const meta = error?.meta;
+    console.error("Move to Vault Error:", { code, message: error?.message, meta });
     if (code === "P2003" || code === "P2014") {
       return res.status(409).json({
         ok: false,
@@ -147,13 +158,12 @@ export async function retrieveFromVault(req, res) {
     const now = new Date();
 
     if (destination === 'inventory') {
-      // Move from vault to inventory
       await prisma.$transaction(async (tx) => {
-        // Add to inventory
+        const minerId = await safeVaultMinerId(tx, vaultItem.minerId);
         await tx.userInventory.create({
           data: {
             userId: req.user.id,
-            minerId: vaultItem.minerId,
+            minerId,
             minerName: vaultItem.minerName,
             level: vaultItem.level,
             hashRate: vaultItem.hashRate,
@@ -211,7 +221,7 @@ export async function retrieveFromVault(req, res) {
           }
         }
 
-        // Install in rack
+        const minerId = await safeVaultMinerId(tx, vaultItem.minerId);
         await tx.userMiner.create({
           data: {
             userId: req.user.id,
@@ -220,7 +230,7 @@ export async function retrieveFromVault(req, res) {
             hashRate: vaultItem.hashRate,
             isActive: true,
             slotSize,
-            minerId: vaultItem.minerId,
+            minerId,
             imageUrl: vaultItem.imageUrl
           }
         });
