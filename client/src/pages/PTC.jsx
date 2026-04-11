@@ -8,6 +8,7 @@ export default function PTC() {
     const { t } = useTranslation();
     const [ptcUrl, setPtcUrl] = useState('');
     const [stats, setStats] = useState(null);
+    const [clientOrigin, setClientOrigin] = useState('');
     const [isLoading, setIsLoading] = useState(true);
 
     const rewardLabel = stats?.rewardName || 'POL';
@@ -19,8 +20,15 @@ export default function PTC() {
                 api.get('/zerads/stats')
             ]);
 
-            if (linkRes.data.ok) setPtcUrl(linkRes.data.ptcUrl);
-            if (statsRes.data.ok) setStats(statsRes.data.stats);
+            if (linkRes.data.ok) {
+                setPtcUrl(linkRes.data.ptcUrl);
+                if (linkRes.data.clientOrigin) setClientOrigin(linkRes.data.clientOrigin);
+            }
+            if (statsRes.data.ok) {
+                setStats(statsRes.data.stats);
+                const o = statsRes.data.stats?.clientOrigin;
+                if (o) setClientOrigin(o);
+            }
         } catch (err) {
             console.error('Failed to fetch PTC data', err);
             toast.error(t('ptcPage.load_error_toast'));
@@ -35,7 +43,11 @@ export default function PTC() {
         return () => clearInterval(interval);
     }, [fetchData]);
 
-    const i18nOpts = useMemo(() => ({ reward: rewardLabel }), [rewardLabel]);
+    const displayOrigin = clientOrigin || (typeof window !== 'undefined' ? window.location.origin : '');
+    const i18nOpts = useMemo(
+        () => ({ reward: rewardLabel, origin: displayOrigin }),
+        [rewardLabel, displayOrigin]
+    );
 
     if (isLoading) {
         return (
@@ -89,6 +101,18 @@ export default function PTC() {
                                         {t('ptcPage.delay_title')}
                                     </h4>
                                     <p className="text-[11px] font-bold text-amber-200/80 leading-relaxed">{t('ptcPage.delay_body')}</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-sky-500/10 border border-sky-500/25 p-6 rounded-3xl flex items-start gap-4">
+                                <Info className="w-6 h-6 text-sky-400 shrink-0 mt-1" />
+                                <div className="space-y-1">
+                                    <h4 className="text-xs font-black text-sky-400 uppercase tracking-widest italic">
+                                        {t('ptcPage.callback_scope_title')}
+                                    </h4>
+                                    <p className="text-[11px] font-bold text-sky-100/85 leading-relaxed">
+                                        {t('ptcPage.callback_scope_body', i18nOpts)}
+                                    </p>
                                 </div>
                             </div>
 

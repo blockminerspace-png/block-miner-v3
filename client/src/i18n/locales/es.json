@@ -487,6 +487,8 @@
     "earn_body": "Abre el panel de ZerAds. Cada anuncio completado se notifica a BlockMiner; convertimos ZER a {{reward}} con el tipo configurado.",
     "delay_title": "Demora de procesamiento",
     "delay_body": "ZerAds agrupa clics y llama a nuestro servidor aproximadamente cada 5 minutos. El saldo puede tardar unos minutos en actualizarse.",
+    "callback_scope_title": "Panel ZerAds vs esta página",
+    "callback_scope_body": "Las ganancias que ves en ZerAds corresponden al ID del sitio del editor para todo el tráfico. Esta página solo se actualiza cuando ZerAds envía el callback de pago a **este** despliegue ({{origin}}). Si la URL de callback en el panel de ZerAds apunta a otro dominio (por ejemplo producción), las estadísticas y notificaciones aparecerán allí.",
     "open_board": "Abrir panel de anuncios",
     "payment_active": "Pagos automáticos activados",
     "more_ads_title": "Más ofertas (Offerwall.me)",

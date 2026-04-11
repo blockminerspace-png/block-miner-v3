@@ -16,6 +16,9 @@ import {
   parseZeradsAmountZer,
   parseZeradsClicks
 } from "../utils/zeradsPtcDedupe.js";
+import { resolveRequestPublicOrigin } from "../utils/requestPublicOrigin.js";
+import { createNotification } from "./notificationController.js";
+import { getMiningEngine } from "../src/miningEngineInstance.js";
 
 const logger = loggerLib.child("ZerAdsController");
 const ZERADS_SITE_ID = process.env.ZERADS_SITE_ID || "10776";
@@ -44,7 +47,14 @@ export async function getPtcLink(req, res) {
     const userId = req.user.id;
     const externalUser = `u${userId}_${crypto.createHash("sha256").update(String(userId)).digest("hex").slice(0, 8)}`;
     const ptcUrl = `https://zerads.com/ptc.php?ref=${ZERADS_SITE_ID}&user=${encodeURIComponent(externalUser)}`;
-    res.json({ ok: true, ptcUrl, externalUser, rewardName: ZERADS_REWARD_NAME, exchangeRate: ZERADS_EXCHANGE });
+    res.json({
+      ok: true,
+      ptcUrl,
+      externalUser,
+      rewardName: ZERADS_REWARD_NAME,
+      exchangeRate: ZERADS_EXCHANGE,
+      clientOrigin: resolveRequestPublicOrigin(req)
+    });
   } catch {
     res.status(500).json({ ok: false, message: "Error generating link." });
   }
@@ -145,7 +155,7 @@ export async function handlePtcCallback(req, res) {
           }
         });
       } catch (e) {
-        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+        if (e && e.code === "P2002") {
           duplicate = true;
           return;
         }
@@ -181,11 +191,24 @@ export async function handlePtcCallback(req, res) {
     }
 
     if (credited) {
-      import("../src/runtime/miningRuntime.js")
-        .then(({ applyUserBalanceDelta }) => {
-          applyUserBalanceDelta(userId, payoutFloat);
-        })
-        .catch((err) => logger.error("ZerAds mining runtime sync failed", { err: err?.message }));
+      try {
+        const { applyUserBalanceDelta } = await import("../src/runtime/miningRuntime.js");
+        applyUserBalanceDelta(userId, payoutFloat);
+      } catch (err) {
+        logger.error("ZerAds mining runtime sync failed", { err: err?.message });
+      }
+      try {
+        const engine = getMiningEngine();
+        await createNotification({
+          userId,
+          title: "ZerAds PTC reward",
+          message: `+${payoutFloat.toFixed(4)} ${ZERADS_REWARD_NAME} credited from partner ads.`,
+          type: "reward",
+          io: engine?.io ?? null
+        });
+      } catch (notifyErr) {
+        logger.warn("ZerAds reward notification failed", { userId, message: notifyErr?.message });
+      }
     }
 
     return res.status(200).send("ok");
@@ -231,7 +254,8 @@ export async function getStats(req, res) {
         totalEarned,
         rewardName: ZERADS_REWARD_NAME,
         exchangeRate: ZERADS_EXCHANGE,
-        recent
+        recent,
+        clientOrigin: resolveRequestPublicOrigin(req)
       }
     });
   } catch {
