@@ -96,6 +96,8 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(en.admin_daily_tasks.col_actions).toBeTruthy();
     expect(pt.admin_daily_tasks.col_actions).toBeTruthy();
     expect(es.admin_daily_tasks.col_actions).toBeTruthy();
+    expect(en.admin_daily_tasks.create_task).toBeTruthy();
+    expect(en.admin_daily_tasks.delete_task).toBeTruthy();
     expect(en.feature_gate.unavailable).toBeTruthy();
     expect(pt.feature_gate.unavailable).toBeTruthy();
     expect(es.feature_gate.unavailable).toBeTruthy();
