@@ -163,20 +163,22 @@ export default function AdminDailyTasks() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <div className="rounded-xl bg-amber-500/10 p-3 text-amber-500">
-            <ListChecks className="h-8 w-8" aria-hidden />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-white">{t('admin_daily_tasks.title')}</h1>
-            <p className="mt-1 max-w-2xl text-sm text-slate-400">{t('admin_daily_tasks.subtitle')}</p>
-          </div>
+      <div className="flex items-start gap-4">
+        <div className="rounded-xl bg-amber-500/10 p-3 text-amber-500">
+          <ListChecks className="h-8 w-8" aria-hidden />
         </div>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-black tracking-tight text-white">{t('admin_daily_tasks.title')}</h1>
+          <p className="mt-1 max-w-2xl text-sm text-slate-400">{t('admin_daily_tasks.subtitle')}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-800 bg-slate-900/50 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="max-w-3xl text-sm leading-relaxed text-slate-300">{t('admin_daily_tasks.crud_hint')}</p>
         <button
           type="button"
           onClick={() => setShowCreate((s) => !s)}
-          className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm font-bold uppercase tracking-wide text-amber-400 hover:bg-amber-500/20"
+          className="inline-flex shrink-0 min-h-[44px] items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm font-bold uppercase tracking-wide text-amber-400 hover:bg-amber-500/20"
         >
           <Plus className="h-4 w-4" aria-hidden />
           {t('admin_daily_tasks.create_task')}
@@ -385,7 +387,8 @@ export default function AdminDailyTasks() {
                 <th className="px-4 py-3 font-semibold">{t('admin_daily_tasks.col_reward')}</th>
                 <th className="px-4 py-3 font-semibold">{t('admin_daily_tasks.col_active')}</th>
                 <th className="px-4 py-3 font-semibold">{t('admin_daily_tasks.col_order')}</th>
-                <th className="px-4 py-3 font-semibold">{t('admin_daily_tasks.col_actions')}</th>
+                <th className="px-4 py-3 font-semibold whitespace-nowrap">{t('admin_daily_tasks.col_save_order')}</th>
+                <th className="px-4 py-3 font-semibold whitespace-nowrap">{t('admin_daily_tasks.col_delete')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/80">
@@ -421,35 +424,35 @@ export default function AdminDailyTasks() {
                       onChange={(e) => setOrderDraft((d) => ({ ...d, [r.id]: e.target.value }))}
                     />
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        disabled={patching[r.id]}
-                        onClick={() => onSaveOrder(r.id)}
-                        className="rounded-lg border border-amber-500/30 bg-amber-500/15 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-amber-400 hover:bg-amber-500/25 disabled:opacity-40"
-                      >
-                        {patching[r.id] ? (
-                          <Loader2 className="inline h-3.5 w-3.5 animate-spin" aria-hidden />
-                        ) : (
-                          t('admin_daily_tasks.save_order')
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={deletingId === r.id || patching[r.id]}
-                        onClick={() => onDelete(r.id, r.slug)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-red-400 hover:bg-red-500/20 disabled:opacity-40"
-                        aria-label={t('admin_daily_tasks.delete_task')}
-                      >
-                        {deletingId === r.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                        )}
-                        {t('admin_daily_tasks.delete_task')}
-                      </button>
-                    </div>
+                  <td className="px-4 py-3 align-middle">
+                    <button
+                      type="button"
+                      disabled={patching[r.id]}
+                      onClick={() => onSaveOrder(r.id)}
+                      className="rounded-lg border border-amber-500/30 bg-amber-500/15 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-amber-400 hover:bg-amber-500/25 disabled:opacity-40"
+                    >
+                      {patching[r.id] ? (
+                        <Loader2 className="inline h-3.5 w-3.5 animate-spin" aria-hidden />
+                      ) : (
+                        t('admin_daily_tasks.save_order')
+                      )}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 align-middle">
+                    <button
+                      type="button"
+                      disabled={deletingId === r.id || patching[r.id]}
+                      onClick={() => onDelete(r.id, r.slug)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-red-400 hover:bg-red-500/20 disabled:opacity-40"
+                      aria-label={t('admin_daily_tasks.delete_task')}
+                    >
+                      {deletingId === r.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                      )}
+                      {t('admin_daily_tasks.delete_task')}
+                    </button>
                   </td>
                 </tr>
               ))}

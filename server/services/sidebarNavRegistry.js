@@ -133,7 +133,8 @@ export const SIDEBAR_ITEM_REGISTRY = {
     labelKey: "sidebar.daily_tasks",
     icon: "ListChecks",
     section: "earn",
-    defaultParentItemId: "rewards_group"
+    defaultParentItemId: null,
+    parentLocked: true
   },
 
   games: {
@@ -248,13 +249,13 @@ export function buildDefaultSidebarEntries() {
 
     { itemId: "checkin", visible: true, sortOrder: 110, section: "earn", parentItemId: null },
     { itemId: "mini_pass", visible: true, sortOrder: 115, section: "earn", parentItemId: null },
+    { itemId: "daily_tasks", visible: true, sortOrder: 118, section: "earn", parentItemId: null },
     { itemId: "rewards_group", visible: true, sortOrder: 120, section: "earn", parentItemId: null },
     { itemId: "faucet", visible: true, sortOrder: 130, section: "earn", parentItemId: "rewards_group" },
     { itemId: "shortlinks", visible: true, sortOrder: 140, section: "earn", parentItemId: "rewards_group" },
     { itemId: "auto_mining", visible: true, sortOrder: 150, section: "earn", parentItemId: "rewards_group" },
     { itemId: "youtube", visible: true, sortOrder: 160, section: "earn", parentItemId: "rewards_group" },
     { itemId: "read_earn", visible: true, sortOrder: 170, section: "earn", parentItemId: "rewards_group" },
-    { itemId: "daily_tasks", visible: true, sortOrder: 180, section: "earn", parentItemId: "rewards_group" },
 
     { itemId: "games", visible: true, sortOrder: 210, section: "social", parentItemId: null },
     { itemId: "calculator", visible: true, sortOrder: 220, section: "social", parentItemId: null },

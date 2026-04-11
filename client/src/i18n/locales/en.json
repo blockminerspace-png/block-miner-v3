@@ -643,12 +643,31 @@
     "power_stats": "Statistics & Power",
     "support": "Support",
     "rewards": "Rewards",
+    "settings": "Settings",
     "menu_title": "Main Menu",
     "categories": {
       "main": "Main",
       "earn": "Earn",
       "social": "Social & Fun"
     }
+  },
+  "liveServer": {
+    "kicker": "Public metrics",
+    "title": "Live server pulse",
+    "subtitle": "Aggregated POL flows and community size for streams, OBS overlays, and social proof. No personal data — totals only.",
+    "refresh": "Refresh",
+    "loading": "Loading live stats…",
+    "load_error": "Could not load live stats. Try again in a moment.",
+    "updated": "Last updated:",
+    "footer": "BlockMiner · figures are approximate system totals · not financial advice",
+    "card_users": "Registered users",
+    "card_new_users_24h": "New users (24h)",
+    "card_pol_internal": "POL in user balances",
+    "card_pol_deposited_total": "POL deposited (all time)",
+    "card_pol_withdrawn_total": "POL withdrawn (completed)",
+    "card_pol_in_24h": "POL deposited (24h)",
+    "card_pol_out_24h": "POL withdrawn (24h)",
+    "card_pending_withdrawals": "Pending withdrawals"
   },
   "adminSidebar": {
     "brand_admin": "Admin",
@@ -713,6 +732,9 @@
     "col_reward": "Reward",
     "col_active": "Active",
     "col_order": "Order",
+    "col_save_order": "Save order",
+    "col_delete": "Delete",
+    "crud_hint": "Use New task to add a definition. Use Delete on a row to remove it permanently (all user progress for that task is cleared).",
     "col_actions": "Actions",
     "toggle_aria": "Toggle task active",
     "order_placeholder": "Order",

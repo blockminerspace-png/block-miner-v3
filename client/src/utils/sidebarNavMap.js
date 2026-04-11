@@ -57,9 +57,10 @@ export function resolveSidebarIcon(iconName) {
 }
 
 const MINI_PASS_PATH = '/mini-pass';
+const DAILY_TASKS_PATH = '/daily-tasks';
 
 /**
- * Ensures Mini Pass is never nested under the Rewards folder (legacy API/admin mistakes).
+ * Ensures Mini Pass and Daily Tasks are never nested under the Rewards folder (legacy payloads).
  * @param {unknown} categories
  * @returns {object[]}
  */
@@ -72,7 +73,8 @@ export function normalizeMiniPassOutOfRewardsGroup(categories) {
     if (!isEarn) return /** @type {object} */ (cat);
 
     const items = Array.isArray(cat.items) ? [...cat.items] : [];
-    let pulled = null;
+    /** @type {Array<{ order: number, entry: object }>} */
+    const pulled = [];
 
     const cleaned = items.map((item) => {
       if (!item?.children?.length) return item;
@@ -83,12 +85,29 @@ export function normalizeMiniPassOutOfRewardsGroup(categories) {
           ch?.path === MINI_PASS_PATH ||
           ch?.labelKey === 'sidebar.mini_pass'
         ) {
-          pulled = {
-            itemId: 'mini_pass',
-            labelKey: ch.labelKey || 'sidebar.mini_pass',
-            icon: ch.icon || 'Trophy',
-            path: ch.path || MINI_PASS_PATH,
-          };
+          pulled.push({
+            order: 0,
+            entry: {
+              itemId: 'mini_pass',
+              labelKey: ch.labelKey || 'sidebar.mini_pass',
+              icon: ch.icon || 'Trophy',
+              path: ch.path || MINI_PASS_PATH,
+            },
+          });
+        } else if (
+          ch?.itemId === 'daily_tasks' ||
+          ch?.path === DAILY_TASKS_PATH ||
+          ch?.labelKey === 'sidebar.daily_tasks'
+        ) {
+          pulled.push({
+            order: 1,
+            entry: {
+              itemId: 'daily_tasks',
+              labelKey: ch.labelKey || 'sidebar.daily_tasks',
+              icon: ch.icon || 'ListChecks',
+              path: ch.path || DAILY_TASKS_PATH,
+            },
+          });
         } else {
           kept.push(ch);
         }
@@ -96,20 +115,26 @@ export function normalizeMiniPassOutOfRewardsGroup(categories) {
       return { ...item, children: kept };
     });
 
-    const hasTopMini = cleaned.some(
-      (i) =>
-        !i?.children?.length &&
-        (i?.itemId === 'mini_pass' || i?.path === MINI_PASS_PATH)
+    pulled.sort((a, b) => a.order - b.order);
+
+    const checkIx = cleaned.findIndex((i) => i?.itemId === 'checkin');
+    const rewardsIx = cleaned.findIndex(
+      (i) => i?.itemId === 'rewards_group' || (i?.children?.length && !i?.path)
     );
-    if (pulled && !hasTopMini) {
-      const checkIx = cleaned.findIndex((i) => i?.itemId === 'checkin');
-      const rewardsIx = cleaned.findIndex(
-        (i) => i?.itemId === 'rewards_group' || (i?.children?.length && !i?.path)
+    let insertAt = 0;
+    if (checkIx >= 0) insertAt = checkIx + 1;
+    else if (rewardsIx >= 0) insertAt = rewardsIx;
+
+    for (const { entry } of pulled) {
+      const hasTop = cleaned.some(
+        (i) =>
+          !i?.children?.length &&
+          (i?.itemId === entry.itemId || i?.path === entry.path)
       );
-      let insertAt = 0;
-      if (checkIx >= 0) insertAt = checkIx + 1;
-      else if (rewardsIx >= 0) insertAt = rewardsIx;
-      cleaned.splice(insertAt, 0, pulled);
+      if (!hasTop) {
+        cleaned.splice(insertAt, 0, entry);
+        insertAt += 1;
+      }
     }
 
     return { ...cat, items: cleaned };

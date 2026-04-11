@@ -18,6 +18,7 @@
     "items": [
       { "itemId": "checkin", "labelKey": "sidebar.checkin", "icon": "Calendar", "path": "/checkin" },
       { "itemId": "mini_pass", "labelKey": "sidebar.mini_pass", "icon": "Trophy", "path": "/mini-pass" },
+      { "itemId": "daily_tasks", "labelKey": "sidebar.daily_tasks", "icon": "ListChecks", "path": "/daily-tasks" },
       {
         "itemId": "rewards_group",
         "labelKey": "sidebar.rewards",
@@ -27,8 +28,7 @@
           { "itemId": "shortlinks", "labelKey": "sidebar.shortlinks", "icon": "Link", "path": "/shortlinks" },
           { "itemId": "auto_mining", "labelKey": "sidebar.auto_mining", "icon": "Zap", "path": "/auto-mining" },
           { "itemId": "youtube", "labelKey": "sidebar.youtube", "icon": "Youtube", "path": "/youtube" },
-          { "itemId": "read_earn", "labelKey": "sidebar.read_earn", "icon": "Sparkles", "path": "/read-earn" },
-          { "itemId": "daily_tasks", "labelKey": "sidebar.daily_tasks", "icon": "ListChecks", "path": "/daily-tasks" }
+          { "itemId": "read_earn", "labelKey": "sidebar.read_earn", "icon": "Sparkles", "path": "/read-earn" }
         ]
       }
     ]

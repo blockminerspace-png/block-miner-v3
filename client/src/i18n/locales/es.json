@@ -279,12 +279,31 @@
     "power_stats": "Estadísticas y poder",
     "support": "Soporte",
     "rewards": "Recompensas",
+    "settings": "Ajustes",
     "menu_title": "Menú Principal",
     "categories": {
       "main": "Principal",
       "earn": "Ganar",
       "social": "Social & Fun"
     }
+  },
+  "liveServer": {
+    "kicker": "Métricas públicas",
+    "title": "Pulso del servidor en vivo",
+    "subtitle": "Flujos agregados de POL y tamaño de la comunidad para streams, overlays en OBS y prueba social. Sin datos personales: solo totales.",
+    "refresh": "Actualizar",
+    "loading": "Cargando estadísticas…",
+    "load_error": "No se pudieron cargar las estadísticas. Inténtalo de nuevo en unos segundos.",
+    "updated": "Última actualización:",
+    "footer": "BlockMiner · cifras aproximadas del sistema · no es asesoramiento financiero",
+    "card_users": "Usuarios registrados",
+    "card_new_users_24h": "Usuarios nuevos (24h)",
+    "card_pol_internal": "POL en saldos internos",
+    "card_pol_deposited_total": "POL depositada (histórico)",
+    "card_pol_withdrawn_total": "POL retirada (completada)",
+    "card_pol_in_24h": "POL depositada (24h)",
+    "card_pol_out_24h": "POL retirada (24h)",
+    "card_pending_withdrawals": "Retiros pendientes"
   },
   "adminSidebar": {
     "brand_admin": "Admin",
@@ -349,6 +368,9 @@
     "col_reward": "Recompensa",
     "col_active": "Activo",
     "col_order": "Orden",
+    "col_save_order": "Guardar orden",
+    "col_delete": "Eliminar",
+    "crud_hint": "Usa Nueva tarea para añadir una definición. Usa Eliminar en la fila para borrarla de forma permanente (se elimina el progreso de todos los usuarios para esa tarea).",
     "col_actions": "Acciones",
     "toggle_aria": "Activar o desactivar tarea",
     "order_placeholder": "Orden",

@@ -53,6 +53,7 @@ import { adminAutoMiningRewardsRouter } from "./routes/admin-auto-mining-rewards
 import supportRouter from "./routes/support.js";
 import userRouter from "./routes/user.js";
 import { sidebarNavRouter } from "./routes/sidebar-nav.js";
+import { publicLiveStatsRouter } from "./routes/public-live-stats.js";
 import * as healthController from "./controllers/healthController.js";
 import * as bannerController from "./controllers/bannerController.js";
 import * as transparencyController from "./controllers/transparencyController.js";
@@ -279,6 +280,7 @@ app.use("/api/swap", swapRouter);
 app.use("/api/support", supportRouter);
 app.use("/api/user", userRouter);
 app.use("/api/sidebar", sidebarNavRouter);
+app.use("/api/public", publicLiveStatsRouter);
 // app.use("/api/ptp", ptpRouter);
 
 // 6. Admin Routes

@@ -34,6 +34,16 @@ test("rejects parent_locked violation for check-in", () => {
   assert.equal(v.code, "parent_locked");
 });
 
+test("rejects parent_locked violation for daily_tasks nested under rewards_group", () => {
+  const d = buildDefaultSidebarEntries();
+  const i = d.findIndex((x) => x.itemId === "daily_tasks");
+  assert.ok(i >= 0);
+  d[i] = { ...d[i], parentItemId: "rewards_group" };
+  const v = validateSidebarEntriesPayload(d);
+  assert.equal(v.ok, false);
+  assert.equal(v.code, "parent_locked");
+});
+
 test("hiding rewards group removes nested earn items from resolved nav", () => {
   const d = buildDefaultSidebarEntries().map((e) => {
     if (e.itemId === "rewards_group" || e.parentItemId === "rewards_group") {
@@ -60,6 +70,29 @@ test("coerceParentLockedSidebarEntries moves mini_pass out of rewards_group in s
   assert.equal(mini.parentItemId, null);
   const v = validateSidebarEntriesPayload(entries);
   assert.equal(v.ok, true);
+});
+
+test("coerceParentLockedSidebarEntries moves daily_tasks out of rewards_group in stored rows", () => {
+  const d = buildDefaultSidebarEntries();
+  const i = d.findIndex((x) => x.itemId === "daily_tasks");
+  assert.ok(i >= 0);
+  d[i] = { ...d[i], parentItemId: "rewards_group" };
+  const { entries, changed } = coerceParentLockedSidebarEntries(d);
+  assert.equal(changed, true);
+  const row = entries.find((x) => x.itemId === "daily_tasks");
+  assert.equal(row.parentItemId, null);
+  const v = validateSidebarEntriesPayload(entries);
+  assert.equal(v.ok, true);
+});
+
+test("default daily_tasks is top-level earn (not under rewards_group)", () => {
+  const d = buildDefaultSidebarEntries();
+  const row = d.find((x) => x.itemId === "daily_tasks");
+  assert.equal(row.parentItemId, null);
+  const rewards = d.find((x) => x.itemId === "rewards_group");
+  assert.ok(rewards);
+  const nestedDaily = d.some((x) => x.itemId === "daily_tasks" && x.parentItemId === "rewards_group");
+  assert.equal(nestedDaily, false);
 });
 
 test("mini_pass is a top-level earn link in default resolved nav", () => {

@@ -17,6 +17,36 @@
     color: #3b82f6 !important;
     -webkit-text-fill-color: #3b82f6 !important;
   }
+
+  .sidebar-rewards-glow {
+    animation: none !important;
+  }
+}
+
+@keyframes sidebar-rewards-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(59, 130, 246, 0.45),
+      inset 0 0 0 1px rgba(59, 130, 246, 0.12);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(96, 165, 250, 0.65),
+      0 0 20px rgba(59, 130, 246, 0.22),
+      inset 0 0 0 1px rgba(125, 211, 252, 0.2);
+  }
+}
+
+.sidebar-rewards-glow {
+  border-radius: 1rem;
+  animation: sidebar-rewards-pulse 2.6s ease-in-out infinite;
+  background: linear-gradient(
+    125deg,
+    rgba(37, 99, 235, 0.22),
+    rgba(14, 165, 233, 0.12),
+    rgba(37, 99, 235, 0.22)
+  );
 }
 
 /* Custom scrollbar */

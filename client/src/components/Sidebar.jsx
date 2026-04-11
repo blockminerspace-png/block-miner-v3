@@ -12,6 +12,7 @@ import {
   X,
   Bell,
   MessageSquare,
+  Settings,
 } from 'lucide-react';
 import { useAuthStore, api } from '../store/auth';
 import { useGameStore } from '../store/game';
@@ -27,11 +28,12 @@ export default function Sidebar() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout, user } = useAuthStore();
+  const { logout } = useAuthStore();
   const { notifications, markNotificationRead, toggleChat, hasMention } = useGameStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [earnOpen, setEarnOpen] = useState(true);
+  /** @type {[Record<string, boolean>, import('react').Dispatch<import('react').SetStateAction<Record<string, boolean>>>]} */
+  const [openGroups, setOpenGroups] = useState({});
   const [navCategoriesSource, setNavCategoriesSource] = useState(
     () => defaultPublicSidebarNav
   );
@@ -70,6 +72,20 @@ export default function Sidebar() {
   );
 
   useEffect(() => {
+    setOpenGroups((prev) => {
+      const next = { ...prev };
+      for (const cat of categories) {
+        for (const item of cat.items) {
+          if (item.type !== 'group') continue;
+          const childActive = item.children?.some((c) => c.path === location.pathname);
+          if (childActive) next[item.key] = true;
+        }
+      }
+      return next;
+    });
+  }, [categories, location.pathname]);
+
+  useEffect(() => {
     const handler = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
         setNotifOpen(false);
@@ -105,38 +121,51 @@ export default function Sidebar() {
                   const isParentActive = item.children.some(
                     (child) => location.pathname === child.path
                   );
+                  const groupOpen = Boolean(openGroups[item.key]);
+                  const isRewards = item.key === 'rewards_group';
+                  const toggleGroup = () =>
+                    setOpenGroups((g) => ({ ...g, [item.key]: !Boolean(g[item.key]) }));
+
+                  const innerButton = (
+                    <button
+                      type="button"
+                      onClick={toggleGroup}
+                      className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 group ${
+                        isParentActive
+                          ? 'bg-primary/10 text-primary border border-primary/10'
+                          : 'text-gray-500 hover:text-white hover:bg-gray-800/40'
+                      } ${isRewards ? 'bg-slate-950/95 border border-blue-500/25' : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <item.Icon
+                          className={`w-4 h-4 transition-colors ${
+                            isParentActive ? 'text-primary' : 'group-hover:text-primary'
+                          } ${isRewards ? '!text-sky-400' : ''}`}
+                        />
+                        <span
+                          className={`text-xs font-bold uppercase tracking-wide ${
+                            isParentActive ? 'text-white' : ''
+                          }`}
+                        >
+                          {item.label}
+                        </span>
+                      </div>
+                      <ChevronRight
+                        className={`w-3 h-3 transition-transform ${groupOpen ? 'rotate-90' : ''} ${
+                          isParentActive ? 'text-primary' : 'text-gray-600'
+                        }`}
+                      />
+                    </button>
+                  );
+
                   return (
                     <div key={item.key} className="space-y-1">
-                      <button
-                        type="button"
-                        onClick={() => setEarnOpen((v) => !v)}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 group ${
-                          isParentActive
-                            ? 'bg-primary/10 text-primary border border-primary/10'
-                            : 'text-gray-500 hover:text-white hover:bg-gray-800/40'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <item.Icon
-                            className={`w-4 h-4 transition-colors ${
-                              isParentActive ? 'text-primary' : 'group-hover:text-primary'
-                            }`}
-                          />
-                          <span
-                            className={`text-xs font-bold uppercase tracking-wide ${
-                              isParentActive ? 'text-white' : ''
-                            }`}
-                          >
-                            {item.label}
-                          </span>
-                        </div>
-                        <ChevronRight
-                          className={`w-3 h-3 transition-transform ${earnOpen ? 'rotate-90' : ''} ${
-                            isParentActive ? 'text-primary' : 'text-gray-600'
-                          }`}
-                        />
-                      </button>
-                      {earnOpen && (
+                      {isRewards ? (
+                        <div className="sidebar-rewards-glow p-[1px]">{innerButton}</div>
+                      ) : (
+                        innerButton
+                      )}
+                      {groupOpen && (
                         <div className="space-y-1 pl-8">
                           {item.children.map((child) => {
                             const isChildActive = location.pathname === child.path;
@@ -217,6 +246,20 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
+
+      <div className="md:hidden px-4 pb-3">
+        <button
+          type="button"
+          onClick={() => {
+            navigate('/settings');
+            setMobileOpen(false);
+          }}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-gray-800/80 bg-gray-900/40 text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all"
+        >
+          <Settings className="w-4 h-4 text-sky-400 shrink-0" aria-hidden />
+          <span className="text-xs font-bold uppercase tracking-wide">{t('sidebar.settings')}</span>
+        </button>
+      </div>
 
       <div className="p-4 mt-auto border-t border-gray-800/50">
         <button
@@ -311,18 +354,6 @@ export default function Sidebar() {
               </div>
             )}
           </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              navigate('/settings');
-              setMobileOpen(false);
-            }}
-            className="w-8 h-8 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-white font-black border border-gray-700 text-xs mx-1 ring-1 ring-primary/20"
-            aria-label="Configurações"
-          >
-            {user?.name?.charAt(0)?.toUpperCase() || '?'}
-          </button>
 
           <button
             type="button"

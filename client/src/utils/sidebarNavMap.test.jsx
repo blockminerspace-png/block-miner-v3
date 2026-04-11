@@ -76,4 +76,37 @@ describe('sidebarNavMap', () => {
     const checkIx = items.findIndex((i) => i.itemId === 'checkin');
     expect(miniIx).toBe(checkIx + 1);
   });
+
+  it('normalizeMiniPassOutOfRewardsGroup pulls daily_tasks out of Rewards children', () => {
+    const raw = [
+      {
+        section: 'earn',
+        titleKey: 'sidebar.categories.earn',
+        items: [
+          { itemId: 'checkin', labelKey: 'sidebar.checkin', icon: 'Calendar', path: '/checkin' },
+          {
+            itemId: 'rewards_group',
+            labelKey: 'sidebar.rewards',
+            icon: 'Folder',
+            children: [
+              {
+                itemId: 'daily_tasks',
+                labelKey: 'sidebar.daily_tasks',
+                icon: 'ListChecks',
+                path: '/daily-tasks',
+              },
+              { itemId: 'faucet', labelKey: 'sidebar.faucet', icon: 'Gift', path: '/faucet' },
+            ],
+          },
+        ],
+      },
+    ];
+    const fixed = normalizeMiniPassOutOfRewardsGroup(raw);
+    const items = fixed[0].items;
+    const group = items.find((i) => i.itemId === 'rewards_group');
+    expect(group.children.some((c) => c.itemId === 'daily_tasks')).toBe(false);
+    const dailyIx = items.findIndex((i) => i.itemId === 'daily_tasks');
+    const checkIx = items.findIndex((i) => i.itemId === 'checkin');
+    expect(dailyIx).toBe(checkIx + 1);
+  });
 });
