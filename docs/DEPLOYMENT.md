@@ -32,9 +32,27 @@ Compose binds the app to `127.0.0.1:${APP_HOST_PORT:-3000}:3000`. The deploy scr
 
 4. **Nginx profile** — `docker compose up -d nginx` uses profile `proxy`. If nginx fails to start, check `nginx/certs` and `nginx/nginx.conf`; app health on `127.0.0.1:<APP_HOST_PORT>` bypasses nginx.
 
+## Live streaming admin (`STREAM_ENCRYPTION_KEY`)
+
+Saving RTMP destinations encrypts stream keys with **AES-256-GCM** using `STREAM_ENCRYPTION_KEY` (exactly **64 hex characters**, i.e. 32 bytes). If this variable is missing on the API host, the admin UI returns HTTP 503.
+
+**Windows deploy:** add to `deploy.secrets.local` (merged into `.env.production` on upload):
+
+```text
+STREAM_ENCRYPTION_KEY=paste_output_of_openssl_rand_hex_32
+```
+
+Generate locally:
+
+```bash
+openssl rand -hex 32
+```
+
+**Manual VM edit:** add the same line to `.env.production` next to the compose project and run `docker compose up -d app` (or redeploy).
+
 ## Local secrets (never commit)
 
-- `deploy.secrets.local` — `SSH_HOST`, `SSH_USER`, `SSH_PASSWORD`, `REMOTE_PATH`, optional `DEPLOY_GIT_BRANCH`, `APP_HOST_PORT`, `DEPLOY_PRISMA_MIGRATE_DEPLOY=1`, etc.
+- `deploy.secrets.local` — `SSH_HOST`, `SSH_USER`, `SSH_PASSWORD`, `REMOTE_PATH`, optional `DEPLOY_GIT_BRANCH`, `APP_HOST_PORT`, `STREAM_ENCRYPTION_KEY`, `DEPLOY_PRISMA_MIGRATE_DEPLOY=1`, etc.
 - `.deploy-pw.txt` — single-line root password for `deploy.py` (gitignored).
 - `.env.production.vm-backup` — base env merged with `VITE_*` overrides before upload.
 

@@ -6,6 +6,21 @@ import { api } from '../store/auth';
 
 const DEFAULT_CAPTURE = 'https://tests.blockminer.space/liveserver';
 
+/**
+ * @param {(k: string) => string} t
+ * @param {unknown} errLike axios error or { response?: { status?: number, data?: { message?: string } } }
+ */
+function toastStreamingFailure(t, errLike) {
+  const ax = /** @type {{ response?: { status?: number, data?: { message?: string } } }} */ (errLike);
+  const status = ax?.response?.status;
+  const msg = String(ax?.response?.data?.message || '');
+  if (status === 503 || /STREAM_ENCRYPTION_KEY/i.test(msg)) {
+    toast.error(t('admin_streaming.error_encryption_key'));
+    return;
+  }
+  toast.error(msg || t('admin_streaming.load_error'));
+}
+
 function emptyCreateForm() {
   return {
     label: '',
@@ -84,10 +99,10 @@ export default function AdminStreaming() {
         setForm(emptyCreateForm());
         await load();
       } else {
-        toast.error(res.data?.message || t('admin_streaming.load_error'));
+        toastStreamingFailure(t, { response: { status: res.status, data: res.data } });
       }
     } catch (e) {
-      toast.error(e?.response?.data?.message || t('admin_streaming.load_error'));
+      toastStreamingFailure(t, e);
     } finally {
       setSaving(false);
     }
@@ -155,6 +170,7 @@ export default function AdminStreaming() {
           <h1 className="text-2xl font-black tracking-tight text-white">{t('admin_streaming.title')}</h1>
           <p className="mt-1 max-w-3xl text-sm text-slate-400">{t('admin_streaming.subtitle')}</p>
           <p className="mt-2 max-w-3xl text-xs text-slate-500">{t('admin_streaming.hint_linux')}</p>
+          <p className="mt-1 max-w-3xl text-xs text-amber-200/80">{t('admin_streaming.hint_encryption')}</p>
         </div>
       </div>
 

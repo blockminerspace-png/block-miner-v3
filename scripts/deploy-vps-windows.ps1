@@ -88,6 +88,9 @@ function Get-ViteEnvOverrideMap {
         'DB_PUBLISH_PORT',
         'NGINX_PUBLISH_HTTP',
         'NGINX_PUBLISH_HTTPS',
+        # Server-side AES key for encrypting RTMP stream keys at rest (64 hex chars). Merge into uploaded .env.production.
+        'STREAM_ENCRYPTION_KEY',
+        'STREAM_CAPTURE_DISABLED',
         'VITE_WALLETCONNECT_PROJECT_ID',
         'VITE_PUBLIC_WALLET_APP_URL',
         'VITE_POLYGON_RPC_URL',
