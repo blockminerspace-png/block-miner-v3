@@ -235,6 +235,9 @@ fi
     $remoteBuildCmd = @"
 set -e
 cd $RemotePath
+# Clear stuck app/nginx containers from partial recreates (name conflicts on shared VMs)
+$composeEnv stop app nginx 2>/dev/null || true
+$composeEnv rm -f app nginx 2>/dev/null || true
 $composeEnv up -d db
 $buildStep
 $composeEnv up -d nginx
