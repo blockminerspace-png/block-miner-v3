@@ -8,6 +8,7 @@ import {
   buildMilestoneStatusForUser
 } from "../services/checkinMilestoneService.js";
 import { notifyMiniPassLoginDay } from "../services/miniPass/miniPassMissionHookService.js";
+import { notifyDailyTaskLoginDay } from "../services/dailyTasks/dailyTaskHookService.js";
 
 const POLYGON_CHAIN_ID = Number(process.env.POLYGON_CHAIN_ID || 137);
 const ZERO = "0x0000000000000000000000000000000000000000";
@@ -92,6 +93,7 @@ export async function tryFinalizeCheckinRow(row) {
     });
     applyStreakMilestoneRewards(updated.userId).catch(() => {});
     notifyMiniPassLoginDay(updated.userId, updated.checkinDate).catch(() => {});
+    notifyDailyTaskLoginDay(updated.userId, updated.checkinDate).catch(() => {});
     return updated;
   }
 
@@ -238,6 +240,7 @@ export async function claimCheckin(req, res) {
 
     await applyStreakMilestoneRewards(userId);
     notifyMiniPassLoginDay(userId, today).catch(() => {});
+    notifyDailyTaskLoginDay(userId, today).catch(() => {});
 
     const streak = await computeCheckinStreak(userId);
     const recentCheckins = await loadRecentHistory(userId, 21);
@@ -369,6 +372,7 @@ export async function confirmCheckin(req, res) {
 
     await applyStreakMilestoneRewards(req.user.id);
     notifyMiniPassLoginDay(req.user.id, today).catch(() => {});
+    notifyDailyTaskLoginDay(req.user.id, today).catch(() => {});
 
     return res.json({ ok: true, status: "confirmed", txHash: updated.txHash });
   } catch (error) {
@@ -432,7 +436,6 @@ export async function checkinWallet(req, res) {
     const finalized = await tryFinalizeCheckinRow({ ...row, user });
 
     if (finalized.status === "confirmed") {
-      notifyMiniPassLoginDay(userId, today).catch(() => {});
       const streak = await computeCheckinStreak(userId);
       return res.json({
         ok: true,
@@ -516,6 +519,7 @@ export async function checkinBalance(req, res) {
 
     await applyStreakMilestoneRewards(userId);
     notifyMiniPassLoginDay(userId, today).catch(() => {});
+    notifyDailyTaskLoginDay(userId, today).catch(() => {});
     const streak = await computeCheckinStreak(userId);
 
     const userAfter = await prisma.user.findUnique({

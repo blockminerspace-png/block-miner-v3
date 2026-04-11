@@ -227,12 +227,12 @@ export default function Support() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[480px]">
-        <div className="lg:col-span-4 flex flex-col rounded-2xl border border-slate-800 bg-slate-950/50 overflow-hidden">
-          <div className="p-3 border-b border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-500">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-[480px] lg:min-h-0 lg:h-[calc(100dvh-14rem)] lg:max-h-[calc(100dvh-14rem)]">
+        <div className="lg:col-span-4 flex flex-col min-h-0 h-full rounded-2xl border border-slate-800 bg-slate-950/50 overflow-hidden">
+          <div className="p-3 border-b border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-500 shrink-0">
             {t('support_tickets.list_heading')}
           </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-2 max-h-[60vh] lg:max-h-[calc(100vh-220px)]">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain p-2 space-y-2 max-h-[50vh] lg:max-h-none">
             {listLoading && list.length === 0 ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -282,14 +282,14 @@ export default function Support() {
           )}
         </div>
 
-        <div className="lg:col-span-8 rounded-2xl border border-slate-800 bg-slate-950/50 flex flex-col min-h-[480px]">
+        <div className="lg:col-span-8 rounded-2xl border border-slate-800 bg-slate-950/50 flex flex-col min-h-[480px] lg:min-h-0 lg:h-full overflow-hidden">
           {threadLoading ? (
             <div className="flex-1 flex items-center justify-center">
               <Loader2 className="w-10 h-10 text-primary animate-spin" />
             </div>
           ) : thread ? (
-            <>
-              <div className="p-4 border-b border-slate-800 flex items-start gap-3">
+            <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="p-4 border-b border-slate-800 flex items-start gap-3 shrink-0">
                 <button
                   type="button"
                   className="lg:hidden p-2 rounded-lg bg-slate-900 border border-slate-800"
@@ -312,7 +312,7 @@ export default function Support() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-[45vh] lg:max-h-[calc(100vh-340px)]">
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain p-4 space-y-4">
                 <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4">
                   <p className="text-[10px] font-black uppercase text-slate-500 mb-2">
                     {t('support_tickets.you')}
@@ -342,7 +342,7 @@ export default function Support() {
                 ))}
               </div>
 
-              <div className="p-4 border-t border-slate-800 space-y-3">
+              <div className="p-4 border-t border-slate-800 space-y-3 shrink-0">
                 <textarea
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
@@ -393,7 +393,7 @@ export default function Support() {
                   </button>
                 </div>
               </div>
-            </>
+            </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-slate-500 p-8">
               <Inbox className="w-16 h-16 mb-4 opacity-40" />

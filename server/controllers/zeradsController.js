@@ -1,16 +1,24 @@
 import crypto from "crypto";
-import prisma from '../src/db/prisma.js';
+import prisma from "../src/db/prisma.js";
 import loggerLib from "../utils/logger.js";
+import {
+  assertZerAdsCallbackAuthorized,
+  getZerAdsSecretFromEnv,
+  isStrongZerAdsSecret,
+  parseIpAllowlist,
+  isRequestIpAllowlisted,
+  zeradsInsecureCallbacksAllowed
+} from "../utils/zeradsCallbackSecurity.js";
 
 const logger = loggerLib.child("ZerAdsController");
 const ZERADS_SITE_ID = process.env.ZERADS_SITE_ID || "10776";
 const ZERADS_PTC_EXCHANGE_RATE = Number(process.env.ZERADS_PTC_EXCHANGE_RATE) || 0.0001;
-const ZERADS_SECRET_KEY = process.env.ZERADS_SECRET_KEY || "change_me_in_env";
+const ZERADS_ALLOWED_IPS = parseIpAllowlist(process.env.ZERADS_ALLOWED_IPS || "");
 
 export async function getPtcLink(req, res) {
   try {
     const userId = req.user.id;
-    const externalUser = `u${userId}_${crypto.createHash('sha256').update(String(userId)).digest('hex').slice(0, 8)}`;
+    const externalUser = `u${userId}_${crypto.createHash("sha256").update(String(userId)).digest("hex").slice(0, 8)}`;
     const ptcUrl = `https://zerads.com/ptc.php?ref=${ZERADS_SITE_ID}&user=${externalUser}`;
     res.json({ ok: true, ptcUrl, externalUser });
   } catch (error) {
@@ -20,22 +28,42 @@ export async function getPtcLink(req, res) {
 
 export async function handlePtcCallback(req, res) {
   try {
-    // A rede de anúncios pode enviar os dados via GET (query) ou POST (body)
-    const payload = Object.keys(req.body).length > 0 ? req.body : req.query;
-    const { user: externalUser, amount, clicks, secret } = payload;
-    
-    if (!externalUser || !amount) return res.status(400).send("missing_params");
+    const payload = Object.keys(req.body || {}).length > 0 ? req.body : req.query;
+    const { user: externalUser, amount, clicks, secret: providedSecret } = payload;
 
-    // ANTI-CHEAT: Valida se a requisição veio realmente do provedor de anúncios
-    if (ZERADS_SECRET_KEY !== "change_me_in_env" && secret !== ZERADS_SECRET_KEY) {
-      logger.warn(`ZerAds Callback Unauthorized: Invalid secret attempt for user ${externalUser}`);
+    if (!externalUser || amount == null || amount === "") {
+      return res.status(400).send("missing_params");
+    }
+
+    if (!isRequestIpAllowlisted(req, ZERADS_ALLOWED_IPS)) {
+      logger.warn("ZerAds callback rejected: IP not in allowlist", { ip: req.ip });
       return res.status(403).send("unauthorized");
     }
 
-    const userIdMatch = externalUser.match(/^u(\d+)_/);
+    const configuredSecret = getZerAdsSecretFromEnv();
+    const auth = assertZerAdsCallbackAuthorized({
+      configuredSecret,
+      providedSecret
+    });
+    if (!auth.ok) {
+      if (auth.status === 403) {
+        logger.warn("ZerAds callback rejected: invalid secret", { externalUser: String(externalUser).slice(0, 32) });
+      } else {
+        logger.warn("ZerAds callback rejected: server secret not configured");
+      }
+      return res.status(auth.status).send(auth.body);
+    }
+
+    if (!isStrongZerAdsSecret(configuredSecret) && zeradsInsecureCallbacksAllowed()) {
+      logger.warn("ZerAds callback accepted without strong ZERADS_SECRET_KEY (dev-only insecure mode)", {
+        ip: req.ip
+      });
+    }
+
+    const userIdMatch = String(externalUser).match(/^u(\d+)_/);
     if (!userIdMatch) return res.status(400).send("invalid_user");
-    
-    const userId = parseInt(userIdMatch[1]);
+
+    const userId = parseInt(userIdMatch[1], 10);
     const amountNum = Number(amount);
     const payoutAmount = amountNum * ZERADS_PTC_EXCHANGE_RATE;
 
@@ -44,7 +72,7 @@ export async function handlePtcCallback(req, res) {
         where: { id: userId },
         data: { usdcBalance: { increment: payoutAmount } }
       });
-      
+
       await tx.auditLog.create({
         data: {
           userId,
@@ -66,7 +94,7 @@ export async function getStats(req, res) {
     const userId = req.user.id;
     const logs = await prisma.auditLog.findMany({
       where: { userId, action: "zerads_ptc" },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: 10
     });
     res.json({ ok: true, stats: { totalClicks: logs.length, recent: logs } });
@@ -78,7 +106,7 @@ export async function getStats(req, res) {
 export async function getOfferwallLink(req, res) {
   try {
     const userId = req.user.id;
-    const externalUser = `u${userId}_${crypto.createHash('sha256').update(String(userId)).digest('hex').slice(0, 8)}`;
+    const externalUser = `u${userId}_${crypto.createHash("sha256").update(String(userId)).digest("hex").slice(0, 8)}`;
     const offerwallUrl = `https://zerads.com/offerwall.php?ref=${ZERADS_SITE_ID}&user=${externalUser}`;
     res.json({ ok: true, offerwallUrl });
   } catch (error) {

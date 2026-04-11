@@ -633,9 +633,13 @@
     "youtube": "YouTube",
     "games": "Jogos",
     "calculator": "Calculadora",
+    "manual": "Manual",
     "ranking": "Ranking",
+    "roadmap": "Roadmap",
+    "transparency": "Transparência",
     "power_stats": "Estatísticas e poder",
     "support": "Suporte",
+    "rewards": "Recompensas",
     "logout": "Sair da Conta",
     "menu_title": "Menu Principal",
     "categories": {
@@ -659,6 +663,7 @@
       "support": "Suporte",
       "banners": "Banners",
       "checkin_milestones": "Check-in marcos",
+      "daily_tasks": "Tarefas diárias",
       "read_earn": "Read & Earn",
       "creators": "Criadores",
       "transparency": "Transparência",
@@ -692,6 +697,22 @@
     "validation": {
       "generic": "Configuração inválida (código: {{code}})."
     }
+  },
+  "admin_daily_tasks": {
+    "title": "Tarefas diárias",
+    "subtitle": "As definições alimentam a página de Tarefas diárias do usuário. São criadas pela migração; aqui é só leitura até existir edição no painel.",
+    "loading": "A carregar definições…",
+    "load_error": "Não foi possível carregar as definições de tarefas diárias.",
+    "empty": "Nenhuma definição encontrada. Execute as migrações da base de dados.",
+    "col_slug": "Slug",
+    "col_type": "Tipo",
+    "col_target": "Meta",
+    "col_i18n_key": "Chave i18n",
+    "col_reward": "Recompensa",
+    "col_active": "Ativo",
+    "col_order": "Ordem",
+    "yes": "Sim",
+    "no": "Não"
   },
   "miniPass": {
     "title": "Mini Pass",
@@ -972,9 +993,13 @@
       "toggle_inactive": "Inativa",
       "settings": "Ajustes",
       "remove_to_inventory": "Remover para o Inventário",
+      "move_to_warehouse": "Enviar para o Armazém",
+      "confirm_move_warehouse": "Confirmar envio ao armazém",
       "confirm_remove": "Deseja enviar esta máquina de volta ao inventário?",
       "confirm_remove_button": "Confirmar desmontagem",
       "remove_warning": "Isso enviará a máquina de volta ao inventário e liberará o rack.",
+      "remove_options_intro": "Liberta o rack: envia a máquina para o inventário (pronta a reinstalar) ou para o armazém (guardada, sem minerar).",
+      "slots": "Slots",
       "choose_machine": "Escolha uma máquina para instalar neste slot:",
       "no_machines_avail": "Nenhuma máquina disponível."
     },

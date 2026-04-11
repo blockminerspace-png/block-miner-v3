@@ -203,8 +203,10 @@ export async function runBlkRewardCycle(options = {}) {
     select: { id: true, userId: true, amount: true }
   });
   const { notifyMiniPassBlkReward } = await import("./miniPass/miniPassMissionHookService.js");
+  const { notifyDailyTaskBlkMined } = await import("./dailyTasks/dailyTaskHookService.js");
   for (const log of rewardLogs) {
     notifyMiniPassBlkReward(log.userId, log.id, log.amount).catch(() => {});
+    notifyDailyTaskBlkMined(log.userId, log.id, log.amount).catch(() => {});
   }
 
   logger.info("BLK cycle distributed", {

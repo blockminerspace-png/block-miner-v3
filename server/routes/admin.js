@@ -18,6 +18,7 @@ import * as miningController from "../controllers/miningController.js";
 import * as adminCheckinMilestoneController from "../controllers/adminCheckinMilestoneController.js";
 import * as adminReadEarnController from "../controllers/adminReadEarnController.js";
 import * as sidebarNavController from "../controllers/sidebarNavController.js";
+import * as adminDailyTasksController from "../controllers/adminDailyTasksController.js";
 import prisma from "../src/db/prisma.js";
 import path from "path";
 import fs from "fs/promises";
@@ -89,6 +90,8 @@ adminRouter.use((err, _req, res, _next) => {
 // User app sidebar (visibility / order / Rewards subgroup)
 adminRouter.get("/sidebar-nav", sidebarNavController.getAdminNav);
 adminRouter.put("/sidebar-nav", sidebarNavController.putAdminNav);
+
+adminRouter.get("/daily-tasks/definitions", adminDailyTasksController.listDefinitions);
 
 // Dashboard Stats
 adminRouter.get("/stats", adminController.getStats);

@@ -10,10 +10,19 @@ function parseAllowlist(value) {
 }
 
 const allowedEmails = parseAllowlist(process.env.ADMIN_EMAILS);
-const allowAllInDev = process.env.NODE_ENV !== "production" && allowedEmails.length === 0;
+
+function envFlag(name) {
+  const raw = String(process.env[name] ?? "").trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+}
+
+/** Never open admin user routes by default, even in development. */
+const allowOpenAdminUserRoutes =
+  process.env.NODE_ENV !== "production" && envFlag("ALLOW_OPEN_ADMIN_USER_ROUTES");
 
 export function requireAdmin(req, res, next) {
-  if (allowAllInDev) {
+  if (allowOpenAdminUserRoutes) {
+    logger.warn("ALLOW_OPEN_ADMIN_USER_ROUTES is enabled: any logged-in user passes requireAdmin (dev only).");
     next();
     return;
   }

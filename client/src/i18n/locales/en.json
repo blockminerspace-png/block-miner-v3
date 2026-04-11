@@ -633,9 +633,13 @@
     "youtube": "YouTube",
     "games": "Games",
     "calculator": "Calculator",
+    "manual": "Manual",
     "ranking": "Ranking",
+    "roadmap": "Roadmap",
+    "transparency": "Transparency",
     "power_stats": "Statistics & Power",
     "support": "Support",
+    "rewards": "Rewards",
     "menu_title": "Main Menu",
     "categories": {
       "main": "Main",
@@ -658,6 +662,7 @@
       "support": "Support",
       "banners": "Banners",
       "checkin_milestones": "Check-in milestones",
+      "daily_tasks": "Daily tasks",
       "read_earn": "Read & Earn",
       "creators": "Creators",
       "transparency": "Transparency",
@@ -691,6 +696,22 @@
     "validation": {
       "generic": "Invalid configuration (code: {{code}})."
     }
+  },
+  "admin_daily_tasks": {
+    "title": "Daily tasks",
+    "subtitle": "Task definitions drive the user Daily Tasks page. They are seeded by migration; editing here is view-only until CRUD is added.",
+    "loading": "Loading definitions…",
+    "load_error": "Could not load daily task definitions.",
+    "empty": "No definitions found. Run database migrations.",
+    "col_slug": "Slug",
+    "col_type": "Type",
+    "col_target": "Target",
+    "col_i18n_key": "Translation key",
+    "col_reward": "Reward",
+    "col_active": "Active",
+    "col_order": "Order",
+    "yes": "Yes",
+    "no": "No"
   },
   "miniPass": {
     "title": "Mini Pass",
@@ -971,9 +992,13 @@
       "toggle_inactive": "Inactive",
       "settings": "Settings",
       "remove_to_inventory": "Remove to Inventory",
+      "move_to_warehouse": "Send to Warehouse",
+      "confirm_move_warehouse": "Confirm send to warehouse",
       "confirm_remove": "Do you want to send this machine back to inventory?",
       "confirm_remove_button": "Confirm removal",
       "remove_warning": "This will send the machine back to inventory and free the rack.",
+      "remove_options_intro": "Free the rack and send the machine to your inventory (ready to reinstall) or to the warehouse (stored, not mining).",
+      "slots": "Slots",
       "choose_machine": "Choose a machine to install in this slot:",
       "no_machines_avail": "No machines available."
     },

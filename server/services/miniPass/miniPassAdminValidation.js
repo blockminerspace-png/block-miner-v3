@@ -120,6 +120,24 @@ export function validateMissionInput({ missionType, targetValue, gameSlug, xpRew
 }
 
 /**
+ * Mini Pass titles: at least one of en / ptBR / es must be non-empty.
+ * Missing locales are filled from the first available string for persistence and UI fallbacks.
+ */
+export function normalizeTitleI18nForMiniPass(obj) {
+  if (!obj || typeof obj !== "object") return null;
+  const en = typeof obj.en === "string" ? obj.en.trim() : "";
+  const ptBR = typeof obj.ptBR === "string" ? obj.ptBR.trim() : "";
+  const es = typeof obj.es === "string" ? obj.es.trim() : "";
+  const primary = en || ptBR || es;
+  if (!primary) return null;
+  return {
+    en: en || primary,
+    ptBR: ptBR || primary,
+    es: es || primary
+  };
+}
+
+/**
  * Optional description blob: if present, require English non-empty for consistency with titles.
  */
 export function normalizeDescriptionI18n(obj) {

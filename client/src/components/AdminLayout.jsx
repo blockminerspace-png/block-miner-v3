@@ -33,7 +33,7 @@ export default function AdminLayout() {
     }
 
     return (
-        <div className="flex h-screen bg-slate-950 overflow-hidden text-slate-100 font-sans">
+        <div className="flex h-screen min-h-0 max-h-screen bg-slate-950 overflow-hidden text-slate-100 font-sans">
             <AdminSidebar />
             <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 <header className="h-20 bg-slate-900/50 backdrop-blur-md border-b border-slate-800/50 flex items-center px-8 sticky top-0 z-10">

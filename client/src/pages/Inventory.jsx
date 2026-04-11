@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import { Lock, Plus, Zap, Trash2, Box, AlertCircle, X } from "lucide-react";
+import { Lock, Plus, Zap, Trash2, Box, AlertCircle, X, Warehouse } from "lucide-react";
 import { api } from "../store/auth";
 import { formatHashrate, DEFAULT_MINER_IMAGE_URL, getMachineDescriptor } from "../utils/machine";
 import { dedupeOccupiedSlotsForDismantle } from "../utils/inventoryRackUtils.js";
@@ -156,13 +156,15 @@ function RackDismantleModal({ open, onClose, onConfirm, displayRackNumber, loadi
   );
 }
 
-function SlotModal({ slot, inventory, onInstall, onRemove, onClose }) {
+function SlotModal({ slot, inventory, onInstall, onRemove, onMoveToVault, onClose }) {
   const { t } = useTranslation();
-  const [confirmingRemoval, setConfirmingRemoval] = useState(false);
+  const [confirmingAction, setConfirmingAction] = useState(/** @type {'inventory' | 'vault' | null} */ (null));
+  const [busy, setBusy] = useState(false);
   const machine = slot.miner || null;
 
   useEffect(() => {
-    setConfirmingRemoval(false);
+    setConfirmingAction(null);
+    setBusy(false);
   }, [slot]);
 
   const groupedInventory = useMemo(() => {
@@ -199,28 +201,81 @@ function SlotModal({ slot, inventory, onInstall, onRemove, onClose }) {
                   <div className="flex items-center gap-4 mt-1">
                     <div className="flex flex-col"><span className="text-[10px] font-bold text-gray-600 uppercase">{t("inventory.modal.level")}</span><span className="text-sm font-bold text-gray-300">{machine.level}</span></div>
                     <div className="flex flex-col"><span className="text-[10px] font-bold text-gray-600 uppercase">{t("inventory.modal.hashrate")}</span><span className="text-sm font-bold text-primary uppercase">{formatHashrate(machine.hashRate)}</span></div>
-                    {machine.slotSize >= 2 && <div className="flex flex-col"><span className="text-[10px] font-bold text-gray-600 uppercase">Slots</span><span className="text-sm font-bold text-amber-400">{machine.slotSize}</span></div>}
+                    {machine.slotSize >= 2 && (
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-gray-600 uppercase">{t("inventory.modal.slots")}</span>
+                        <span className="text-sm font-bold text-amber-400">{machine.slotSize}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
               <div className="space-y-4">
-                <p className="text-sm text-gray-400 leading-6">{t("inventory.modal.remove_warning")}</p>
+                <p className="text-sm text-gray-400 leading-6">{t("inventory.modal.remove_options_intro")}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => confirmingRemoval ? onRemove(slot.rack.id) : setConfirmingRemoval(true)}
-                    className={`w-full py-4 rounded-2xl font-bold text-sm transition-all border flex items-center justify-center gap-2 ${confirmingRemoval ? "bg-red-500 text-white border-red-500" : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"}`}>
-                    <Trash2 className="w-4 h-4" /> {confirmingRemoval ? t("inventory.modal.confirm_remove_button") : t("inventory.modal.remove_to_inventory")}
+                    disabled={busy}
+                    onClick={async () => {
+                      if (confirmingAction === "inventory") {
+                        setBusy(true);
+                        try {
+                          await onRemove(slot.rack.id);
+                        } finally {
+                          setBusy(false);
+                        }
+                        return;
+                      }
+                      setConfirmingAction("inventory");
+                    }}
+                    className={`w-full py-4 rounded-2xl font-bold text-sm transition-all border flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none ${
+                      confirmingAction === "inventory"
+                        ? "bg-red-500 text-white border-red-500"
+                        : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
+                    }`}
+                  >
+                    <Trash2 className="w-4 h-4 shrink-0" aria-hidden />
+                    {confirmingAction === "inventory"
+                      ? t("inventory.modal.confirm_remove_button")
+                      : t("inventory.modal.remove_to_inventory")}
                   </button>
-                  {confirmingRemoval && (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmingRemoval(false)}
-                      className="w-full py-4 bg-gray-800/80 text-gray-300 rounded-2xl font-bold text-sm transition-all border border-gray-700 hover:bg-gray-700">
-                      {t("common.cancel")}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    disabled={busy || !Number.isFinite(Number(machine.id))}
+                    onClick={async () => {
+                      if (confirmingAction === "vault") {
+                        setBusy(true);
+                        try {
+                          await onMoveToVault(Number(machine.id));
+                        } finally {
+                          setBusy(false);
+                        }
+                        return;
+                      }
+                      setConfirmingAction("vault");
+                    }}
+                    className={`w-full py-4 rounded-2xl font-bold text-sm transition-all border flex items-center justify-center gap-2 disabled:opacity-50 disabled:pointer-events-none ${
+                      confirmingAction === "vault"
+                        ? "bg-violet-600 text-white border-violet-600"
+                        : "bg-violet-500/10 text-violet-300 border-violet-500/25 hover:bg-violet-500/20"
+                    }`}
+                  >
+                    <Warehouse className="w-4 h-4 shrink-0" aria-hidden />
+                    {confirmingAction === "vault"
+                      ? t("inventory.modal.confirm_move_warehouse")
+                      : t("inventory.modal.move_to_warehouse")}
+                  </button>
                 </div>
+                {confirmingAction != null && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setConfirmingAction(null)}
+                    className="w-full py-4 bg-gray-800/80 text-gray-300 rounded-2xl font-bold text-sm transition-all border border-gray-700 hover:bg-gray-700 disabled:opacity-50"
+                  >
+                    {t("common.cancel")}
+                  </button>
+                )}
               </div>
             </div>
           ) : (
@@ -546,6 +601,26 @@ export default function Inventory() {
     } catch (err) { toast.error(err?.response?.data?.message || t("common.error")); }
   };
 
+  const handleMoveRackToVault = async (userMinerId) => {
+    const id = Number(userMinerId);
+    if (!Number.isInteger(id) || id <= 0) {
+      toast.error(t("common.error"));
+      return;
+    }
+    try {
+      const res = await api.post("/vault/move-to-vault", { source: "rack", itemId: id });
+      if (res.data.ok) {
+        toast.success(t("vault.move_success"));
+        setSelectedSlot(null);
+        await fetchData();
+      } else {
+        toast.error(res.data.message || t("vault.move_error"));
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || t("vault.move_error"));
+    }
+  };
+
   /**
    * Uninstalls every occupied slot in one visual rack (same API as single-slot removal).
    * Uses slot rows from the current room payload so rack numbering stays correct across rooms.
@@ -738,7 +813,14 @@ export default function Inventory() {
       </div>
 
       {selectedSlot && (
-        <SlotModal slot={selectedSlot} inventory={inventory} onInstall={handleInstall} onRemove={handleRemove} onClose={() => setSelectedSlot(null)} />
+        <SlotModal
+          slot={selectedSlot}
+          inventory={inventory}
+          onInstall={handleInstall}
+          onRemove={handleRemove}
+          onMoveToVault={handleMoveRackToVault}
+          onClose={() => setSelectedSlot(null)}
+        />
       )}
     </div>
   );

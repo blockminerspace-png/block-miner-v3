@@ -82,7 +82,8 @@ export async function login(req, res) {
 
     const cookieSecure = adminCookieShouldBeSecure(req);
     res.setHeader("Set-Cookie", buildAdminCookie(token, { secure: cookieSecure }));
-    return res.json({ ok: true, message: "Authenticated", token });
+    // Session is HttpOnly cookie only — do not return JWT in JSON (reduces XSS / log leakage).
+    return res.json({ ok: true, message: "Authenticated" });
   } catch (error) {
     logger.error("Admin login error", { error: error.message });
     return res.status(500).json({ ok: false, message: "Internal server error" });

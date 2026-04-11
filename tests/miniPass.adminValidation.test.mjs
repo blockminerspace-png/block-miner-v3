@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   normalizeDescriptionI18n,
+  normalizeTitleI18nForMiniPass,
   validateAndNormalizeLevelRewardInput,
   validateMissionInput
 } from "../server/services/miniPass/miniPassAdminValidation.js";
@@ -101,6 +102,27 @@ describe("validateMissionInput", () => {
       xpReward: 1
     });
     assert.equal(r.ok, false);
+  });
+});
+
+describe("normalizeTitleI18nForMiniPass", () => {
+  it("returns null when all locales empty", () => {
+    assert.equal(normalizeTitleI18nForMiniPass(null), null);
+    assert.equal(normalizeTitleI18nForMiniPass({ en: "  ", ptBR: "", es: "" }), null);
+  });
+
+  it("fills en from pt-BR when English missing", () => {
+    const r = normalizeTitleI18nForMiniPass({ en: "", ptBR: "Temporada 1", es: "" });
+    assert.deepEqual(r, { en: "Temporada 1", ptBR: "Temporada 1", es: "Temporada 1" });
+  });
+
+  it("keeps distinct strings when all provided", () => {
+    const r = normalizeTitleI18nForMiniPass({
+      en: "Season A",
+      ptBR: "Temporada A",
+      es: "Temporada A ES"
+    });
+    assert.deepEqual(r, { en: "Season A", ptBR: "Temporada A", es: "Temporada A ES" });
   });
 });
 

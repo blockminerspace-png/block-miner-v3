@@ -15,6 +15,7 @@ import {
 } from "../services/miniPass/miniPassConstants.js";
 import {
   normalizeDescriptionI18n,
+  normalizeTitleI18nForMiniPass,
   validateAndNormalizeLevelRewardInput,
   validateMissionInput
 } from "../services/miniPass/miniPassAdminValidation.js";
@@ -29,11 +30,6 @@ const REWARD_KINDS = new Set([
   REWARD_BLK,
   REWARD_POL
 ]);
-
-function assertI18n(obj) {
-  if (!obj || typeof obj !== "object") return false;
-  return typeof obj.en === "string" && obj.en.trim().length > 0;
-}
 
 function parseSlug(s) {
   const v = String(s || "")
@@ -83,8 +79,12 @@ export async function adminCreateMiniPassSeason(req, res) {
     const b = req.body || {};
     const slug = parseSlug(b.slug);
     if (!slug) return res.status(400).json({ ok: false, message: "Invalid slug." });
-    if (!assertI18n(b.titleI18n)) {
-      return res.status(400).json({ ok: false, message: "titleI18n.en required." });
+    const titleI18n = normalizeTitleI18nForMiniPass(b.titleI18n);
+    if (!titleI18n) {
+      return res.status(400).json({
+        ok: false,
+        message: "Title required in at least one language (en, pt-BR, or es)."
+      });
     }
 
     const maxLevel = Math.max(1, Math.min(500, parseInt(b.maxLevel, 10) || 1));
@@ -101,7 +101,7 @@ export async function adminCreateMiniPassSeason(req, res) {
     const row = await prisma.miniPassSeason.create({
       data: {
         slug,
-        titleI18n: b.titleI18n,
+        titleI18n,
         subtitleI18n: b.subtitleI18n ?? null,
         startsAt,
         endsAt,
@@ -136,10 +136,14 @@ export async function adminUpdateMiniPassSeason(req, res) {
       data.slug = slug;
     }
     if (b.titleI18n !== undefined) {
-      if (!assertI18n(b.titleI18n)) {
-        return res.status(400).json({ ok: false, message: "titleI18n.en required." });
+      const normalized = normalizeTitleI18nForMiniPass(b.titleI18n);
+      if (!normalized) {
+        return res.status(400).json({
+          ok: false,
+          message: "Title required in at least one language (en, pt-BR, or es)."
+        });
       }
-      data.titleI18n = b.titleI18n;
+      data.titleI18n = normalized;
     }
     if (b.subtitleI18n !== undefined) data.subtitleI18n = b.subtitleI18n;
     if (b.startsAt !== undefined) data.startsAt = new Date(b.startsAt);
@@ -284,8 +288,12 @@ export async function adminUpsertMission(req, res) {
     if (!MISSION_TYPES.has(missionType)) {
       return res.status(400).json({ ok: false, message: "Invalid missionType." });
     }
-    if (!assertI18n(b.titleI18n)) {
-      return res.status(400).json({ ok: false, message: "titleI18n.en required." });
+    const missionTitle = normalizeTitleI18nForMiniPass(b.titleI18n);
+    if (!missionTitle) {
+      return res.status(400).json({
+        ok: false,
+        message: "Title required in at least one language (en, pt-BR, or es)."
+      });
     }
 
     const mv = validateMissionInput({
@@ -309,7 +317,7 @@ export async function adminUpsertMission(req, res) {
       missionType,
       targetValue: mv.targetDecimal,
       xpReward: mv.xpReward,
-      titleI18n: b.titleI18n,
+      titleI18n: missionTitle,
       descriptionI18n: desc?.value ?? null,
       gameSlug: mv.gameSlug,
       isActive: b.isActive !== false,

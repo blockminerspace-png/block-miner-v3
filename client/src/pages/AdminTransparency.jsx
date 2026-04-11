@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AdminTransparency.jsx
  *
  * Admin CRUD panel for the Transparency Portal.
@@ -20,6 +20,7 @@ import {
   TrendingDown, TrendingUp, Upload, ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { csrfHeaderObject } from '../utils/csrfHeader';
 
 // ─── Static data ─────────────────────────────────────────────────────────────
 
@@ -93,15 +94,17 @@ export default function AdminTransparency() {
   const [uploading, setUploading]       = useState(false);
   const fileInputRef                    = useRef(null);
 
-  const adminToken = localStorage.getItem('adminToken');
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` };
+  const jsonHeaders = () => ({
+    'Content-Type': 'application/json',
+    ...csrfHeaderObject(),
+  });
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
   async function load() {
     setLoading(true);
     try {
-      const r = await fetch('/api/admin/transparency', { headers });
+      const r = await fetch('/api/admin/transparency', { credentials: 'include' });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const d = await r.json();
       if (d.ok) setEntries(d.entries);
@@ -163,7 +166,8 @@ export default function AdminTransparency() {
       fd.append('image', file);
       const r = await fetch('/api/admin/upload-image', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${adminToken}` },
+        credentials: 'include',
+        headers: { ...csrfHeaderObject() },
         body: fd,
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -192,7 +196,8 @@ export default function AdminTransparency() {
       const method = editId ? 'PUT' : 'POST';
       const r = await fetch(url, {
         method,
-        headers,
+        credentials: 'include',
+        headers: jsonHeaders(),
         body: JSON.stringify({ ...form, amountUsd: parseFloat(form.amountUsd) }),
       });
       const d = await r.json();
@@ -214,7 +219,8 @@ export default function AdminTransparency() {
     try {
       const r = await fetch(`/api/admin/transparency/${entry.id}`, {
         method: 'PUT',
-        headers,
+        credentials: 'include',
+        headers: jsonHeaders(),
         body: JSON.stringify({ isActive: !entry.isActive }),
       });
       const d = await r.json();
@@ -227,7 +233,11 @@ export default function AdminTransparency() {
 
   async function handleDelete(id) {
     try {
-      const r = await fetch(`/api/admin/transparency/${id}`, { method: 'DELETE', headers });
+      const r = await fetch(`/api/admin/transparency/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: jsonHeaders(),
+      });
       const d = await r.json();
       if (d.ok) {
         toast.success(t('transparency.admin.toast_deleted'));

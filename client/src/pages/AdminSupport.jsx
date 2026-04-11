@@ -94,7 +94,6 @@ export default function AdminSupport() {
       return;
     }
 
-    const token = localStorage.getItem('adminToken');
     const s = io('/', { withCredentials: true });
     socketRef.current = s;
 
@@ -121,7 +120,7 @@ export default function AdminSupport() {
     s.on('connect', () => {
       s.emit(
         'support:subscribeAdmin',
-        { token, supportMessageId: selectedMessage.id },
+        { supportMessageId: selectedMessage.id },
         (res) => {
           if (res && !res.ok && import.meta.env?.DEV) {
             console.warn('support:subscribeAdmin', res);
@@ -133,7 +132,7 @@ export default function AdminSupport() {
     if (s.connected) {
       s.emit(
         'support:subscribeAdmin',
-        { token, supportMessageId: selectedMessage.id },
+        { supportMessageId: selectedMessage.id },
         () => {}
       );
     }
@@ -231,8 +230,8 @@ export default function AdminSupport() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-250px)]">
-        <div className="lg:col-span-4 flex flex-col space-y-4 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[360px] h-[calc(100dvh-200px)] max-h-[calc(100dvh-200px)]">
+        <div className="lg:col-span-4 flex flex-col space-y-4 overflow-hidden min-h-0">
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -309,14 +308,14 @@ export default function AdminSupport() {
           )}
         </div>
 
-        <div className="lg:col-span-8 bg-slate-950/50 border border-slate-800 rounded-3xl overflow-hidden flex flex-col">
+        <div className="lg:col-span-8 bg-slate-950/50 border border-slate-800 rounded-3xl overflow-hidden flex flex-col min-h-0">
           {loadingDetails ? (
             <div className="flex-1 flex items-center justify-center">
               <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
             </div>
           ) : selectedMessage ? (
-            <div className="flex-1 flex flex-col p-8 overflow-hidden">
-              <div className="flex justify-between items-start border-b border-slate-800 pb-6 mb-6 shrink-0">
+            <div className="flex-1 flex flex-col min-h-0 p-8 overflow-hidden gap-6">
+              <div className="flex justify-between items-start border-b border-slate-800 pb-6 shrink-0">
                 <div className="space-y-1">
                   <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">
                     {selectedMessage.subject}
@@ -347,7 +346,7 @@ export default function AdminSupport() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-6 pr-4 mb-6 scrollbar-thin scrollbar-thumb-slate-800 min-h-0">
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain space-y-6 pr-4 scrollbar-thin scrollbar-thumb-slate-800">
                 <div className="bg-slate-900/30 p-6 rounded-3xl border border-slate-800/50">
                   <div className="flex items-center gap-2 mb-2 text-[10px] font-black text-slate-500 uppercase">
                     <User className="w-3 h-3" /> {t('admin_support.label_user')}

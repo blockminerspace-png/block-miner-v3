@@ -22,6 +22,7 @@ const enAdminSidebar = {
     support: 'Support',
     banners: 'Banners',
     checkin_milestones: 'Check-in milestones',
+    daily_tasks: 'Daily tasks',
     read_earn: 'Read & Earn',
     creators: 'Creators',
     transparency: 'Transparency',

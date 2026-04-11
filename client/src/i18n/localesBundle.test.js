@@ -62,6 +62,51 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(es.sidebar.read_earn).toBeTruthy();
   });
 
+  it("exposes sidebar manual, roadmap, and transparency labels in en, pt-BR, and es", () => {
+    expect(en.sidebar.manual).toBeTruthy();
+    expect(pt.sidebar.manual).toBeTruthy();
+    expect(es.sidebar.manual).toBeTruthy();
+    expect(en.sidebar.roadmap).toBeTruthy();
+    expect(pt.sidebar.roadmap).toBeTruthy();
+    expect(es.sidebar.roadmap).toBeTruthy();
+    expect(en.sidebar.transparency).toBeTruthy();
+    expect(pt.sidebar.transparency).toBeTruthy();
+    expect(es.sidebar.transparency).toBeTruthy();
+  });
+
+  it("exposes daily tasks and sidebar link in en, pt-BR, and es", () => {
+    expect(en.dailyTasks.title).toBeTruthy();
+    expect(pt.dailyTasks.title).toBeTruthy();
+    expect(es.dailyTasks.title).toBeTruthy();
+    expect(en.sidebar.rewards).toBeTruthy();
+    expect(pt.sidebar.rewards).toBeTruthy();
+    expect(es.sidebar.rewards).toBeTruthy();
+    expect(en.sidebar.daily_tasks).toBeTruthy();
+    expect(pt.sidebar.daily_tasks).toBeTruthy();
+    expect(es.sidebar.daily_tasks).toBeTruthy();
+    expect(en.dailyTasks.tasks.mine_blk).toContain("{{target}}");
+    expect(pt.dailyTasks.tasks.mine_blk).toContain("{{target}}");
+    expect(es.dailyTasks.tasks.mine_blk).toContain("{{target}}");
+  });
+
+  it("exposes admin daily tasks page strings and nav label in en, pt-BR, and es", () => {
+    expect(en.admin_daily_tasks.title).toBeTruthy();
+    expect(pt.admin_daily_tasks.title).toBeTruthy();
+    expect(es.admin_daily_tasks.title).toBeTruthy();
+    expect(en.adminSidebar.nav.daily_tasks).toBeTruthy();
+    expect(pt.adminSidebar.nav.daily_tasks).toBeTruthy();
+    expect(es.adminSidebar.nav.daily_tasks).toBeTruthy();
+  });
+
+  it("exposes inventory rack modal warehouse action strings in en, pt-BR, and es", () => {
+    expect(en.inventory.modal.move_to_warehouse).toBeTruthy();
+    expect(pt.inventory.modal.move_to_warehouse).toBeTruthy();
+    expect(es.inventory.modal.move_to_warehouse).toBeTruthy();
+    expect(en.inventory.modal.remove_options_intro).toBeTruthy();
+    expect(pt.inventory.modal.remove_options_intro).toBeTruthy();
+    expect(es.inventory.modal.remove_options_intro).toBeTruthy();
+  });
+
   it("exposes support tickets and admin support strings in en, pt-BR, and es", () => {
     expect(en.sidebar.support).toBeTruthy();
     expect(pt.sidebar.support).toBeTruthy();

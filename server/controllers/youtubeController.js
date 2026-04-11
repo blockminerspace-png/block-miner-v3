@@ -2,6 +2,7 @@ import prisma from '../src/db/prisma.js';
 import loggerLib from "../utils/logger.js";
 import { syncUserBaseHashRate } from '../models/minerProfileModel.js';
 import { getMiningEngine } from '../src/miningEngineInstance.js';
+import { notifyDailyTaskYoutubeWatch } from "../services/dailyTasks/dailyTaskHookService.js";
 
 const logger = loggerLib.child("YouTubeController");
 
@@ -101,25 +102,24 @@ export async function claimReward(req, res) {
 
     const expiresAt = new Date(Date.now() + DURATION_HOURS * 60 * 60 * 1000);
 
-    await prisma.$transaction(async (tx) => {
-      // 1. Create active power
+    const historyRow = await prisma.$transaction(async (tx) => {
       await tx.youtubeWatchPower.create({
         data: { userId, sourceVideoId: videoId, hashRate: REWARD_PER_CLAIM, claimedAt: now, expiresAt }
       });
-      // 2. Create history record
-      await tx.youtubeWatchHistory.create({
+      const hist = await tx.youtubeWatchHistory.create({
         data: { userId, sourceVideoId: videoId, hashRate: REWARD_PER_CLAIM, claimedAt: now, expiresAt, status: "granted" }
       });
-      // 3. Deduct time balance
       await tx.user.update({
         where: { id: userId },
         data: { ytSecondsBalance: { decrement: 60 } }
       });
-      // 4. Log it
       await tx.auditLog.create({
         data: { userId, action: "youtube_claim", detailsJson: JSON.stringify({ videoId, hashRate: REWARD_PER_CLAIM, expiresAt }) }
       });
+      return hist;
     });
+
+    notifyDailyTaskYoutubeWatch(userId, historyRow.id).catch(() => {});
 
     // Atualiza o engine de mineração em tempo real
     try {

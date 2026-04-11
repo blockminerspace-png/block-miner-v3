@@ -54,6 +54,7 @@ import AdminBroadcast from './pages/AdminBroadcast';
 import AdminCheckinMilestones from './pages/AdminCheckinMilestones';
 import AdminReadEarn from './pages/AdminReadEarn';
 import AdminUserSidebar from './pages/AdminUserSidebar';
+import AdminDailyTasks from './pages/AdminDailyTasks';
 import AdminMiniPass from './pages/AdminMiniPass';
 import AdminMiniPassSeason from './pages/AdminMiniPassSeason';
 import ReadEarn from './pages/ReadEarn';
@@ -198,6 +199,7 @@ function App() {
           <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="/admin/broadcast" element={<AdminBroadcast />} />
           <Route path="/admin/checkin-milestones" element={<AdminCheckinMilestones />} />
+          <Route path="/admin/daily-tasks" element={<AdminDailyTasks />} />
           <Route path="/admin/read-earn" element={<AdminReadEarn />} />
           <Route path="/admin/user-sidebar" element={<AdminUserSidebar />} />
           <Route path="/admin/mini-pass" element={<AdminMiniPass />} />

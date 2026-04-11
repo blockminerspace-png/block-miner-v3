@@ -44,18 +44,24 @@ export function createCsrfMiddleware() {
     const method = req.method.toUpperCase();
     const url = req.originalUrl || req.url;
 
-    // EXEMPTIONS: Do not check CSRF for socket.io or external callbacks
-    if (url.includes('/socket.io/') || url.includes('/api/zerads/callback')) {
+    // Third-party server-to-server callbacks and Socket.IO (no browser CSRF token)
+    if (
+      url.includes("/socket.io/") ||
+      url.includes("/api/zerads/callback") ||
+      url.startsWith("/zeradsptc.php") ||
+      url.includes("/api/offerwall/postback")
+    ) {
       return next();
     }
 
     if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
       const headerToken = req.headers["x-csrf-token"];
-      
+
       if (!headerToken || headerToken !== csrfToken) {
-        return res.status(403).json({ 
-          ok: false, 
-          message: "Ação bloqueada por segurança (CSRF). Por favor, recarregue a página." 
+        return res.status(403).json({
+          ok: false,
+          code: "CSRF_INVALID",
+          message: "This action was blocked for security (CSRF). Please reload the page and try again."
         });
       }
     }

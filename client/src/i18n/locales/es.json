@@ -272,9 +272,13 @@
     "youtube": "YouTube",
     "games": "Juegos",
     "calculator": "Calculadora",
+    "manual": "Manual",
     "ranking": "Ranking",
+    "roadmap": "Hoja de ruta",
+    "transparency": "Transparencia",
     "power_stats": "Estadísticas y poder",
     "support": "Soporte",
+    "rewards": "Recompensas",
     "menu_title": "Menú Principal",
     "categories": {
       "main": "Principal",
@@ -297,6 +301,7 @@
       "support": "Soporte",
       "banners": "Banners",
       "checkin_milestones": "Hitos de check-in",
+      "daily_tasks": "Tareas diarias",
       "read_earn": "Read & Earn",
       "creators": "Creadores",
       "transparency": "Transparencia",
@@ -330,6 +335,22 @@
     "validation": {
       "generic": "Configuración no válida (código: {{code}})."
     }
+  },
+  "admin_daily_tasks": {
+    "title": "Tareas diarias",
+    "subtitle": "Las definiciones alimentan la página de tareas diarias del usuario. Se crean con la migración; aquí es solo lectura hasta que exista edición en el panel.",
+    "loading": "Cargando definiciones…",
+    "load_error": "No se pudieron cargar las definiciones de tareas diarias.",
+    "empty": "No hay definiciones. Ejecuta las migraciones de la base de datos.",
+    "col_slug": "Slug",
+    "col_type": "Tipo",
+    "col_target": "Objetivo",
+    "col_i18n_key": "Clave i18n",
+    "col_reward": "Recompensa",
+    "col_active": "Activo",
+    "col_order": "Orden",
+    "yes": "Sí",
+    "no": "No"
   },
   "miniPass": {
     "title": "Mini Pass",
@@ -608,9 +629,13 @@
       "toggle_inactive": "Inactiva",
       "settings": "Ajustes",
       "remove_to_inventory": "Eliminar al Inventario",
+      "move_to_warehouse": "Enviar al almacén",
+      "confirm_move_warehouse": "Confirmar envío al almacén",
       "confirm_remove": "¿Quieres enviar esta máquina de vuelta al inventario?",
       "confirm_remove_button": "Confirmar desmontaje",
       "remove_warning": "Esto enviará la máquina de vuelta al inventario y liberará el rack.",
+      "remove_options_intro": "Libera el rack: envía la máquina al inventario (lista para reinstalar) o al almacén (guardada, sin minar).",
+      "slots": "Ranuras",
       "choose_machine": "Elige una máquina para instalar en este espacio:",
       "no_machines_avail": "No hay máquinas disponibles."
     },

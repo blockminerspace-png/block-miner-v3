@@ -35,11 +35,6 @@ export default function AdminLogin() {
                 { headers: { 'Content-Type': 'application/json' } }
             );
             if (res.data.ok) {
-                // O token de admin geralmente é salvo em um cookie seguro pelo backend,
-                // mas se o sistema usar localStorage para o token de admin, salvamos aqui.
-                if (res.data.token) {
-                    localStorage.setItem('adminToken', res.data.token);
-                }
                 navigate('/admin/dashboard');
             } else {
                 setError(res.data.message || 'Falha na autenticação administrativa.');

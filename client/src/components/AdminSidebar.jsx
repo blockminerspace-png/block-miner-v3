@@ -22,6 +22,7 @@ import {
   BookOpen,
   Layers,
   PanelLeft,
+  ListChecks,
 } from 'lucide-react';
 
 /** Admin routes: icons and paths are fixed; labels use `adminSidebar.nav.*` keys. */
@@ -40,6 +41,7 @@ const ADMIN_MENU_ITEMS = [
     labelKey: 'adminSidebar.nav.checkin_milestones',
     path: '/admin/checkin-milestones',
   },
+  { icon: ListChecks, labelKey: 'adminSidebar.nav.daily_tasks', path: '/admin/daily-tasks' },
   { icon: BookOpen, labelKey: 'adminSidebar.nav.read_earn', path: '/admin/read-earn' },
   { icon: Youtube, labelKey: 'adminSidebar.nav.creators', path: '/admin/creators' },
   { icon: Eye, labelKey: 'adminSidebar.nav.transparency', path: '/admin/transparency' },
@@ -62,7 +64,7 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 p-6 shrink-0 flex flex-col h-full min-h-0 shadow-2xl relative z-20">
+    <aside className="w-64 bg-slate-900 border-r border-slate-800 p-6 shrink-0 flex flex-col self-stretch min-h-0 max-h-[100dvh] h-[100dvh] shadow-2xl relative z-20 overflow-hidden">
       <div className="flex items-center gap-3 mb-6 px-2 shrink-0">
         <div className="w-10 h-10 bg-gradient-to-tr from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
           <ShieldAlert className="text-white w-6 h-6" aria-hidden />
@@ -74,7 +76,7 @@ export default function AdminSidebar() {
       </div>
 
       <nav
-        className="flex-1 min-h-0 overflow-y-auto scrollbar-hide scroll-smooth space-y-1 pr-1 -mr-1"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain scroll-smooth space-y-1 pr-1 py-0.5 [scrollbar-gutter:stable]"
         aria-label={t('adminSidebar.aria_main_nav', 'Main navigation')}
       >
         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-2 mb-4 shrink-0">

@@ -5,6 +5,8 @@ import { verifyAccessToken } from '../../utils/authTokens.js';
 import { getTokenFromRequest } from '../../utils/token.js';
 import { getBrazilCheckinDateKey } from '../../utils/checkinDate.js';
 import { notifyMiniPassGamePlayed } from '../../services/miniPass/miniPassMissionHookService.js';
+import { notifyDailyTaskGamePlayed } from '../../services/dailyTasks/dailyTaskHookService.js';
+import { getMemoryMismatchRevealMs } from '../../utils/memoryGameConstants.js';
 
 const logger = loggerLib.child("GamesSocket");
 const GAME_SESSIONS = new Map();
@@ -15,6 +17,10 @@ const GAME_NAMES = {
 const LAST_GAME_FINISH = new Map(); // key: `${userId}-${gameSlug}`
 const GAME_COOLDOWN_MS = Number(process.env.GAME_COOLDOWN_MS) || 180000;
 const GAME_POWER_DAYS = Number(process.env.GAME_POWER_DAYS) || 7;
+/** Time for the client flip-open animation to settle so both cards are fully visible. */
+const MEMORY_FLIP_OPEN_SETTLE_MS = 320;
+const MEMORY_MISMATCH_HOLD_MS = getMemoryMismatchRevealMs();
+const MEMORY_MISMATCH_TOTAL_MS = MEMORY_FLIP_OPEN_SETTLE_MS + MEMORY_MISMATCH_HOLD_MS;
 
 const SYMBOLS = ['bitcoin', 'ethereum', 'solana', 'binance-coin', 'cardano', 'polkadot', 'dogecoin', 'polygon'];
 const MATCH3_SYMBOLS = ['bitcoin', 'ethereum', 'solana', 'binance-coin', 'cardano'];
@@ -24,10 +30,13 @@ export function registerGamesSocketHandlers({ io, engine }) {
     
     socket.on("game:start", async (gameSlug) => {
       try {
+        const prev = GAME_SESSIONS.get(socket.id);
+        clearMemoryMismatchTimer(prev);
+
         const requestLike = { headers: socket.request?.headers || {} };
         const authToken = getTokenFromRequest(requestLike);
         const payload = authToken ? verifyAccessToken(authToken) : null;
-        const userId = Number(socket.data?.userId || payload?.sub);
+        const userId = Number(payload?.sub);
 
         if (!userId) return socket.emit("game:error", { code: "invalid_session" });
 
@@ -101,8 +110,26 @@ export function registerGamesSocketHandlers({ io, engine }) {
             socket.emit("game:match", { ids: [c1.id, c2.id], score: state.score });
             if (state.board.every(c => c.isMatched)) finishGame(socket, state, true, engine);
           } else {
-            c1.isFlipped = false; c2.isFlipped = false; state.flipped = [];
-            socket.emit("game:mismatch", { ids: [c1.id, c2.id] });
+            const id1 = c1.id;
+            const id2 = c2.id;
+            clearMemoryMismatchTimer(state);
+            state.memoryMismatchTimeout = setTimeout(() => {
+              state.memoryMismatchTimeout = null;
+              const live = GAME_SESSIONS.get(socket.id);
+              if (!live || live !== state || live.isFinished || live.slug !== "crypto-memory") {
+                return;
+              }
+              const card1 = live.board.find((c) => c.id === id1);
+              const card2 = live.board.find((c) => c.id === id2);
+              if (!card1 || !card2 || card1.isMatched || card2.isMatched) {
+                live.flipped = [];
+                return;
+              }
+              card1.isFlipped = false;
+              card2.isFlipped = false;
+              live.flipped = [];
+              socket.emit("game:mismatch", { ids: [id1, id2] });
+            }, MEMORY_MISMATCH_TOTAL_MS);
           }
         }
       }
@@ -118,8 +145,22 @@ export function registerGamesSocketHandlers({ io, engine }) {
       }
     });
 
-    socket.on("disconnect", () => GAME_SESSIONS.delete(socket.id));
+    socket.on("disconnect", () => {
+      const s = GAME_SESSIONS.get(socket.id);
+      clearMemoryMismatchTimer(s);
+      GAME_SESSIONS.delete(socket.id);
+    });
   });
+}
+
+/**
+ * @param {object | undefined} state
+ */
+function clearMemoryMismatchTimer(state) {
+  if (state?.memoryMismatchTimeout) {
+    clearTimeout(state.memoryMismatchTimeout);
+    state.memoryMismatchTimeout = null;
+  }
 }
 
 function generateStableBoard() {
@@ -202,6 +243,7 @@ function processCascades(board, matches) {
 
 async function finishGame(socket, state, success, engine) {
   if (state.isFinished) return;
+  clearMemoryMismatchTimer(state);
   state.isFinished = true;
   GAME_SESSIONS.delete(socket.id);
   
@@ -243,6 +285,10 @@ async function finishGame(socket, state, success, engine) {
         }
       });
       notifyMiniPassGamePlayed(Number(state.userId), {
+        userPowerGameId: powerRow.id,
+        gameSlug: String(state.slug || "")
+      }).catch(() => {});
+      notifyDailyTaskGamePlayed(Number(state.userId), {
         userPowerGameId: powerRow.id,
         gameSlug: String(state.slug || "")
       }).catch(() => {});

@@ -29,6 +29,10 @@ import {
 const SOCKET_URL = '/';
 const LOGICAL = MINER_GAMES_LOGICAL_SIZE;
 
+/** Must match server MEMORY_FLIP_OPEN_SETTLE_MS (~client open animation). */
+const MEMORY_CARD_OPEN_ANIM_MS = 300;
+const MEMORY_CARD_CLOSE_ANIM_MS = 500;
+
 const CRYPTO_ICONS = {
   bitcoin: '/icons/bitcoin.png',
   ethereum: '/icons/ethereum.png',
@@ -207,7 +211,11 @@ export default function Games() {
     });
 
     newSocket.on('game:card_flipped', (data) => {
-      cardFlipAnims.current.set(data.id, { startTime: performance.now(), duration: 300, opening: true });
+      cardFlipAnims.current.set(data.id, {
+        startTime: performance.now(),
+        duration: MEMORY_CARD_OPEN_ANIM_MS,
+        opening: true,
+      });
       const board = memoryBoardRef.current;
       if (!board) return;
       const card = board.find((c) => c.id === data.id);
@@ -233,7 +241,11 @@ export default function Games() {
       setIsProcessing(true);
       const now = performance.now();
       data.ids.forEach((id) => {
-        cardFlipAnims.current.set(id, { startTime: now, duration: 500, opening: false });
+        cardFlipAnims.current.set(id, {
+          startTime: now,
+          duration: MEMORY_CARD_CLOSE_ANIM_MS,
+          opening: false,
+        });
       });
       const t1 = setTimeout(() => {
         const board = memoryBoardRef.current;
@@ -245,8 +257,8 @@ export default function Games() {
             c.symbol = null;
           }
         });
-      }, 250);
-      const t2 = setTimeout(() => setIsProcessing(false), 550);
+      }, MEMORY_CARD_CLOSE_ANIM_MS);
+      const t2 = setTimeout(() => setIsProcessing(false), MEMORY_CARD_CLOSE_ANIM_MS + 50);
       pendingTimeoutsRef.current.push(t1, t2);
     });
 
