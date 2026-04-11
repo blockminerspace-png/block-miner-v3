@@ -85,6 +85,7 @@ function Get-ViteEnvOverrideMap {
     $map = @{}
     $names = @(
         'APP_HOST_PORT',
+        'DB_PUBLISH_PORT',
         'NGINX_PUBLISH_HTTP',
         'NGINX_PUBLISH_HTTPS',
         'VITE_WALLETCONNECT_PROJECT_ID',
@@ -242,9 +243,14 @@ fi
         "$composeEnv up -d --build --no-deps$orph $ComposeService"
     }
     # Sobe DB + reverse proxy: antes só o app era reiniciado (--no-deps) e o nginx ficava parado.
+    $bashCleanupV3 = @'
+v3_ids=$(docker ps -aq -f name=block-miner-v3)
+if [ -n "$v3_ids" ]; then docker rm -f $v3_ids; fi
+'@
     $remoteBuildCmd = @"
 set -e
 cd $RemotePath
+$bashCleanupV3
 # Clear stuck app/nginx containers from partial recreates (name conflicts on shared VMs)
 $composeEnv stop app nginx 2>/dev/null || true
 $composeEnv rm -f app nginx 2>/dev/null || true
