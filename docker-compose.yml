@@ -5,8 +5,7 @@ services:
       POSTGRES_USER: blockminer
       POSTGRES_PASSWORD: blockminer_password
       POSTGRES_DB: blockminer_db
-    ports:
-      - "5432:5432"
+    # No host port publish: avoids clashes with another Postgres on the VM; app uses db:5432 on the compose network.
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
