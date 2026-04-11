@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import axios from 'axios';
+import { toast } from 'sonner';
+import i18n from '../i18n/config.js';
 import { generateSecurityPayload } from '../utils/security';
 import { clearWalletSessionClearedByUserFlag } from '../utils/walletSessionPreference.js';
 
@@ -28,6 +30,39 @@ api.interceptors.request.use((config) => {
 }, (error) => {
     return Promise.reject(error);
 });
+
+let adminSessionRedirectScheduled = false;
+
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const status = error.response?.status;
+        const url = String(error.config?.url || '');
+        const code = error.response?.data?.code;
+        const msg = String(error.response?.data?.message || '').toLowerCase();
+        const isAdminApi =
+            url.startsWith('/admin/') && !url.startsWith('/admin/auth/login') && !url.startsWith('/admin/auth/check');
+        const sessionInvalid =
+            status === 401 &&
+            isAdminApi &&
+            (code === 'ADMIN_SESSION_INVALID' ||
+                msg.includes('admin session invalid') ||
+                msg.includes('not authenticated'));
+        if (sessionInvalid && typeof window !== 'undefined') {
+            const path = window.location.pathname || '';
+            if (path.startsWith('/admin') && !path.startsWith('/admin/login') && !adminSessionRedirectScheduled) {
+                adminSessionRedirectScheduled = true;
+                try {
+                    toast.error(i18n.t('adminAuth.session_invalid'));
+                } catch {
+                    toast.error('Admin session expired. Please sign in again.');
+                }
+                window.location.assign('/admin/login?reason=admin_session');
+            }
+        }
+        return Promise.reject(error);
+    }
+);
 
 export const useAuthStore = create((set) => ({
     user: null,

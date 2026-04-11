@@ -7,8 +7,6 @@ import { api } from '../store/auth';
 import { useWallet } from '../hooks/useWallet';
 import { getBrowserEthereumProvider } from '../utils/walletProvider.js';
 
-const POLYGON_HEX = '0x89';
-
 function shortenAddr(a) {
     if (!a || a.length < 12) return a || '';
     return `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -381,20 +379,11 @@ export default function Checkin() {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.15em]">
-                                        {t('checkin.wallet_only_heading')}
-                                    </h3>
-                                    <p className="text-[11px] text-gray-500 leading-relaxed font-medium">
-                                        {t('checkin.wallet_only_hint')}
-                                    </p>
-                                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-gray-400">
-                                        <div className="flex items-center gap-2 font-bold text-amber-400">
-                                            <Zap className="h-4 w-4 shrink-0" />
-                                            <span>{t('checkin.payment_tab_wallet')} — 0.01 POL</span>
+                                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+                                        <div className="flex items-center justify-center gap-2 text-center font-bold text-amber-400 text-sm tracking-tight">
+                                            <Zap className="h-4 w-4 shrink-0" aria-hidden />
+                                            <span>{t('checkin.wallet_pay_line')}</span>
                                         </div>
-                                        <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
-                                            {t('checkin.polygon_only')}
-                                        </p>
                                     </div>
 
                                     {status.failed && (
@@ -425,10 +414,21 @@ export default function Checkin() {
                                         type="button"
                                         onClick={handleCheckinWallet}
                                         disabled={isPaying || !isConnected || isConnecting || status.pending}
-                                        className="flex w-full items-center justify-center gap-3 rounded-[2rem] bg-amber-500 py-5 text-xs font-black uppercase tracking-[0.2em] text-slate-950 shadow-xl shadow-amber-500/20 hover:bg-amber-600 disabled:opacity-50 sm:text-sm"
+                                        className="flex w-full min-h-[4.5rem] flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 rounded-[2rem] bg-amber-500 px-5 py-4 text-slate-950 shadow-xl shadow-amber-500/20 hover:bg-amber-600 disabled:opacity-50"
                                     >
-                                        {isPaying ? <Loader2 className="h-5 w-5 animate-spin" /> : <Zap className="h-5 w-5 fill-current" />}
-                                        {t('checkin.cta_wallet_payment')}
+                                        {isPaying ? (
+                                            <Loader2 className="h-6 w-6 animate-spin shrink-0" />
+                                        ) : (
+                                            <Zap className="h-6 w-6 shrink-0 fill-current" aria-hidden />
+                                        )}
+                                        <span className="flex flex-col items-center justify-center gap-0.5 text-center leading-tight">
+                                            <span className="text-[11px] sm:text-xs font-black uppercase tracking-[0.12em]">
+                                                {t('checkin.cta_wallet_line1')}
+                                            </span>
+                                            <span className="text-sm sm:text-base font-black tracking-wide normal-case">
+                                                {t('checkin.cta_wallet_line2')}
+                                            </span>
+                                        </span>
                                     </button>
 
                                     {!isConnected && (
@@ -447,7 +447,7 @@ export default function Checkin() {
                                             onClick={() => switchNetwork()}
                                             className="w-full rounded-xl border border-amber-500/30 py-3 text-sm text-amber-400"
                                         >
-                                            {t('checkin.switch_polygon')} ({POLYGON_HEX})
+                                            {t('checkin.switch_polygon')}
                                         </button>
                                     )}
                                 </div>

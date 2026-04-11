@@ -97,7 +97,11 @@ export async function check(req, res) {
     }
     const token = getAdminTokenFromRequest(req);
     if (!token) {
-      return res.status(401).json({ ok: false, message: "Not authenticated" });
+      return res.status(401).json({
+        ok: false,
+        code: "ADMIN_SESSION_INVALID",
+        message: "Not authenticated"
+      });
     }
     const payload = jwt.verify(token, JWT_SECRET, {
       issuer: "blockminer-admin",
@@ -108,6 +112,10 @@ export async function check(req, res) {
     }
     return res.json({ ok: true });
   } catch {
-    return res.status(401).json({ ok: false, message: "Not authenticated" });
+    return res.status(401).json({
+      ok: false,
+      code: "ADMIN_SESSION_INVALID",
+      message: "Not authenticated"
+    });
   }
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Plus, Save, Trash2 } from 'lucide-react';
 import { api } from '../store/auth';
@@ -10,6 +11,7 @@ const CADENCES = ['EVENT', 'DAILY', 'WEEKLY'];
 const MISSION_TYPES = ['PLAY_GAMES', 'MINE_BLK', 'LOGIN_DAY'];
 
 export default function AdminMiniPassSeason() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const isNew = id === 'new';
@@ -280,6 +282,9 @@ export default function AdminMiniPassSeason() {
       </button>
 
       <form onSubmit={saveSeason} className="space-y-6 rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+        <p className="text-xs text-slate-400 leading-relaxed border border-slate-700/80 rounded-xl px-4 py-3 bg-slate-950/50">
+          {t('adminMiniPass.workflow_hint')}
+        </p>
         <h2 className="text-xl font-black text-white">Season</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label className="block text-xs text-slate-500 uppercase">

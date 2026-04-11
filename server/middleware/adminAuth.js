@@ -15,7 +15,11 @@ export function requireAdminAuth(req, res, next) {
     const token = getAdminTokenFromRequest(req);
 
     if (!token) {
-      return res.status(401).json({ ok: false, message: "Admin session invalid." });
+      return res.status(401).json({
+        ok: false,
+        code: "ADMIN_SESSION_INVALID",
+        message: "Admin session invalid."
+      });
     }
 
     let payload = null;
@@ -28,7 +32,11 @@ export function requireAdminAuth(req, res, next) {
       if (process.env.NODE_ENV !== "production") {
         logger.debug("Admin token verification failed", { error: err.message });
       }
-      return res.status(401).json({ ok: false, message: "Admin session invalid." });
+      return res.status(401).json({
+        ok: false,
+        code: "ADMIN_SESSION_INVALID",
+        message: "Admin session invalid."
+      });
     }
 
     // Verificar se é um token de admin

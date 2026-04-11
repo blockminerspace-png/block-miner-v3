@@ -1343,7 +1343,7 @@
     "payment_info": "Pagamento do check-in",
     "amount": "Valor:",
     "send_to": "Enviar para:",
-    "polygon_only": "Rede: Polygon (MATIC/POL) — Chain ID 137",
+    "polygon_only": "Polygon (POL)",
     "link_wallet_hint": "Associe e verifique a sua carteira na página Carteira para poder fazer check-in.",
     "open_wallet": "Abrir Carteira",
     "link_wallet_first": "Associe a carteira na página Carteira.",
@@ -1381,7 +1381,10 @@
     "error_balance_failed": "O check-in por saldo falhou. Tenta outra vez ou usa a opção com carteira.",
     "payment_method_heading": "Método de pagamento",
     "wallet_only_heading": "Check-in com a carteira (Polygon)",
-    "wallet_only_hint": "O check-in usa apenas a carteira do navegador ligada na Polygon. Envia exatamente 0,01 POL ao endereço oficial; o BlockMiner verifica a transação na blockchain (Polygonscan — explorador público da Polygon, no mesmo estilo do Etherscan). O saldo POL interno da conta não é usado.",
+    "wallet_only_hint": "Envia 0,01 POL pela carteira ligada; o servidor confirma na blockchain.",
+    "wallet_pay_line": "0,01 POL · Polygon",
+    "cta_wallet_line1": "Pagar com a carteira",
+    "cta_wallet_line2": "0,01 POL",
     "view_on_polygonscan": "Ver transação no Polygonscan",
     "payment_tab_wallet": "Carteira",
     "payment_tab_balance": "Saldo",
@@ -1921,5 +1924,12 @@
       "VAULT_BAD_ITEM": "Referência de máquina inválida.",
       "VAULT_BAD_SOURCE": "Origem inválida."
     }
+  },
+  "adminAuth": {
+    "session_invalid": "A sessão de administrador expirou ou é inválida. Entra de novo.",
+    "session_banner": "Saíste do painel admin. Volta a entrar para continuar."
+  },
+  "adminMiniPass": {
+    "workflow_hint": "Grava a temporada primeiro; depois configura recompensas por nível e missões abaixo — máquinas, POL, XP e jogos são definidos passo a passo em cada nível."
   }
 }

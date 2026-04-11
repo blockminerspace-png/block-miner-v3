@@ -1,9 +1,16 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useMemo } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ShieldAlert, Lock, Mail, Loader2, ChevronRight, AlertCircle } from 'lucide-react';
 import { api } from '../store/auth';
 
 export default function AdminLogin() {
+    const { t } = useTranslation();
+    const [searchParams] = useSearchParams();
+    const sessionBanner = useMemo(
+        () => searchParams.get('reason') === 'admin_session',
+        [searchParams]
+    );
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -65,6 +72,14 @@ export default function AdminLogin() {
                 </div>
 
                 <div className="bg-slate-900 border border-slate-800 rounded-[2rem] p-8 shadow-2xl">
+                    {sessionBanner && (
+                        <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/25 rounded-2xl flex items-start gap-3">
+                            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                            <p className="text-amber-200/90 text-xs font-semibold leading-relaxed">
+                                {t('adminAuth.session_banner')}
+                            </p>
+                        </div>
+                    )}
                     {error && (
                         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-start gap-3">
                             <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
