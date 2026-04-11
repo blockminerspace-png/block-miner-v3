@@ -3,6 +3,7 @@ import prisma from "../src/db/prisma.js";
 import { parseSupportPayload } from "../utils/supportMessagePayload.js";
 import { toPublicSupportReply } from "../services/supportRealtime.js";
 import { addAdminReply } from "../services/supportTicketService.js";
+import { getSupportTicketPlayerDossier } from "../services/supportPlayerDossierService.js";
 
 const attachmentSchema = z.object({
   url: z.string().min(1).max(512),
@@ -114,6 +115,27 @@ export const getMessage = async (req, res) => {
   } catch (error) {
     console.error("[AdminSupportController] Error getting message:", error);
     res.status(500).json({ ok: false, message: "Error getting message" });
+  }
+};
+
+/**
+ * Admin: Aggregated player data for the ticket author (read-only dossier).
+ */
+export const getPlayerDossier = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!id || Number.isNaN(id)) {
+      return res.status(400).json({ ok: false, message: "Invalid id" });
+    }
+
+    const result = await getSupportTicketPlayerDossier(prisma, id, req.query);
+    if (!result.ok) {
+      return res.status(404).json({ ok: false, message: "Message not found" });
+    }
+    res.json(result);
+  } catch (error) {
+    console.error("[AdminSupportController] Error loading player dossier:", error);
+    res.status(500).json({ ok: false, message: "Error loading player dossier" });
   }
 };
 

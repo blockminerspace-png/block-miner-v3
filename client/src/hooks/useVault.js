@@ -6,10 +6,11 @@ import { api } from '../store/auth';
  * @returns {Object} Vault operations
  */
 export function useVault() {
-  const moveToVault = useCallback(async (machineId) => {
+  const moveToVault = useCallback(async (itemId, source = 'inventory') => {
     try {
       const response = await api.post('/vault/move-to-vault', {
-        machineId,
+        itemId,
+        source,
       });
 
       if (!response.data.ok) {
@@ -23,10 +24,11 @@ export function useVault() {
     }
   }, []);
 
-  const retrieveFromVault = useCallback(async (machineId) => {
+  const retrieveFromVault = useCallback(async (vaultId, destination = 'inventory') => {
     try {
       const response = await api.post('/vault/retrieve-from-vault', {
-        machineId,
+        vaultId,
+        destination,
       });
 
       if (!response.data.ok) {

@@ -29,11 +29,12 @@ describe('useVault', () => {
       const { result } = renderHook(() => useVault());
 
       await act(async () => {
-        await result.current.moveToVault(mockMachine.id);
+        await result.current.moveToVault(mockMachine.id, 'inventory');
       });
 
       expect(api.post).toHaveBeenCalledWith('/vault/move-to-vault', {
-        machineId: mockMachine.id,
+        itemId: mockMachine.id,
+        source: 'inventory',
       });
     });
 
@@ -59,11 +60,12 @@ describe('useVault', () => {
       const { result } = renderHook(() => useVault());
 
       await act(async () => {
-        await result.current.retrieveFromVault(mockMachineId);
+        await result.current.retrieveFromVault(mockMachineId, 'inventory');
       });
 
       expect(api.post).toHaveBeenCalledWith('/vault/retrieve-from-vault', {
-        machineId: mockMachineId,
+        vaultId: mockMachineId,
+        destination: 'inventory',
       });
     });
 

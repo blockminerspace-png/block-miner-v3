@@ -17,6 +17,21 @@ import {
 import { toast } from 'sonner';
 import { api } from '../store/auth';
 import SupportAttachmentThumbnails from '../components/SupportAttachmentThumbnails';
+import AdminSupportPlayerDossier from '../components/admin/AdminSupportPlayerDossier';
+
+function defaultDossierParams() {
+  return {
+    limit: 30,
+    depositsPage: 1,
+    ccpaymentPage: 1,
+    depositTicketsPage: 1,
+    withdrawalsPage: 1,
+    payoutsPage: 1,
+    minersPage: 1,
+    inventoryPage: 1,
+    vaultPage: 1,
+  };
+}
 
 function mergeReplyUnique(replies, incoming) {
   if (!incoming?.id) return replies;
@@ -38,6 +53,10 @@ export default function AdminSupport() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [dossierBundle, setDossierBundle] = useState(null);
+  const [dossierLoading, setDossierLoading] = useState(false);
+  const [dossierError, setDossierError] = useState(false);
+  const [dossierParams, setDossierParams] = useState(defaultDossierParams);
   const socketRef = useRef(null);
   const selectedIdRef = useRef(null);
   selectedIdRef.current = selectedMessage?.id ?? null;
@@ -66,6 +85,39 @@ export default function AdminSupport() {
     fetchMessages(1, false);
   }, [fetchMessages]);
 
+  useEffect(() => {
+    if (!selectedMessage?.id) {
+      setDossierBundle(null);
+      setDossierError(false);
+      setDossierLoading(false);
+      return;
+    }
+    const ticketId = selectedMessage.id;
+    let cancelled = false;
+    const run = async () => {
+      setDossierLoading(true);
+      setDossierError(false);
+      try {
+        const res = await api.get(`/admin/support/${ticketId}/player-dossier`, { params: dossierParams });
+        if (cancelled) return;
+        if (res.data?.ok) {
+          setDossierBundle(res.data);
+          setDossierError(false);
+        } else {
+          setDossierError(true);
+        }
+      } catch {
+        if (!cancelled) setDossierError(true);
+      } finally {
+        if (!cancelled) setDossierLoading(false);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedMessage?.id, dossierParams]);
+
   const selectMessage = async (msg) => {
     setLoadingDetails(true);
     setReply('');
@@ -74,6 +126,7 @@ export default function AdminSupport() {
       const res = await api.get(`/admin/support/${msg.id}`);
       if (res.data.ok) {
         setSelectedMessage(res.data.message);
+        setDossierParams(defaultDossierParams());
         if (!msg.isRead) {
           setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, isRead: true } : m)));
         }
@@ -84,6 +137,10 @@ export default function AdminSupport() {
       setLoadingDetails(false);
     }
   };
+
+  const handleDossierParamsChange = useCallback((patch) => {
+    setDossierParams((prev) => ({ ...prev, ...patch }));
+  }, []);
 
   useEffect(() => {
     if (!selectedMessage?.id) {
@@ -347,6 +404,16 @@ export default function AdminSupport() {
               </div>
 
               <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain space-y-6 pr-4 scrollbar-thin scrollbar-thumb-slate-800">
+                <AdminSupportPlayerDossier
+                  bundle={dossierBundle}
+                  loading={dossierLoading}
+                  error={dossierError}
+                  params={dossierParams}
+                  onParamsChange={handleDossierParamsChange}
+                  onRetry={() => {
+                    if (selectedMessage?.id) setDossierParams((p) => ({ ...p }));
+                  }}
+                />
                 <div className="rounded-3xl border border-slate-800/50 bg-slate-900/30 p-4 sm:p-5">
                   <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase text-slate-500">
                     <User className="h-3 w-3" /> {t('admin_support.label_user')}

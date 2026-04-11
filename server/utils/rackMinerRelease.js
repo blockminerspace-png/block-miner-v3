@@ -1,15 +1,22 @@
 /**
  * When a UserMiner row is removed outside the rooms uninstall flow, user_racks
- * still references it (FK ON DELETE SET NULL on user_miner_id, but blocked_by_miner_id
- * has no FK). Clear both so racks stay consistent.
+ * may still reference it. user_miner_id is unique per rack row; blocked_by_miner_id
+ * is not an FK and can point at this miner from an adjacent slot (2-slot machines).
+ *
+ * userMiner ids are globally unique, so we clear by miner id only. This matches
+ * rooms uninstall (roomId + blockedByMinerId) and fixes racks whose user_id drifted.
+ *
+ * @param {import("@prisma/client").Prisma.TransactionClient} tx
+ * @param {number} _userId Reserved for callers; ownership is enforced before release.
+ * @param {number} userMinerId
  */
-export async function releaseUserMinerFromRacksTx(tx, userId, userMinerId) {
+export async function releaseUserMinerFromRacksTx(tx, _userId, userMinerId) {
   await tx.userRack.updateMany({
-    where: { userId, userMinerId },
+    where: { userMinerId },
     data: { userMinerId: null, installedAt: null },
   });
   await tx.userRack.updateMany({
-    where: { userId, blockedByMinerId: userMinerId },
+    where: { blockedByMinerId: userMinerId },
     data: { blockedByMinerId: null },
   });
 }

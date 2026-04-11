@@ -9,7 +9,7 @@ import MachineCard from "../components/MachineCard";
 export default function Vault() {
   const { t } = useTranslation();
   const { machines } = useGameStore();
-  const { moveToVault, retrieveFromVault, loading } = useVault();
+  const { retrieveFromVault, loading } = useVault();
 
   // Filter machines that are in vault
   const vaultMachines = machines.filter(machine => machine.status === 'VAULT');

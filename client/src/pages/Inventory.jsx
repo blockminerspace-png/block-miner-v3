@@ -623,6 +623,15 @@ export default function Inventory() {
         toast.error(res.data.message || t("vault.move_error"));
       }
     } catch (err) {
+      const apiCode = err?.response?.data?.code;
+      if (apiCode) {
+        const key = `vault.errors.${apiCode}`;
+        const translated = t(key);
+        if (translated !== key) {
+          toast.error(translated);
+          return;
+        }
+      }
       if (err?.response?.status === 409) {
         toast.error(t("vault.move_conflict"));
       } else {

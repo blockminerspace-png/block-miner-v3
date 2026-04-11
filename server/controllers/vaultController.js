@@ -5,6 +5,27 @@ import { getMiningEngine } from "../src/miningEngineInstance.js";
 import { createNotification } from "./notificationController.js";
 import prisma from "../src/db/prisma.js";
 import { releaseUserMinerFromRacksTx } from "../utils/rackMinerRelease.js";
+import loggerLib from "../utils/logger.js";
+
+const logger = loggerLib.child("VaultController");
+
+/**
+ * @param {number} userId
+ */
+async function syncMiningProfileBestEffort(userId) {
+  try {
+    await syncUserBaseHashRate(userId);
+    const engine = getMiningEngine();
+    if (engine) {
+      await engine.reloadMinerProfile(userId);
+    }
+  } catch (err) {
+    logger.warn("Vault: post-commit mining profile sync failed (data already saved)", {
+      userId,
+      message: err?.message,
+    });
+  }
+}
 
 /**
  * user_vault.miner_id FK → miners.id. Stale catalog rows would make inserts fail (P2003).
@@ -31,10 +52,23 @@ export async function getVault(req, res) {
 
 export async function moveToVault(req, res) {
   try {
-    const { source, itemId } = req.body;
+    const source = req.body?.source;
+    const rawItemId = req.body?.itemId;
+    const itemId = Number(rawItemId);
 
-    if (!source || !itemId) {
-      return res.status(400).json({ ok: false, message: "Source and itemId are required." });
+    if (!source || rawItemId === undefined || rawItemId === null || rawItemId === "") {
+      return res.status(400).json({
+        ok: false,
+        code: "VAULT_BAD_REQUEST",
+        message: "Source and itemId are required.",
+      });
+    }
+    if (!Number.isInteger(itemId) || itemId < 1) {
+      return res.status(400).json({
+        ok: false,
+        code: "VAULT_BAD_ITEM",
+        message: "Invalid itemId.",
+      });
     }
 
     const now = new Date();
@@ -63,7 +97,7 @@ export async function moveToVault(req, res) {
 
         // Remove from inventory
         await tx.userInventory.delete({
-          where: { id: itemId, userId: req.user.id }
+          where: { id: itemId, userId: req.user.id },
         });
       });
 
@@ -72,9 +106,9 @@ export async function moveToVault(req, res) {
       const userMiner = await prisma.userMiner.findFirst({
         where: {
           id: itemId,
-          userId: req.user.id
+          userId: req.user.id,
         },
-        include: { miner: true }
+        include: { miner: true },
       });
 
       if (!userMiner) {
@@ -97,21 +131,19 @@ export async function moveToVault(req, res) {
           }
         });
 
-        // Remove from rack
         await tx.userMiner.delete({
-          where: { id: itemId, userId: req.user.id }
+          where: { id: userMiner.id },
         });
       });
 
-      // Update mining profile after removing from rack
-      await syncUserBaseHashRate(req.user.id);
-      const engine = getMiningEngine();
-      if (engine) {
-        await engine.reloadMinerProfile(req.user.id);
-      }
+      await syncMiningProfileBestEffort(req.user.id);
 
     } else {
-      return res.status(400).json({ ok: false, message: "Invalid source. Must be 'inventory' or 'rack'." });
+      return res.status(400).json({
+        ok: false,
+        code: "VAULT_BAD_SOURCE",
+        message: "Invalid source. Must be 'inventory' or 'rack'.",
+      });
     }
 
     // Create notification
@@ -129,16 +161,34 @@ export async function moveToVault(req, res) {
     res.json({ ok: true, message: "Machine moved to vault successfully!" });
 
   } catch (error) {
-    const code = error?.code;
+    const prismaCode = error?.code;
     const meta = error?.meta;
-    console.error("Move to Vault Error:", { code, message: error?.message, meta });
-    if (code === "P2003" || code === "P2014") {
+    logger.error("Move to Vault Error", {
+      prismaCode,
+      message: error?.message,
+      meta,
+      userId: req.user?.id,
+      source: req.body?.source,
+    });
+    if (prismaCode === "P2003" || prismaCode === "P2014" || prismaCode === "P2017") {
       return res.status(409).json({
         ok: false,
-        message: "Machine is still linked to a rack. Refresh the page and try again."
+        code: "VAULT_RACK_LINK",
+        message: "Machine is still linked to a rack. Refresh the page and try again.",
       });
     }
-    res.status(500).json({ ok: false, message: "Internal server error during vault storage." });
+    if (prismaCode === "P2025") {
+      return res.status(404).json({
+        ok: false,
+        code: "VAULT_NOT_FOUND",
+        message: "Item not found.",
+      });
+    }
+    res.status(500).json({
+      ok: false,
+      code: "VAULT_UNAVAILABLE",
+      message: "Could not complete vault storage. Try again later.",
+    });
   }
 }
 
@@ -241,12 +291,7 @@ export async function retrieveFromVault(req, res) {
         });
       });
 
-      // Update mining profile after installing in rack
-      await syncUserBaseHashRate(req.user.id);
-      const engine = getMiningEngine();
-      if (engine) {
-        await engine.reloadMinerProfile(req.user.id);
-      }
+      await syncMiningProfileBestEffort(req.user.id);
 
     } else {
       return res.status(400).json({ ok: false, message: "Invalid destination. Must be 'inventory' or 'rack'." });

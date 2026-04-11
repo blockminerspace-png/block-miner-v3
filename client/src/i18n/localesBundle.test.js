@@ -139,5 +139,13 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(en.admin_support.title).toBeTruthy();
     expect(pt.admin_support.title).toBeTruthy();
     expect(es.admin_support.title).toBeTruthy();
+
+    expect(en.admin_support.dossier.section_title).toBeTruthy();
+    expect(pt.admin_support.dossier.section_title).toBeTruthy();
+    expect(es.admin_support.dossier.section_title).toBeTruthy();
+
+    expect(en.admin_support.dossier.miners_inventory).toBeTruthy();
+    expect(pt.admin_support.dossier.miners_vault).toBeTruthy();
+    expect(es.admin_support.dossier.miners_rack).toBeTruthy();
   });
 });

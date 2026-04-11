@@ -796,8 +796,9 @@ adminRouter.post("/users/:id/send-miner", async (req, res) => {
     }
 });
 
-// Support / Tickets
+// Support / Tickets (specific routes before generic :id)
 adminRouter.get("/support", adminSupportController.listMessages);
+adminRouter.get("/support/:id/player-dossier", adminSupportController.getPlayerDossier);
 adminRouter.get("/support/:id", adminSupportController.getMessage);
 adminRouter.post("/support/:id/reply", adminSupportController.replyToMessage);
 
