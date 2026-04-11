@@ -21,15 +21,23 @@ FROM node:20-bookworm-slim
 WORKDIR /app
 LABEL maintainer="blockminer"
 
-# OpenSSL is required by Prisma.
+# OpenSSL is required by Prisma. Xvfb + ffmpeg are required for admin RTMP capture (Playwright + x11grab).
 RUN apt-get update && \
-    apt-get install -y openssl rclone ca-certificates netcat-openbsd && \
-    update-ca-certificates && \
+    apt-get install -y --no-install-recommends \
+      openssl rclone ca-certificates netcat-openbsd \
+      xvfb ffmpeg \
+    && update-ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 # Install production dependencies
 COPY package*.json ./
 RUN npm install --omit=dev --no-audit --no-fund
+
+# Playwright Chromium + OS libs (headful capture on virtual X display)
+RUN apt-get update && \
+    npx playwright install-deps chromium && \
+    npx playwright install chromium && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy Prisma schema and config, then generate client
 COPY server/prisma ./server/prisma/
