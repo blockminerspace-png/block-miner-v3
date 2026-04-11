@@ -2,7 +2,8 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    # Gitflow: main/master = production integration; develop = test/staging integration
+    branches: [main, master, develop]
   pull_request:
 
 jobs:

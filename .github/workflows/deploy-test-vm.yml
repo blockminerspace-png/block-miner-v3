@@ -1,0 +1,75 @@
+# Gitflow — auto deploy to TEST VM after CI passes on `develop`.
+#
+# Enable: Variable ENABLE_TEST_VM_DEPLOY=true
+# Required secret: TEST_VPS_PASSWORD (root SSH password — never commit it)
+#
+# Defaults (override with Variables if needed):
+#   TEST_VPS_HOST, TEST_VPS_USER, TEST_VPS_APP_PATH, TEST_REPO_URL, TEST_GIT_BRANCH
+#
+# Optional: use SSH key instead of password — set secrets TEST_VPS_SSH_PRIVATE_KEY
+# and leave TEST_VPS_PASSWORD empty (then add key to the action step below).
+name: Deploy Test VM
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [develop]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: >-
+      vars.ENABLE_TEST_VM_DEPLOY == 'true' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event_name == 'workflow_run' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'develop'
+        )
+      )
+    steps:
+      - name: Deploy via SSH (develop)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ vars.TEST_VPS_HOST || '89.167.114.67' }}
+          username: ${{ vars.TEST_VPS_USER || 'root' }}
+          password: ${{ secrets.TEST_VPS_PASSWORD }}
+          port: ${{ vars.TEST_VPS_PORT || '22' }}
+          script_stop: true
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+            APP_ROOT="${{ vars.TEST_VPS_APP_PATH }}"
+            APP_ROOT="${APP_ROOT:-/root/block-miner-v3}"
+            REPO_URL="${{ vars.TEST_REPO_URL }}"
+            REPO_URL="${REPO_URL:-https://github.com/blockminerspace-png/block-miner-v3.git}"
+            GIT_BRANCH="${{ vars.TEST_GIT_BRANCH }}"
+            GIT_BRANCH="${GIT_BRANCH:-develop}"
+            export APP_ROOT GIT_BRANCH
+
+            if [[ ! -d "$APP_ROOT/.git" ]]; then
+              echo "[bootstrap] cloning $REPO_URL -> $APP_ROOT (branch $GIT_BRANCH)"
+              mkdir -p "$(dirname "$APP_ROOT")"
+              parent="$(dirname "$APP_ROOT")"
+              base="$(basename "$APP_ROOT")"
+              cd "$parent"
+              if git clone --branch "$GIT_BRANCH" --single-branch "$REPO_URL" "$base" 2>/dev/null; then
+                echo "[bootstrap] clone OK"
+              else
+                git clone "$REPO_URL" "$base"
+                cd "$APP_ROOT"
+                git fetch origin "$GIT_BRANCH" || true
+                git checkout "$GIT_BRANCH" || git checkout -b "$GIT_BRANCH" "origin/$GIT_BRANCH"
+              fi
+            fi
+
+            cd "$APP_ROOT"
+            if [[ ! -f scripts/deploy-production-safe.sh ]]; then
+              echo "ERROR: scripts/deploy-production-safe.sh missing in $APP_ROOT"
+              exit 1
+            fi
+            bash scripts/deploy-production-safe.sh
