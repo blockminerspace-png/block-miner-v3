@@ -319,7 +319,7 @@ docker compose --env-file .env.production exec -T $ComposeService npx prisma mig
     # Use a single-quoted here-string so $(...) is NOT evaluated by PowerShell (must run on the Linux VM as bash).
     $healthRemote = @'
 set -e
-cd __REMOTE_PATH__
+cd "__REMOTE_PATH__"
 ok=0
 i=0
 while [ $i -lt 45 ]; do
@@ -329,8 +329,8 @@ while [ $i -lt 45 ]; do
   if [ "$code" = "200" ]; then ok=1; break; fi
   sleep 2
 done
-if [ "$ok" != "1" ]; then
-  echo "DEPLOY_WARNING: /health did not return 200 within ~90s on port __HEALTH_PORT__ (app may still be starting or misconfigured)."
+if [ "$ok" -ne 1 ]; then
+  echo "DEPLOY_WARNING: /health did not return 200 within ~90s on port __HEALTH_PORT__; app may still be starting or misconfigured."
   docker compose --env-file .env.production logs --tail=80 __COMPOSE_SERVICE__ || true
   exit 0
 fi
@@ -339,7 +339,11 @@ exit 0
 '@
     $healthRemote = $healthRemote.Replace('__REMOTE_PATH__', $RemotePath).Replace('__HEALTH_PORT__', $healthPort).Replace('__COMPOSE_SERVICE__', $ComposeService)
     Write-Host "==> Waiting for application health on 127.0.0.1:${healthPort}/health ..."
-    & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" (ConvertTo-UnixLf $healthRemote)
+    # One-line over SSH: multiline + quotes are mangled by plink/Windows argv; pipe base64 into bash.
+    $healthUnix = ConvertTo-UnixLf $healthRemote
+    $healthB64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($healthUnix))
+    $remoteHealthCmd = "printf '%s' '$healthB64' | base64 -d | bash"
+    & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" $remoteHealthCmd
     if ($LASTEXITCODE -ne 0) { throw "Health check SSH step failed (plink exit $LASTEXITCODE)." }
 
     Write-Host '==> Feito.'
