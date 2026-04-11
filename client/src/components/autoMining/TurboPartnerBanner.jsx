@@ -1,12 +1,12 @@
 import { ImageOff } from "lucide-react";
 import { validateTrustedEvent } from "../../utils/security";
 
-/** Exact ZerAds placement URL (product requirement). */
+/** ZerAds placement URL (display banner; PTC callback API is separate). */
 export const TURBO_ZERADS_IFRAME_SRC =
   "https://zerads.com/ad/ad.php?width=300&ref=10776";
 
 /**
- * Turbo mode: shows the ZerAds iframe with a single full-area control (no separate CTA).
+ * Turbo mode: ZerAds iframe with a single full-area control (no separate CTA).
  * Click is tracked server-side via `onRegisterClick(impression.id)` before opening a new tab.
  *
  * @param {{

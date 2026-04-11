@@ -90,7 +90,7 @@ export default function Faucet() {
             if (res.data.ok) {
                 window.open(res.data.partnerUrl, '_blank', 'noopener,noreferrer');
                 setPartnerWaitMs(res.data.waitMs || 10000);
-                toast.info("Patrocinador visitado! Mantenha a aba aberta.");
+                toast.info(t('faucet.partner_toast_started'));
             }
         } catch (err) {
             setIsAdClicked(false);
@@ -227,17 +227,33 @@ export default function Faucet() {
                                         </div>
                                     ) : (
                                         <div className="space-y-3">
-                                            <div className="relative w-full rounded-2xl overflow-hidden border border-gray-700 bg-gray-900 flex items-center justify-center">
-                                                <iframe src="https://zerads.com/ad/ad.php?width=300&ref=10776" marginWidth="0" marginHeight="0" width="300" height="250" scrolling="no" border="0" frameBorder="0" style={{ display: 'block', maxWidth: '100%' }} />
-                                                <div className="absolute inset-0 z-10" onClick={handleAdClick} style={{ cursor: 'pointer' }} />
+                                            <div className="relative w-full rounded-2xl overflow-hidden border border-gray-700 bg-gray-900 flex items-center justify-center max-w-[300px] mx-auto">
+                                                <iframe
+                                                    src="https://zerads.com/ad/ad.php?width=300&ref=10776"
+                                                    marginWidth={0}
+                                                    marginHeight={0}
+                                                    width={300}
+                                                    height={250}
+                                                    scrolling="no"
+                                                    frameBorder={0}
+                                                    style={{ display: "block", maxWidth: "100%", border: 0 }}
+                                                    title={t("autoMiningGpuPage.turbo_zerads_iframe_title")}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    aria-label={t("faucet.visit_partner")}
+                                                    disabled={isAdClicked || remainingMs > 0 || isPartnerUnlocked}
+                                                    className="absolute inset-0 z-10 cursor-pointer bg-transparent disabled:cursor-not-allowed disabled:opacity-50"
+                                                    onClick={handleAdClick}
+                                                />
                                             </div>
                                             <div className="flex items-center justify-center gap-2 text-primary/60">
                                                 <MousePointer2 className="w-3 h-3" />
-                                                <span className="text-[9px] font-black uppercase tracking-widest">Clique no banner para desbloquear</span>
+                                                <span className="text-[9px] font-black uppercase tracking-widest">{t('faucet.partner_click_hint')}</span>
                                             </div>
                                             <div className="flex items-center justify-center gap-2 text-primary/40">
                                                 <ExternalLink className="w-3 h-3" />
-                                                <span className="text-[9px] font-black uppercase tracking-widest">O link abrirá em uma nova aba</span>
+                                                <span className="text-[9px] font-black uppercase tracking-widest">{t('faucet.partner_new_tab_hint')}</span>
                                             </div>
                                         </div>
                                     )}

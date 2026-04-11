@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect } from 'vitest';
-import { LayoutDashboard, MousePointer2 } from 'lucide-react';
+import { LayoutDashboard, BarChart3 } from 'lucide-react';
 import {
   mapApiCategoriesToMenu,
   normalizeMiniPassOutOfRewardsGroup,
@@ -44,8 +44,8 @@ describe('sidebarNavMap', () => {
     expect(resolveSidebarIcon('NotARealLucideIcon')).toBe(LayoutDashboard);
   });
 
-  it('resolveSidebarIcon maps MousePointer2 for ZerAds PTC', () => {
-    expect(resolveSidebarIcon('MousePointer2')).toBe(MousePointer2);
+  it('resolveSidebarIcon maps BarChart3 for power stats', () => {
+    expect(resolveSidebarIcon('BarChart3')).toBe(BarChart3);
   });
 
   it('normalizeMiniPassOutOfRewardsGroup pulls mini_pass out of Rewards children', () => {

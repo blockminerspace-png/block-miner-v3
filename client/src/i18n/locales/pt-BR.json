@@ -630,7 +630,6 @@
     "shortlinks": "Shortlinks",
     "checkin": "Check-in",
     "read_earn": "Ler e ganhar",
-    "ptc": "ZerAds PTC",
     "mini_pass": "Mini Pass",
     "daily_tasks": "Tarefas diárias",
     "auto_mining": "Auto Mining",
@@ -842,77 +841,6 @@
       "watch_youtube": "Resgate {{target}} recompensa do YouTube hoje",
       "custom": "Objetivo diário personalizado"
     }
-  },
-  "ptcPage": {
-    "loading": "Carregando anúncios…",
-    "title": "Paid-To-Click (PTC)",
-    "subtitle": "Clique nos anúncios do parceiro para ganhar {{reward}}. Os créditos são aplicados no servidor com proteção rigorosa contra duplicados.",
-    "badge_official": "Parceiro oficial ZerAds",
-    "earn_title": "Ganhe em cada visualização válida",
-    "earn_body": "Abra o painel ZerAds abaixo. Cada anúncio concluído é reportado ao BlockMiner; convertemos ZER em {{reward}} com a taxa configurada.",
-    "delay_title": "Atraso de processamento",
-    "delay_body": "O ZerAds agrupa cliques e chama nosso servidor cerca de 5 em 5 minutos. O saldo pode demorar alguns minutos após o anúncio.",
-    "callback_scope_title": "Painel ZerAds vs esta página",
-    "callback_scope_body": "Os ganhos exibidos no ZerAds são do ID do site do editor para todo o tráfego. Esta página só atualiza quando o ZerAds envia o callback de pagamento para **esta** instância ({{origin}}). Se a URL de callback no painel ZerAds apontar para outro domínio (por exemplo produção), estatísticas e notificações aparecem lá.",
-    "open_board": "Abrir painel de anúncios",
-    "payment_active": "Pagamentos automáticos ativos",
-    "more_ads_title": "Mais ofertas (Offerwall.me)",
-    "more_ads_body": "Complete pesquisas e ofertas pela integração Offerwall.me para POL extra.",
-    "open_offerwall": "Abrir offerwall",
-    "how_title": "Como funciona",
-    "step1_title": "Abra o painel",
-    "step1_desc": "Inicie o quadro oficial ZerAds numa nova aba.",
-    "step2_title": "Conclua o cronômetro",
-    "step2_desc": "Finalize cada anúncio conforme as regras do ZerAds.",
-    "step3_title": "Receba {{reward}}",
-    "step3_desc": "Creditamos seu saldo quando o ZerAds envia o callback (deduplicado por lote).",
-    "stats_title": "Suas estatísticas",
-    "total_clicks": "Callbacks pagos",
-    "total_earned": "Total ganho",
-    "stats_footer": "Não há limite diário rígido do nosso lado; a disponibilidade depende do ZerAds.",
-    "recent_title": "Pagamentos recentes",
-    "recent_empty": "Ainda não há pagamentos ZerAds",
-    "recent_claim_label": "ZerAds PTC",
-    "recent_confirmed": "creditado",
-    "load_error_toast": "Não foi possível carregar os dados de PTC"
-  },
-  "offerwallPage": {
-    "title": "Offerwall",
-    "subtitle": "Complete tarefas e pesquisas dos parceiros. As recompensas são creditadas quando o Offerwall.me chama a URL de postback do nosso servidor.",
-    "badge": "Central de ofertas",
-    "login_title": "Login necessário",
-    "login_body": "Entre na conta para abrir a parede de ofertas e receber POL na sua conta.",
-    "loading": "Carregando parede de ofertas…",
-    "load_error": "Não foi possível carregar a configuração do offer wall.",
-    "not_configured": "Offerwall.me não está configurado neste servidor (falta a API key).",
-    "open_board": "Abrir parede de ofertas",
-    "open_embed": "Abrir incorporado",
-    "open_hint": "Abre numa nova aba. Permita pop-ups se nada aparecer.",
-    "postback_title": "URL de postback (painel)",
-    "postback_body": "Cole esta URL exata como Postback URL nas definições da app no Offerwall.me. O nosso servidor tem de responder \"ok\" (minúsculas) para os pagamentos serem aceites.",
-    "copy_postback": "Copiar URL",
-    "copied_toast": "URL de postback copiada",
-    "walls": {
-      "offerwall_me": {
-        "name": "Offerwall.me",
-        "description": "Pesquisas, tarefas e ofertas estilo PTC. As recompensas aparecem no saldo BlockMiner após verificação.",
-        "badge": "Recomendado"
-      },
-      "time_wall": {
-        "name": "TimeWall",
-        "description": "Tarefas de engajamento e pesquisas rápidas.",
-        "badge": "Em breve"
-      },
-      "cpx_research": {
-        "name": "CPX Research",
-        "description": "Pesquisas com remuneração mais alta.",
-        "badge": "Em breve"
-      },
-      "access": "Acessar ofertas",
-      "unavailable": "Indisponível"
-    },
-    "modal_subtitle": "Conclua tarefas para ganhar saldo",
-    "iframe_title": "Offerwall"
   },
   "readEarn": {
     "title": "Ler e ganhar",
@@ -1374,6 +1302,9 @@
     "partner_msg": "Clique no banner abaixo para abrir o site do patrocinador e liberar o seu prêmio.",
     "unlocked": "Liberado!",
     "visit_partner": "Clicar no Banner",
+    "partner_click_hint": "Toque na área do patrocinador para continuar",
+    "partner_new_tab_hint": "O patrocinador abre numa nova aba",
+    "partner_toast_started": "Patrocinador aberto numa nova aba. Mantenha-a aberta por alguns segundos.",
     "wait_seconds": "Mantenha aberto por {{seconds}}s...",
     "claim_miner": "Resgatar Mineradora",
     "claiming": "Resgatando...",
@@ -1602,16 +1533,6 @@
       "youtube": "YouTube",
       "auto_mining": "Auto Mining"
     }
-  },
-  "ptc": {
-    "title": "Pago por Clique",
-    "subtitle": "Ganhe POL visitando sites de nossos parceiros por alguns segundos.",
-    "available_ads": "Anúncios Disponíveis",
-    "watch": "Ver Anúncio",
-    "seconds": "segundos",
-    "reward": "Recompensa",
-    "no_ads": "Nenhum anúncio disponível no momento. Volte mais tarde!",
-    "wait_msg": "Por favor, aguarde {{seconds}} segundos para resgatar sua recompensa."
   },
   "youtube": {
     "title": "Recompensas YouTube",

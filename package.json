@@ -20,7 +20,6 @@
     "db:push": "prisma db push --schema=server/prisma/schema.prisma",
     "db:migrate": "prisma migrate deploy --schema=server/prisma/schema.prisma",
     "test": "node scripts/run-node-tests.mjs",
-    "test:security": "npx cross-env JWT_SECRET=testsecret node --test tests/security.webhooks.test.js",
     "contracts:test": "npm test --prefix contracts",
     "test:offer-events": "node --test tests/offerEvents.helpers.test.mjs tests/offerEvents.listQuery.test.mjs tests/offerEvents.publicList.test.mjs",
     "test:read-earn": "npx cross-env JWT_SECRET=testsecret node --test tests/readEarn.isLive.test.mjs tests/readEarnSchemas.test.mjs",

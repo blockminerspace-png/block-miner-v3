@@ -55,8 +55,6 @@ function registerAppRoutes({
   autoMiningGpuRouter,
   adminAutoMiningRewardsRouter,
   ptpController,
-  zeradsController,
-  zeradsRouter,
   io,
   run,
   POLYGON_RPC_URL,
@@ -98,8 +96,6 @@ function registerAppRoutes({
   const shopListLimiter = createRateLimiter({ windowMs: 60_000, max: 60 });
   const checkinLimiter = createRateLimiter({ windowMs: 60_000, max: 10 });
   const adminLimiter = createRateLimiter({ windowMs: 60_000, max: 120 });
-  const zeradsCallbackLimiter = createRateLimiter({ windowMs: 60_000, max: 2000 });
-  const zeradsTestLimiter = createRateLimiter({ windowMs: 60_000, max: 2000 });
   const chatSendLimiter = createRateLimiter({ windowMs: 60_000, max: 30 });
   const youtubeWatchClaimLimiter = createRateLimiter({ windowMs: 60_000, max: 20 });
 
@@ -557,13 +553,8 @@ function registerAppRoutes({
   app.get("/api/chat/messages", requireAuth, serverDatabaseController.listChatMessages);
   app.post("/api/chat/messages", requireAuth, chatSendLimiter, validateBody(chatMessageSchema), serverDatabaseController.createChatMessage);
 
-  app.get("/zeradsptc.php", zeradsCallbackLimiter, zeradsController.handlePtcCallback);
-  app.post("/zeradsptc.php", zeradsCallbackLimiter, zeradsController.handlePtcCallback);
-  app.get("/zerads", zeradsTestLimiter, zeradsController.redirectToTestPtcLink);
-
   app.use("/api/ptp", ptpRouter);
   app.use("/api/shortlink", shortlinkRouter);
-  app.use("/api/zerads", zeradsRouter);
   app.use("/api/faucet", faucetRouter);
   app.use("/api/wallet", walletRouter);
   app.use("/api/swap", swapRouter);

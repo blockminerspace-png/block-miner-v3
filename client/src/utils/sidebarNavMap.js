@@ -20,7 +20,6 @@ import {
   LifeBuoy,
   Sparkles,
   ListChecks,
-  MousePointer2,
 } from 'lucide-react';
 
 /** Lucide name → component (user sidebar API returns `icon` string). */
@@ -46,7 +45,6 @@ export const SIDEBAR_ICON_MAP = {
   LifeBuoy,
   Sparkles,
   ListChecks,
-  MousePointer2,
 };
 
 /**

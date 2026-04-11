@@ -45,12 +45,7 @@ export function createCsrfMiddleware() {
     const url = req.originalUrl || req.url;
 
     // Third-party server-to-server callbacks and Socket.IO (no browser CSRF token)
-    if (
-      url.includes("/socket.io/") ||
-      url.includes("/api/zerads/callback") ||
-      url.startsWith("/zeradsptc.php") ||
-      url.includes("/api/offerwall/postback")
-    ) {
+    if (url.includes("/socket.io/")) {
       return next();
     }
 

@@ -630,7 +630,6 @@
     "shortlinks": "Shortlinks",
     "checkin": "Check-in",
     "read_earn": "Read & Earn",
-    "ptc": "ZerAds PTC",
     "mini_pass": "Mini Pass",
     "daily_tasks": "Daily Tasks",
     "auto_mining": "Auto Mining",
@@ -841,77 +840,6 @@
       "watch_youtube": "Claim {{target}} YouTube watch reward today",
       "custom": "Custom daily objective"
     }
-  },
-  "ptcPage": {
-    "loading": "Loading ads…",
-    "title": "Paid-To-Click (PTC)",
-    "subtitle": "Click partner ads to earn {{reward}}. Credits are applied server-side with strict duplicate protection.",
-    "badge_official": "Official ZerAds partner",
-    "earn_title": "Earn on every qualified view",
-    "earn_body": "Open the ZerAds board below. Each completed ad reports to BlockMiner; we convert ZER to {{reward}} using the configured exchange rate.",
-    "delay_title": "Processing delay",
-    "delay_body": "ZerAds batches clicks and calls our server about every 5 minutes. Balance updates can take a few minutes after you finish an ad.",
-    "callback_scope_title": "ZerAds panel vs this page",
-    "callback_scope_body": "Earnings shown inside ZerAds are for your publisher site ID across all traffic. This page only updates when ZerAds posts the payout callback to **this** deployment ({{origin}}). If the callback URL in the ZerAds panel points to another domain (for example production), stats and notifications will appear there instead.",
-    "open_board": "Open ad board",
-    "payment_active": "Automatic payouts enabled",
-    "more_ads_title": "More offers (Offerwall.me)",
-    "more_ads_body": "Complete surveys and offers from our Offerwall.me integration for additional POL rewards.",
-    "open_offerwall": "Open offerwall",
-    "how_title": "How it works",
-    "step1_title": "Open the board",
-    "step1_desc": "Launch the official ZerAds PTC frame in a new tab.",
-    "step2_title": "Finish the timer",
-    "step2_desc": "Complete each ad view according to ZerAds rules.",
-    "step3_title": "Receive {{reward}}",
-    "step3_desc": "We credit your balance when ZerAds posts the callback (deduplicated per batch).",
-    "stats_title": "Your stats",
-    "total_clicks": "Paid callbacks",
-    "total_earned": "Total earned",
-    "stats_footer": "There is no hard daily limit from our side; ZerAds availability varies.",
-    "recent_title": "Recent payouts",
-    "recent_empty": "No ZerAds payouts recorded yet",
-    "recent_claim_label": "ZerAds PTC",
-    "recent_confirmed": "credited",
-    "load_error_toast": "Could not load PTC data"
-  },
-  "offerwallPage": {
-    "title": "Offerwall",
-    "subtitle": "Complete partner tasks and surveys. Rewards are credited when Offerwall.me calls our postback URL.",
-    "badge": "Offer hub",
-    "login_title": "Sign in required",
-    "login_body": "Log in to open the offer wall and receive POL to your account.",
-    "loading": "Loading offer wall…",
-    "load_error": "Could not load the offer wall configuration.",
-    "not_configured": "Offerwall.me is not configured on this server (missing API key).",
-    "open_board": "Open offer wall",
-    "open_embed": "Open embedded",
-    "open_hint": "Opens in a new tab. Allow pop-ups if nothing appears.",
-    "postback_title": "Postback URL (dashboard)",
-    "postback_body": "Paste this exact URL as the Postback URL in your Offerwall.me app settings. Our server must return \"ok\" (lowercase) for payouts to succeed.",
-    "copy_postback": "Copy URL",
-    "copied_toast": "Postback URL copied",
-    "walls": {
-      "offerwall_me": {
-        "name": "Offerwall.me",
-        "description": "Surveys, tasks, and PTC-style offers. Rewards post to your BlockMiner balance after verification.",
-        "badge": "Recommended"
-      },
-      "time_wall": {
-        "name": "TimeWall",
-        "description": "Engagement tasks and quick surveys.",
-        "badge": "Coming soon"
-      },
-      "cpx_research": {
-        "name": "CPX Research",
-        "description": "Higher-payout surveys.",
-        "badge": "Coming soon"
-      },
-      "access": "Open offers",
-      "unavailable": "Unavailable"
-    },
-    "modal_subtitle": "Complete tasks to earn balance",
-    "iframe_title": "Offerwall"
   },
   "readEarn": {
     "title": "Read & Earn",
@@ -1371,6 +1299,9 @@
     "partner_msg": "Click the banner below to visit our sponsor and unlock your reward.",
     "unlocked": "Unlocked!",
     "visit_partner": "Click Banner",
+    "partner_click_hint": "Tap the sponsor area to continue",
+    "partner_new_tab_hint": "The sponsor opens in a new tab",
+    "partner_toast_started": "Sponsor opened in a new tab. Keep it open for a few seconds.",
     "wait_seconds": "Keep open for {{seconds}}s...",
     "claim_miner": "Claim Miner",
     "claiming": "Claiming...",
@@ -1597,16 +1528,6 @@
       "youtube": "YouTube",
       "auto_mining": "Auto Mining"
     }
-  },
-  "ptc": {
-    "title": "Paid to Click",
-    "subtitle": "Earn POL by visiting our partners' websites for a few seconds.",
-    "available_ads": "Available Ads",
-    "watch": "Watch Ad",
-    "seconds": "seconds",
-    "reward": "Reward",
-    "no_ads": "No ads available right now. Check back later!",
-    "wait_msg": "Please wait {{seconds}} seconds to claim your reward."
   },
   "youtube": {
     "title": "YouTube Rewards",

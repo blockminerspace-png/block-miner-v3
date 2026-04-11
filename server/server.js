@@ -38,8 +38,6 @@ import { chatRouter } from "./routes/chat.js";
 import { rankingRouter } from "./routes/ranking.js";
 import { statsRouter } from "./routes/stats.js";
 import { shortlinkRouter } from "./routes/shortlink.js";
-import { zeradsRouter } from "./routes/zerads.js";
-import { offerwallRouter } from "./routes/offerwall.js";
 import { youtubeRouter } from "./routes/youtube.js";
 import { gamesRouter } from "./routes/games.js";
 import { autoMiningGpuRouter } from "./routes/auto-mining-gpu.js";
@@ -244,12 +242,6 @@ app.use("/api", (req, res, next) => {
 });
 
 // 5. API Routes
-import * as zeradsController from "./controllers/zeradsController.js";
-const zeradsPublicCallbackLimiter = createRateLimiter({ windowMs: 60_000, max: 2000 });
-app.get("/zeradsptc.php", zeradsPublicCallbackLimiter, zeradsController.handlePtcCallback);
-app.post("/zeradsptc.php", zeradsPublicCallbackLimiter, zeradsController.handlePtcCallback);
-app.get("/zerads", zeradsPublicCallbackLimiter, zeradsController.redirectToTestPtcLink);
-
 app.use("/api/auth", authRouter);
 app.use("/api/faucet", faucetRouter);
 app.use("/api/wallet", walletRouter);
@@ -270,8 +262,6 @@ app.use("/api/chat", chatRouter);
 app.use("/api/ranking", rankingRouter);
 app.use("/api/stats", statsRouter);
 app.use("/api/shortlink", shortlinkRouter);
-app.use("/api/zerads", zeradsRouter);
-app.use("/api/offerwall", offerwallRouter);
 app.use("/api/youtube", youtubeRouter);
 app.use("/api/games", gamesRouter);
 app.use("/api/auto-mining-gpu", autoMiningGpuRouter);

@@ -139,7 +139,6 @@ export async function getUserActivitySummary(req, res) {
       ytHistory,
       ytPowers,
       faucetVisits,
-      zerads,
       userMiners,
       inventory,
       racks,
@@ -189,18 +188,6 @@ export async function getUserActivitySummary(req, res) {
         orderBy: { openedAt: "desc" },
         take,
         select: { id: true, dayKey: true, openedAt: true, eligibleAt: true }
-      }),
-      prisma.zeradsCallback.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        take,
-        select: {
-          id: true,
-          clicks: true,
-          payoutAmount: true,
-          callbackAt: true,
-          createdAt: true
-        }
       }),
       prisma.userMiner.findMany({
         where: { userId },
@@ -285,7 +272,6 @@ export async function getUserActivitySummary(req, res) {
         activePowers: ytPowers
       },
       faucetPartnerVisits: faucetVisits,
-      zeradsCallbacks: zerads,
       machines: userMiners,
       inventory,
       racks,

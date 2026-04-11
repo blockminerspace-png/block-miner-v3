@@ -18,12 +18,12 @@ test("default entries pass validation", () => {
   assert.equal(v.ok, true);
 });
 
-test("mergeMissingSidebarRegistryEntries adds ptc when snapshot omits it", () => {
+test("mergeMissingSidebarRegistryEntries adds read_earn when snapshot omits it", () => {
   const full = buildDefaultSidebarEntries();
-  const withoutPtc = full.filter((e) => e.itemId !== "ptc");
-  const { entries, changed } = mergeMissingSidebarRegistryEntries(withoutPtc);
+  const withoutReadEarn = full.filter((e) => e.itemId !== "read_earn");
+  const { entries, changed } = mergeMissingSidebarRegistryEntries(withoutReadEarn);
   assert.equal(changed, true);
-  assert.ok(entries.some((e) => e.itemId === "ptc"));
+  assert.ok(entries.some((e) => e.itemId === "read_earn"));
   const v = validateSidebarEntriesPayload(entries);
   assert.equal(v.ok, true);
 });
@@ -115,10 +115,10 @@ test("mini_pass is a top-level earn link in default resolved nav", () => {
   assert.equal(mini.path, "/mini-pass");
 });
 
-test("ptc is nested under rewards_group in default resolved nav", () => {
+test("read_earn is nested under rewards_group in default resolved nav", () => {
   const d = buildDefaultSidebarEntries();
   const cats = buildResolvedCategories(d);
   const earn = cats.find((c) => c.section === "earn");
   const group = earn.items.find((x) => x.itemId === "rewards_group");
-  assert.ok(group?.children?.some((c) => c.itemId === "ptc" && c.path === "/ptc"));
+  assert.ok(group?.children?.some((c) => c.itemId === "read_earn" && c.path === "/read-earn"));
 });
