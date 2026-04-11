@@ -630,6 +630,7 @@
     "shortlinks": "Shortlinks",
     "checkin": "Check-in",
     "read_earn": "Read & Earn",
+    "ptc": "ZerAds PTC",
     "mini_pass": "Mini Pass",
     "daily_tasks": "Daily Tasks",
     "auto_mining": "Auto Mining",
@@ -840,6 +841,37 @@
       "watch_youtube": "Claim {{target}} YouTube watch reward today",
       "custom": "Custom daily objective"
     }
+  },
+  "ptcPage": {
+    "loading": "Loading ads…",
+    "title": "Paid-To-Click (PTC)",
+    "subtitle": "Click partner ads to earn {{reward}}. Credits are applied server-side with strict duplicate protection.",
+    "badge_official": "Official ZerAds partner",
+    "earn_title": "Earn on every qualified view",
+    "earn_body": "Open the ZerAds board below. Each completed ad reports to BlockMiner; we convert ZER to {{reward}} using the configured exchange rate.",
+    "delay_title": "Processing delay",
+    "delay_body": "ZerAds batches clicks and calls our server about every 5 minutes. Balance updates can take a few minutes after you finish an ad.",
+    "open_board": "Open ad board",
+    "payment_active": "Automatic payouts enabled",
+    "more_ads_title": "More offers (Offerwall.me)",
+    "more_ads_body": "Complete surveys and offers from our Offerwall.me integration for additional POL rewards.",
+    "open_offerwall": "Open offerwall",
+    "how_title": "How it works",
+    "step1_title": "Open the board",
+    "step1_desc": "Launch the official ZerAds PTC frame in a new tab.",
+    "step2_title": "Finish the timer",
+    "step2_desc": "Complete each ad view according to ZerAds rules.",
+    "step3_title": "Receive {{reward}}",
+    "step3_desc": "We credit your balance when ZerAds posts the callback (deduplicated per batch).",
+    "stats_title": "Your stats",
+    "total_clicks": "Paid callbacks",
+    "total_earned": "Total earned",
+    "stats_footer": "There is no hard daily limit from our side; ZerAds availability varies.",
+    "recent_title": "Recent payouts",
+    "recent_empty": "No ZerAds payouts recorded yet",
+    "recent_claim_label": "ZerAds PTC",
+    "recent_confirmed": "credited",
+    "load_error_toast": "Could not load PTC data"
   },
   "readEarn": {
     "title": "Read & Earn",
@@ -1237,7 +1269,8 @@
       "walletconnect": "WalletConnect (QR code)",
       "hint": "Choose how you connect your wallet, then sign the POL transfer.",
       "contract_required": "Smart contract deposit is not available in this environment. Use WalletConnect with the treasury address or contact support.",
-      "walletconnect_hint": "Open WalletConnect to scan the QR code on your phone, stay on Polygon (137), then use Express deposit to sign."
+      "walletconnect_hint": "Open WalletConnect to scan the QR code on your phone, stay on Polygon (137), then use Express deposit to sign.",
+      "walletconnect_logo_alt": "WalletConnect"
     },
     "web3_deposit": {
       "title": "Polygon POL deposit",

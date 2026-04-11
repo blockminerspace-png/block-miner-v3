@@ -6,7 +6,8 @@ import { createRateLimiter } from "../middleware/rateLimit.js";
 export const zeradsRouter = express.Router();
 
 const linkLimiter = createRateLimiter({ windowMs: 60_000, max: 30 });
-const callbackLimiter = createRateLimiter({ windowMs: 60_000, max: 120 });
+/** ZerAds may burst many identical callbacks; stay well above normal traffic. */
+const callbackLimiter = createRateLimiter({ windowMs: 60_000, max: 2000 });
 
 zeradsRouter.get("/ptc-link", requireAuth, linkLimiter, zeradsController.getPtcLink);
 zeradsRouter.get("/offerwall-link", requireAuth, linkLimiter, zeradsController.getOfferwallLink);

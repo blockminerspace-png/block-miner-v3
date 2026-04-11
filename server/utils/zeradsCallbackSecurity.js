@@ -10,6 +10,18 @@ export function getZerAdsSecretFromEnv() {
   return String(process.env.ZERADS_SECRET_KEY || process.env.ZERADS_CALLBACK_PASSWORD || "").trim();
 }
 
+/**
+ * ZerAds sends the shared secret as `pwd` on the callback URL (optional `secret` for internal tests).
+ * @param {Record<string, unknown> | null | undefined} payload
+ * @returns {string}
+ */
+export function getZerAdsProvidedSecretFromPayload(payload) {
+  const p = payload && typeof payload === "object" ? payload : {};
+  const v = p.secret ?? p.pwd ?? p.password;
+  if (v == null) return "";
+  return String(v);
+}
+
 export function isStrongZerAdsSecret(secret) {
   const s = String(secret || "").trim();
   if (!s || s.length < 16) return false;

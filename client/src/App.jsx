@@ -60,6 +60,8 @@ import AdminMiniPassSeason from './pages/AdminMiniPassSeason';
 import ReadEarn from './pages/ReadEarn';
 import MiniPass from './pages/MiniPass';
 import DailyTasks from './pages/DailyTasks';
+import PTC from './pages/PTC';
+import Offerwall from './pages/Offerwall';
 import BroadcastPopup from './components/BroadcastPopup';
 import Transparency from './pages/Transparency';
 import TransparencyErrorBoundary from './components/TransparencyErrorBoundary';
@@ -172,6 +174,8 @@ function App() {
             }
           />
           <Route path="/read-earn" element={<ReadEarn />} />
+          <Route path="/ptc" element={<PTC />} />
+          <Route path="/offerwall" element={<Offerwall />} />
           <Route path="/mini-pass" element={<MiniPass />} />
           <Route path="/mini-pass/:seasonId" element={<MiniPass />} />
           <Route path="/daily-tasks" element={<DailyTasks />} />

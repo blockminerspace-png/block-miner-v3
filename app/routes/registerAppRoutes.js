@@ -98,8 +98,8 @@ function registerAppRoutes({
   const shopListLimiter = createRateLimiter({ windowMs: 60_000, max: 60 });
   const checkinLimiter = createRateLimiter({ windowMs: 60_000, max: 10 });
   const adminLimiter = createRateLimiter({ windowMs: 60_000, max: 120 });
-  const zeradsCallbackLimiter = createRateLimiter({ windowMs: 60_000, max: 120 });
-  const zeradsTestLimiter = createRateLimiter({ windowMs: 60_000, max: 120 });
+  const zeradsCallbackLimiter = createRateLimiter({ windowMs: 60_000, max: 2000 });
+  const zeradsTestLimiter = createRateLimiter({ windowMs: 60_000, max: 2000 });
   const chatSendLimiter = createRateLimiter({ windowMs: 60_000, max: 30 });
   const youtubeWatchClaimLimiter = createRateLimiter({ windowMs: 60_000, max: 20 });
 

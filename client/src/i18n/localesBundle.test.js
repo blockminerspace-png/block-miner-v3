@@ -55,6 +55,15 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(es.wallet.web3_deposit.hint_disconnect_for_wc).toBeTruthy();
   });
 
+  it("exposes ZerAds PTC page and sidebar label in en, pt-BR, and es", () => {
+    expect(en.ptcPage.title).toBeTruthy();
+    expect(pt.ptcPage.title).toBeTruthy();
+    expect(es.ptcPage.title).toBeTruthy();
+    expect(en.sidebar.ptc).toBeTruthy();
+    expect(pt.sidebar.ptc).toBeTruthy();
+    expect(es.sidebar.ptc).toBeTruthy();
+  });
+
   it("exposes Read & Earn strings in en, pt-BR, and es", () => {
     expect(en.readEarn.title).toBeTruthy();
     expect(pt.readEarn.title).toBeTruthy();

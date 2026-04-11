@@ -128,6 +128,13 @@ export const SIDEBAR_ITEM_REGISTRY = {
     section: "earn",
     defaultParentItemId: "rewards_group"
   },
+  ptc: {
+    path: "/ptc",
+    labelKey: "sidebar.ptc",
+    icon: "MousePointer2",
+    section: "earn",
+    defaultParentItemId: "rewards_group"
+  },
   daily_tasks: {
     path: "/daily-tasks",
     labelKey: "sidebar.daily_tasks",
@@ -256,6 +263,7 @@ export function buildDefaultSidebarEntries() {
     { itemId: "auto_mining", visible: true, sortOrder: 150, section: "earn", parentItemId: "rewards_group" },
     { itemId: "youtube", visible: true, sortOrder: 160, section: "earn", parentItemId: "rewards_group" },
     { itemId: "read_earn", visible: true, sortOrder: 170, section: "earn", parentItemId: "rewards_group" },
+    { itemId: "ptc", visible: true, sortOrder: 175, section: "earn", parentItemId: "rewards_group" },
 
     { itemId: "games", visible: true, sortOrder: 210, section: "social", parentItemId: null },
     { itemId: "calculator", visible: true, sortOrder: 220, section: "social", parentItemId: null },

@@ -48,6 +48,22 @@ function looksLikeGasOrProviderIssue(err) {
 
 const depositContractIface = new Interface(BLOCK_MINER_DEPOSIT_ABI);
 
+const WALLETCONNECT_WORDMARK_SRC = '/walletconnect-logo.svg';
+
+function WalletConnectWordmark({ className, alt }) {
+    return (
+        <img
+            src={WALLETCONNECT_WORDMARK_SRC}
+            alt={alt}
+            className={className}
+            width={111}
+            height={12}
+            loading="lazy"
+            decoding="async"
+        />
+    );
+}
+
 /**
  * Native POL transfer or contract call via EIP-1193 (minimal RPC for WalletConnect).
  */
@@ -609,7 +625,16 @@ export default function Wallet() {
                                 disabled={isConnecting}
                                 className="px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-black text-[10px] sm:text-xs uppercase tracking-widest rounded-2xl hover:opacity-95 active:scale-95 transition-all flex items-center justify-center gap-2 border border-indigo-400/30 shadow-lg shadow-indigo-900/20 disabled:opacity-50"
                             >
-                                <Smartphone className="w-4 h-4" />
+                                {activeTab === 'deposit' &&
+                                depositChannel === 'walletconnect' &&
+                                walletConnectConfigured ? (
+                                    <WalletConnectWordmark
+                                        className="h-3 sm:h-3.5 w-auto max-w-[5.5rem] sm:max-w-[6.5rem] object-contain object-left brightness-0 invert shrink-0"
+                                        alt={t('wallet.deposit_options.walletconnect_logo_alt')}
+                                    />
+                                ) : (
+                                    <Smartphone className="w-4 h-4 shrink-0" />
+                                )}
                                 {isConnecting
                                     ? t('wallet.web3_deposit.connecting')
                                     : activeTab === 'deposit' &&
@@ -846,13 +871,23 @@ export default function Wallet() {
                                             type="button"
                                             onClick={() => setDepositChannel('walletconnect')}
                                             disabled={!walletConnectConfigured}
-                                            className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all ${
+                                            className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all flex flex-col items-center justify-center gap-2 px-2 ${
                                                 depositChannel === 'walletconnect'
                                                     ? 'border-primary bg-primary/15 text-white shadow-lg shadow-primary/10'
                                                     : 'border-slate-700 text-slate-400 hover:border-slate-600'
                                             } disabled:opacity-40 disabled:cursor-not-allowed`}
                                         >
-                                            {t('wallet.deposit_options.walletconnect')}
+                                            <WalletConnectWordmark
+                                                className={`h-3 sm:h-3.5 w-auto max-w-[min(100%,7.5rem)] object-contain shrink-0 ${
+                                                    depositChannel === 'walletconnect'
+                                                        ? 'brightness-0 invert opacity-95'
+                                                        : 'brightness-0 invert opacity-45'
+                                                }`}
+                                                alt={t('wallet.deposit_options.walletconnect_logo_alt')}
+                                            />
+                                            <span className="text-center leading-tight">
+                                                {t('wallet.deposit_options.walletconnect')}
+                                            </span>
                                         </button>
                                     </div>
                                     <p className="text-[9px] text-slate-600 font-bold text-center leading-relaxed">
@@ -899,15 +934,25 @@ export default function Wallet() {
                                                                 : connect({ useBrowserExtension: true }))
                                                         }
                                                         disabled={isConnecting}
-                                                        className="flex-1 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:opacity-95 transition-opacity disabled:opacity-50"
+                                                        className="flex-1 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:opacity-95 transition-opacity disabled:opacity-50 flex flex-col sm:flex-row items-center justify-center gap-2 px-3"
                                                     >
-                                                        {isConnecting
-                                                            ? t('wallet.web3_deposit.connecting')
-                                                            : depositChannel === 'smart_contract'
-                                                                ? t('wallet.web3_deposit.connect_browser')
-                                                                : walletConnectConfigured
-                                                                    ? t('wallet.web3_deposit.connect_wc')
-                                                                    : t('wallet.web3_deposit.connect_browser')}
+                                                        {depositChannel === 'walletconnect' &&
+                                                        walletConnectConfigured &&
+                                                        !isConnecting ? (
+                                                            <WalletConnectWordmark
+                                                                className="h-3 w-auto max-w-[6.5rem] object-contain brightness-0 invert shrink-0"
+                                                                alt={t('wallet.deposit_options.walletconnect_logo_alt')}
+                                                            />
+                                                        ) : null}
+                                                        <span>
+                                                            {isConnecting
+                                                                ? t('wallet.web3_deposit.connecting')
+                                                                : depositChannel === 'smart_contract'
+                                                                    ? t('wallet.web3_deposit.connect_browser')
+                                                                    : walletConnectConfigured
+                                                                        ? t('wallet.web3_deposit.connect_wc')
+                                                                        : t('wallet.web3_deposit.connect_browser')}
+                                                        </span>
                                                     </button>
                                                     {showWalletSessionCancel ? (
                                                         <button

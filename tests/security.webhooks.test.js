@@ -7,6 +7,7 @@ import {
 import {
   assertZerAdsCallbackAuthorized,
   getZerAdsSecretFromEnv,
+  getZerAdsProvidedSecretFromPayload,
   isStrongZerAdsSecret,
   parseIpAllowlist
 } from "../server/utils/zeradsCallbackSecurity.js";
@@ -39,6 +40,12 @@ describe("zeradsCallbackSecurity", () => {
 
   it("parseIpAllowlist splits and trims", () => {
     assert.deepEqual(parseIpAllowlist(" 1.2.3.4 , 5.6.7.8 "), ["1.2.3.4", "5.6.7.8"]);
+  });
+
+  it("getZerAdsProvidedSecretFromPayload prefers secret then pwd", () => {
+    assert.equal(getZerAdsProvidedSecretFromPayload({ secret: "a", pwd: "b" }), "a");
+    assert.equal(getZerAdsProvidedSecretFromPayload({ pwd: "only" }), "only");
+    assert.equal(getZerAdsProvidedSecretFromPayload({}), "");
   });
 
   it("assertZerAdsCallbackAuthorized requires matching secret when strong", () => {

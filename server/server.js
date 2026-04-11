@@ -245,8 +245,10 @@ app.use("/api", (req, res, next) => {
 
 // 5. API Routes
 import * as zeradsController from "./controllers/zeradsController.js";
-app.get("/zeradsptc.php", zeradsController.handlePtcCallback);
-app.post("/zeradsptc.php", zeradsController.handlePtcCallback);
+const zeradsPublicCallbackLimiter = createRateLimiter({ windowMs: 60_000, max: 2000 });
+app.get("/zeradsptc.php", zeradsPublicCallbackLimiter, zeradsController.handlePtcCallback);
+app.post("/zeradsptc.php", zeradsPublicCallbackLimiter, zeradsController.handlePtcCallback);
+app.get("/zerads", zeradsPublicCallbackLimiter, zeradsController.redirectToTestPtcLink);
 
 app.use("/api/auth", authRouter);
 app.use("/api/faucet", faucetRouter);

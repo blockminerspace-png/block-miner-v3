@@ -630,6 +630,7 @@
     "shortlinks": "Shortlinks",
     "checkin": "Check-in",
     "read_earn": "Ler e ganhar",
+    "ptc": "ZerAds PTC",
     "mini_pass": "Mini Pass",
     "daily_tasks": "Tarefas diárias",
     "auto_mining": "Auto Mining",
@@ -841,6 +842,37 @@
       "watch_youtube": "Resgate {{target}} recompensa do YouTube hoje",
       "custom": "Objetivo diário personalizado"
     }
+  },
+  "ptcPage": {
+    "loading": "Carregando anúncios…",
+    "title": "Paid-To-Click (PTC)",
+    "subtitle": "Clique nos anúncios do parceiro para ganhar {{reward}}. Os créditos são aplicados no servidor com proteção rigorosa contra duplicados.",
+    "badge_official": "Parceiro oficial ZerAds",
+    "earn_title": "Ganhe em cada visualização válida",
+    "earn_body": "Abra o painel ZerAds abaixo. Cada anúncio concluído é reportado ao BlockMiner; convertemos ZER em {{reward}} com a taxa configurada.",
+    "delay_title": "Atraso de processamento",
+    "delay_body": "O ZerAds agrupa cliques e chama nosso servidor cerca de 5 em 5 minutos. O saldo pode demorar alguns minutos após o anúncio.",
+    "open_board": "Abrir painel de anúncios",
+    "payment_active": "Pagamentos automáticos ativos",
+    "more_ads_title": "Mais ofertas (Offerwall.me)",
+    "more_ads_body": "Complete pesquisas e ofertas pela integração Offerwall.me para POL extra.",
+    "open_offerwall": "Abrir offerwall",
+    "how_title": "Como funciona",
+    "step1_title": "Abra o painel",
+    "step1_desc": "Inicie o quadro oficial ZerAds numa nova aba.",
+    "step2_title": "Conclua o cronômetro",
+    "step2_desc": "Finalize cada anúncio conforme as regras do ZerAds.",
+    "step3_title": "Receba {{reward}}",
+    "step3_desc": "Creditamos seu saldo quando o ZerAds envia o callback (deduplicado por lote).",
+    "stats_title": "Suas estatísticas",
+    "total_clicks": "Callbacks pagos",
+    "total_earned": "Total ganho",
+    "stats_footer": "Não há limite diário rígido do nosso lado; a disponibilidade depende do ZerAds.",
+    "recent_title": "Pagamentos recentes",
+    "recent_empty": "Ainda não há pagamentos ZerAds",
+    "recent_claim_label": "ZerAds PTC",
+    "recent_confirmed": "creditado",
+    "load_error_toast": "Não foi possível carregar os dados de PTC"
   },
   "readEarn": {
     "title": "Ler e ganhar",
@@ -1240,7 +1272,8 @@
       "walletconnect": "WalletConnect (código QR)",
       "hint": "Escolhe como ligar a carteira e depois assina o envio de POL.",
       "contract_required": "Depósito por contrato não está disponível neste ambiente. Usa WalletConnect com a tesouraria ou contacta o suporte.",
-      "walletconnect_hint": "Abre o WalletConnect para ler o QR no telemóvel, mantém a Polygon (137) e usa o depósito expresso para assinar."
+      "walletconnect_hint": "Abre o WalletConnect para ler o QR no telemóvel, mantém a Polygon (137) e usa o depósito expresso para assinar.",
+      "walletconnect_logo_alt": "WalletConnect"
     },
     "web3_deposit": {
       "title": "Depósito POL (Polygon)",

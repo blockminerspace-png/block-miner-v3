@@ -103,3 +103,11 @@ test("mini_pass is a top-level earn link in default resolved nav", () => {
   assert.ok(mini);
   assert.equal(mini.path, "/mini-pass");
 });
+
+test("ptc is nested under rewards_group in default resolved nav", () => {
+  const d = buildDefaultSidebarEntries();
+  const cats = buildResolvedCategories(d);
+  const earn = cats.find((c) => c.section === "earn");
+  const group = earn.items.find((x) => x.itemId === "rewards_group");
+  assert.ok(group?.children?.some((c) => c.itemId === "ptc" && c.path === "/ptc"));
+});
