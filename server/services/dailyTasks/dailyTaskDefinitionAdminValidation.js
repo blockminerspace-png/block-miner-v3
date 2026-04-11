@@ -1,5 +1,6 @@
 import { Prisma } from "../../src/db/prismaNamespace.js";
 import {
+  TASK_INTERNAL_OFFERWALL,
   TASK_LOGIN_DAY,
   TASK_MINE_BLK,
   TASK_PLAY_GAMES,
@@ -10,7 +11,8 @@ export const ADMIN_CREATE_TASK_TYPES = [
   TASK_LOGIN_DAY,
   TASK_MINE_BLK,
   TASK_PLAY_GAMES,
-  TASK_WATCH_YOUTUBE
+  TASK_WATCH_YOUTUBE,
+  TASK_INTERNAL_OFFERWALL
 ];
 
 export const ADMIN_CREATE_REWARD_KINDS = ["BLK", "POL", "HASHRATE_TEMP", "SHOP_MINER", "EVENT_MINER"];
@@ -76,6 +78,23 @@ export function parseCreateDailyTaskDefinition(body) {
     gameSlug = g;
   }
 
+  if (taskType === TASK_INTERNAL_OFFERWALL && gameSlug) {
+    return { ok: false, status: 400, message: "INTERNAL_OFFERWALL tasks cannot set gameSlug." };
+  }
+
+  let internalOfferwallOfferId = null;
+  if (
+    b.internalOfferwallOfferId !== undefined &&
+    b.internalOfferwallOfferId !== null &&
+    String(b.internalOfferwallOfferId).trim() !== ""
+  ) {
+    const oid = parseInt(String(b.internalOfferwallOfferId), 10);
+    if (!Number.isInteger(oid) || oid < 1) {
+      return { ok: false, status: 400, message: "Invalid internalOfferwallOfferId." };
+    }
+    internalOfferwallOfferId = oid;
+  }
+
   const data = {
     slug,
     taskType,
@@ -89,6 +108,7 @@ export function parseCreateDailyTaskDefinition(body) {
     rewardBlkAmount: null,
     rewardPolAmount: null,
     gameSlug,
+    internalOfferwallOfferId,
     sortOrder,
     isActive
   };

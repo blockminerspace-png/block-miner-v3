@@ -7,11 +7,13 @@ import {
   STATUS_CLAIMED,
   STATUS_COMPLETED,
   STATUS_IN_PROGRESS,
+  TASK_INTERNAL_OFFERWALL,
   TASK_LOGIN_DAY
 } from "./dailyTaskConstants.js";
 import { getDailyTaskPeriodKey, getNextDailyTaskResetAt } from "./dailyTaskPeriod.js";
 
 const CHECKIN_APP_PATH = SIDEBAR_ITEM_REGISTRY.checkin.path;
+const INTERNAL_OFFERWALL_PATH = SIDEBAR_ITEM_REGISTRY.internal_offerwall.path;
 
 /**
  * Hides login-day tasks when the check-in page is disabled in sidebar nav.
@@ -20,8 +22,10 @@ const CHECKIN_APP_PATH = SIDEBAR_ITEM_REGISTRY.checkin.path;
  */
 export function filterDailyTaskDefsForSidebar(defs, visiblePaths) {
   const checkinOn = visiblePaths.has(CHECKIN_APP_PATH);
+  const offerwallOn = INTERNAL_OFFERWALL_PATH && visiblePaths.has(INTERNAL_OFFERWALL_PATH);
   return defs.filter((def) => {
     if (def.taskType === TASK_LOGIN_DAY) return checkinOn;
+    if (def.taskType === TASK_INTERNAL_OFFERWALL) return offerwallOn;
     return true;
   });
 }

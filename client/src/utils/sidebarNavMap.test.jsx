@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect } from 'vitest';
-import { LayoutDashboard, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, BarChart3, LayoutGrid } from 'lucide-react';
 import {
   mapApiCategoriesToMenu,
   normalizeMiniPassOutOfRewardsGroup,
@@ -46,6 +46,10 @@ describe('sidebarNavMap', () => {
 
   it('resolveSidebarIcon maps BarChart3 for power stats', () => {
     expect(resolveSidebarIcon('BarChart3')).toBe(BarChart3);
+  });
+
+  it('resolveSidebarIcon maps LayoutGrid for internal offerwall', () => {
+    expect(resolveSidebarIcon('LayoutGrid')).toBe(LayoutGrid);
   });
 
   it('normalizeMiniPassOutOfRewardsGroup pulls mini_pass out of Rewards children', () => {

@@ -1,50 +1,122 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import {
-  Activity,
-  ArrowDownLeft,
-  ArrowUpRight,
-  Clock,
-  RefreshCw,
-  Users,
-  Wallet,
-  Zap,
-} from 'lucide-react';
-import BrandLogo from '../components/BrandLogo';
+import { useCallback, useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Activity, RefreshCw, Coins, Radio, Wifi, TrendingUp, Zap } from "lucide-react";
+
+const YOUTUBE_VIDEO_ID = "JLonk07l88Q";
 
 function formatPol(n) {
   const x = Number(n);
-  if (!Number.isFinite(x)) return '—';
+  if (!Number.isFinite(x)) return "—";
   return new Intl.NumberFormat(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 4,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   }).format(x);
 }
 
+function formatHashrate(hs) {
+  if (!hs || hs === 0) return "0 H/s";
+  if (hs >= 1e12) return `${(hs / 1e12).toFixed(1)}T`;
+  if (hs >= 1e9) return `${(hs / 1e9).toFixed(1)}G`;
+  if (hs >= 1e6) return `${(hs / 1e6).toFixed(1)}M`;
+  return `${(hs / 1e3).toFixed(0)}K`;
+}
+
+function StatsCard({ children, delay = 0, className = "" }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay, ease: "easeOut" }}
+      className={`rounded-2xl border border-white/10 bg-slate-900/80 backdrop-blur-sm p-5 ${className}`}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function AnimatedNumber({ value, className = "" }) {
+  return (
+    <motion.span
+      key={value}
+      initial={{ scale: 1.1, opacity: 0.5 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className={className}
+    >
+      {value}
+    </motion.span>
+  );
+}
+
+function VideoPlayer() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  return (
+    <div className="relative rounded-2xl border border-white/10 bg-slate-950 overflow-hidden aspect-video">
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 backdrop-blur">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 rounded-full border-2 border-sky-500 border-t-transparent animate-spin" />
+            <span className="text-sm text-slate-400">Loading...</span>
+          </div>
+        </div>
+      )}
+      {hasError ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80">
+          <div className="flex flex-col items-center gap-2 text-slate-400">
+            <Wifi className="h-12 w-12" />
+            <span>Video unavailable</span>
+          </div>
+        </div>
+      ) : (
+        <iframe
+          className="relative z-10 w-full h-full"
+          src={`https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&mute=1&loop=1&playlist=${YOUTUBE_VIDEO_ID}&controls=0&showinfo=0&rel=0&modestbranding=1`}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          sandbox="allow-scripts allow-same-origin allow-presentation"
+          onLoad={() => setIsLoading(false)}
+          onError={() => {
+            setIsLoading(false);
+            setHasError(true);
+          }}
+          title="YouTube Live Stream"
+        />
+      )}
+    </div>
+  );
+}
+
+function LiveIndicator() {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="relative">
+        <div
+          className="absolute inset-0 animate-ping rounded-full bg-red-500/60"
+          style={{ animationDuration: "1.5s" }}
+        />
+        <div className="relative h-3 w-3 rounded-full bg-red-500 shadow-lg shadow-red-500/50" />
+      </div>
+      <span className="text-xs font-bold uppercase tracking-[0.2em] text-red-400">LIVE</span>
+    </div>
+  );
+}
+
 export default function LiveServer() {
-  const { t } = useTranslation();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
-    setError(null);
     try {
-      const res = await fetch('/api/live-server-stats', { credentials: 'omit' });
+      const res = await fetch("/api/live-server-stats", { credentials: "omit" });
       const data = await res.json();
-      if (!data?.ok || !data.stats) {
-        setError(t('liveServer.load_error'));
-        setStats(null);
-        return;
-      }
-      setStats(data.stats);
+      if (data?.ok && data.stats) setStats(data.stats);
     } catch {
-      setError(t('liveServer.load_error'));
-      setStats(null);
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     load();
@@ -52,143 +124,233 @@ export default function LiveServer() {
     return () => clearInterval(id);
   }, [load]);
 
-  const cards = stats
-    ? [
-        {
-          icon: Users,
-          label: t('liveServer.card_users'),
-          value: String(stats.usersTotal ?? 0),
-          accent: 'from-violet-500/20 to-fuchsia-500/10',
-        },
-        {
-          icon: Users,
-          label: t('liveServer.card_new_users_24h'),
-          value: String(stats.newUsers24h ?? 0),
-          accent: 'from-emerald-500/15 to-teal-500/10',
-        },
-        {
-          icon: Wallet,
-          label: t('liveServer.card_pol_internal'),
-          value: formatPol(stats.polInUserBalances),
-          accent: 'from-sky-500/20 to-blue-600/10',
-        },
-        {
-          icon: ArrowDownLeft,
-          label: t('liveServer.card_pol_deposited_total'),
-          value: formatPol(stats.polDepositedTotal),
-          accent: 'from-cyan-500/20 to-sky-500/10',
-        },
-        {
-          icon: ArrowUpRight,
-          label: t('liveServer.card_pol_withdrawn_total'),
-          value: formatPol(stats.polWithdrawnTotal),
-          accent: 'from-amber-500/20 to-orange-600/10',
-        },
-        {
-          icon: Zap,
-          label: t('liveServer.card_pol_in_24h'),
-          value: formatPol(stats.polDeposited24h),
-          accent: 'from-lime-500/15 to-emerald-600/10',
-        },
-        {
-          icon: Activity,
-          label: t('liveServer.card_pol_out_24h'),
-          value: formatPol(stats.polWithdrawn24h),
-          accent: 'from-rose-500/15 to-red-600/10',
-        },
-        {
-          icon: Clock,
-          label: t('liveServer.card_pending_withdrawals'),
-          value: `${stats.pendingWithdrawalsCount ?? 0} · ${formatPol(stats.pendingWithdrawalsPol)} POL`,
-          accent: 'from-slate-500/20 to-slate-700/10',
-        },
-      ]
-    : [];
+  const activeMiners = stats?.activeMiners ?? 0;
+  const hashrate = stats?.networkHashRate ?? 0;
 
   return (
     <div className="min-h-screen bg-[#030712] text-white overflow-x-hidden">
-      <div
-        className="pointer-events-none fixed inset-0 opacity-[0.35]"
-        style={{
-          backgroundImage:
-            'radial-gradient(circle at 20% 20%, rgba(59,130,246,0.25), transparent 45%), radial-gradient(circle at 80% 10%, rgba(168,85,247,0.2), transparent 40%), radial-gradient(circle at 50% 80%, rgba(14,165,233,0.15), transparent 50%)',
-        }}
-      />
-      <div className="pointer-events-none fixed inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M60%200H0v60%22%20fill%3D%22none%22%20stroke%3D%22rgba(148,163,184,0.06)%22%20stroke-width%3D%221%22/%3E%3C/svg%3E')] opacity-60" />
-
-      <div className="relative z-10 mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-6 border-b border-white/10 pb-10 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-4">
-            <BrandLogo variant="sidebar" />
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.35em] text-sky-400/90">
-                {t('liveServer.kicker')}
-              </p>
-              <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl bg-gradient-to-r from-white via-sky-100 to-slate-300 bg-clip-text text-transparent">
-                {t('liveServer.title')}
-              </h1>
-              <p className="mt-2 max-w-xl text-sm text-slate-400 leading-relaxed">{t('liveServer.subtitle')}</p>
-            </div>
+      <div className="mx-auto max-w-[1920px] p-4 lg:p-6">
+        {/* Header */}
+        <motion.header
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between"
+        >
+          <div className="flex items-center gap-4">
+            <LiveIndicator />
+            <h1 className="text-2xl lg:text-4xl font-black tracking-tight text-white">BLOCKMINER</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setLoading(true);
-                load();
-              }}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2">
+              <Activity className="h-5 w-5 text-sky-400" />
+              <span className="text-base font-medium text-slate-300">
+                <AnimatedNumber value={activeMiners} /> online
+              </span>
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={load}
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-xl border border-sky-500/40 bg-sky-500/10 px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-sky-300 hover:bg-sky-500/20 disabled:opacity-50"
+              className="rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-2 text-sky-400 transition-colors hover:bg-sky-500/20"
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden />
-              {t('liveServer.refresh')}
-            </button>
+              <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+            </motion.button>
           </div>
-        </header>
+        </motion.header>
 
-        {error ? (
-          <p className="mt-10 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-            {error}
-          </p>
-        ) : null}
-
-        {loading && !stats ? (
-          <p className="mt-16 text-center text-sm font-medium uppercase tracking-widest text-slate-500">
-            {t('liveServer.loading')}
-          </p>
-        ) : null}
-
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {cards.map((c) => (
-            <div
-              key={c.label}
-              className={`group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${c.accent} p-[1px] shadow-xl shadow-black/40`}
-            >
-              <div className="h-full rounded-2xl bg-slate-950/90 p-5 backdrop-blur-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <c.icon className="h-5 w-5 text-sky-400/90" aria-hidden />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">POL</span>
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6">
+          {/* Left Sidebar */}
+          <aside className="flex flex-col gap-4 lg:col-span-2">
+            <StatsCard delay={0.1}>
+              <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-yellow-400">
+                <Zap className="h-4 w-4" />
+                INDICATORS
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">Active Miners</span>
+                  <AnimatedNumber value={activeMiners} className="text-lg font-bold text-sky-400" />
                 </div>
-                <p className="mt-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">{c.label}</p>
-                <p className="mt-1 font-mono text-xl font-bold tracking-tight text-white sm:text-2xl">{c.value}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">Tx 24h</span>
+                  <AnimatedNumber
+                    value={stats?.transactionsLast24h ?? 0}
+                    className="text-lg font-bold text-emerald-400"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">Block Time</span>
+                  <span className="text-lg font-bold text-purple-400">10:00</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">Reward</span>
+                  <span className="text-lg font-bold text-amber-400">0.15 POL</span>
+                </div>
               </div>
+            </StatsCard>
+
+            <StatsCard delay={0.2} className="flex-1">
+              <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-emerald-400">
+                <TrendingUp className="h-4 w-4" />
+                RECENT BLOCKS
+              </h3>
+              <div className="space-y-3">
+                {[
+                  { num: 1247, time: "17:01", reward: "+0.15" },
+                  { num: 1246, time: "17:00", reward: "+0.15" },
+                  { num: 1245, time: "16:59", reward: "+0.15" }
+                ].map((block, i) => (
+                  <motion.div
+                    key={block.num}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + i * 0.1 }}
+                    className="flex items-center justify-between rounded-lg bg-white/5 p-2"
+                  >
+                    <span className="font-mono text-sm text-sky-400">#{block.num}</span>
+                    <span className="text-xs text-slate-500">{block.time}</span>
+                    <span className="text-sm font-bold text-emerald-400">{block.reward}</span>
+                  </motion.div>
+                ))}
+              </div>
+            </StatsCard>
+          </aside>
+
+          {/* Main Content */}
+          <section className="flex flex-col gap-4 lg:col-span-7">
+            <VideoPlayer />
+
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              {[
+                { label: "Total Users", value: stats?.usersTotal ?? 0, color: "text-white" },
+                { label: "New 24h", value: stats?.newUsers24h ?? 0, color: "text-emerald-400" },
+                {
+                  label: "POL Balance",
+                  value: formatPol(stats?.polInUserBalances || 0),
+                  color: "text-sky-400"
+                },
+                {
+                  label: "Pending",
+                  value: stats?.pendingWithdrawalsCount ?? 0,
+                  color: "text-amber-400"
+                }
+              ].map((item, i) => (
+                <StatsCard key={item.label} delay={0.3 + i * 0.1} className="text-center">
+                  <AnimatedNumber value={item.value} className={`text-4xl lg:text-5xl font-black ${item.color}`} />
+                  <p className="mt-2 text-xs uppercase tracking-wide text-slate-500">{item.label}</p>
+                </StatsCard>
+              ))}
             </div>
-          ))}
+          </section>
+
+          {/* Right Sidebar */}
+          <aside className="flex flex-col gap-4 lg:col-span-3">
+            <StatsCard delay={0.15}>
+              <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-sky-400">
+                <Wifi className="h-4 w-4" />
+                NETWORK
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">Hashrate</span>
+                  <AnimatedNumber
+                    value={formatHashrate(hashrate)}
+                    className="font-mono text-base font-bold text-purple-400"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">Difficulty</span>
+                  <span className="font-mono text-base font-bold text-sky-400">
+                    {(stats?.networkDifficulty ?? 82).toFixed(0)}T
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">Reward</span>
+                  <span className="font-mono text-base font-bold text-amber-400">0.15 POL</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">Frequency</span>
+                  <span className="text-base font-bold text-emerald-400">10 min</span>
+                </div>
+              </div>
+            </StatsCard>
+
+            <StatsCard delay={0.25} className="flex-1">
+              <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-slate-400">
+                <Activity className="h-4 w-4" />
+                LIVE EVENTS
+              </h3>
+              <div className="space-y-3 text-sm text-slate-400">
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="truncate"
+                >
+                  Hashrate: {formatHashrate(hashrate)}/s
+                </motion.p>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="truncate"
+                >
+                  {activeMiners} active miners
+                </motion.p>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  className="truncate"
+                >
+                  {formatPol(stats?.polDeposited24h || 0)} POL deposited 24h
+                </motion.p>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7 }}
+                  className="truncate"
+                >
+                  {formatPol(stats?.polWithdrawn24h || 0)} POL withdrawn 24h
+                </motion.p>
+              </div>
+            </StatsCard>
+
+            <StatsCard delay={0.35}>
+              <motion.div
+                className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 p-3"
+                whileHover={{ scale: 1.02 }}
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/20">
+                  <Coins className="h-5 w-5 text-emerald-400" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-lg font-bold text-white">Network Status</span>
+                  <span className="text-xs text-emerald-400">● Online</span>
+                </div>
+              </motion.div>
+            </StatsCard>
+          </aside>
         </div>
 
-        {stats?.generatedAt ? (
-          <p className="mt-10 text-center text-[10px] font-mono uppercase tracking-widest text-slate-600">
-            {t('liveServer.updated')}{' '}
-            {new Date(stats.generatedAt).toLocaleString(undefined, {
-              dateStyle: 'medium',
-              timeStyle: 'medium',
-            })}
-          </p>
-        ) : null}
-
-        <footer className="mt-16 border-t border-white/5 pt-8 text-center text-[10px] text-slate-600">
-          {t('liveServer.footer')}
-        </footer>
+        {/* Footer */}
+        <motion.footer
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-6 flex items-center justify-between border-t border-white/5 pt-4 text-sm text-slate-500"
+        >
+          <span className="font-medium">BlockMiner Live Dashboard</span>
+          <div className="flex items-center gap-2">
+            <Radio className="h-4 w-4 animate-pulse text-emerald-400" />
+            <span>
+              Last Update:{" "}
+              {stats?.generatedAt ? new Date(stats.generatedAt).toLocaleTimeString() : "--:--:--"}
+            </span>
+          </div>
+        </motion.footer>
       </div>
     </div>
   );

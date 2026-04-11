@@ -94,6 +94,27 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(es.dailyTasks.tasks.mine_blk).toContain("{{target}}");
   });
 
+  it("exposes internal offerwall page and admin nav labels in en, pt-BR, and es", () => {
+    expect(en.internalOfferwallPage.title).toBeTruthy();
+    expect(pt.internalOfferwallPage.title).toBeTruthy();
+    expect(es.internalOfferwallPage.title).toBeTruthy();
+    expect(en.internalOfferwallPage.empty).toBeTruthy();
+    expect(pt.internalOfferwallPage.empty).toBeTruthy();
+    expect(es.internalOfferwallPage.empty).toBeTruthy();
+    expect(en.admin_internal_offerwall.nav).toBeTruthy();
+    expect(pt.admin_internal_offerwall.nav).toBeTruthy();
+    expect(es.admin_internal_offerwall.nav).toBeTruthy();
+    expect(en.adminSidebar.nav.internal_offerwall).toBeTruthy();
+    expect(pt.adminSidebar.nav.internal_offerwall).toBeTruthy();
+    expect(es.adminSidebar.nav.internal_offerwall).toBeTruthy();
+    expect(en.dailyTasks.tasks.internal_offerwall).toContain("{{target}}");
+    expect(pt.dailyTasks.tasks.internal_offerwall).toContain("{{target}}");
+    expect(es.dailyTasks.tasks.internal_offerwall).toContain("{{target}}");
+    expect(en.admin_daily_tasks.type_INTERNAL_OFFERWALL).toBeTruthy();
+    expect(pt.admin_daily_tasks.type_INTERNAL_OFFERWALL).toBeTruthy();
+    expect(es.admin_daily_tasks.type_INTERNAL_OFFERWALL).toBeTruthy();
+  });
+
   it("exposes admin daily tasks page strings and nav label in en, pt-BR, and es", () => {
     expect(en.admin_daily_tasks.title).toBeTruthy();
     expect(pt.admin_daily_tasks.title).toBeTruthy();

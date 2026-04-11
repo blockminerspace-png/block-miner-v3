@@ -1,6 +1,7 @@
 import { Prisma } from "../../src/db/prismaNamespace.js";
 import prisma from "../../src/db/prisma.js";
 import { getDailyTaskPeriodKey } from "./dailyTaskPeriod.js";
+import { TASK_INTERNAL_OFFERWALL } from "./dailyTaskConstants.js";
 
 /**
  * @param {import("@prisma/client").Prisma.TransactionClient} tx
@@ -100,6 +101,12 @@ export async function bumpDailyTasksForUser(userId, taskType, { dedupeKey, delta
   const deltaDec = new Prisma.Decimal(String(d));
 
   for (const def of defs) {
+    if (taskType === TASK_INTERNAL_OFFERWALL) {
+      const scoped = def.internalOfferwallOfferId;
+      if (scoped != null) {
+        if (internalOfferwallOfferId == null || scoped !== internalOfferwallOfferId) continue;
+      }
+    }
     if (def.gameSlug) {
       if (!gameSlug || def.gameSlug !== gameSlug) continue;
     }

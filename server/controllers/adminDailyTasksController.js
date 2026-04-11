@@ -34,6 +34,21 @@ export async function patchDefinition(req, res) {
       }
       data.sortOrder = n;
     }
+    if (body.internalOfferwallOfferId !== undefined) {
+      if (body.internalOfferwallOfferId === null || body.internalOfferwallOfferId === "") {
+        data.internalOfferwallOfferId = null;
+      } else {
+        const oid = parseInt(String(body.internalOfferwallOfferId), 10);
+        if (!Number.isInteger(oid) || oid < 1) {
+          return res.status(400).json({ ok: false, message: "Invalid internalOfferwallOfferId." });
+        }
+        const offer = await prisma.internalOfferwallOffer.findUnique({ where: { id: oid } });
+        if (!offer) {
+          return res.status(400).json({ ok: false, message: "internalOfferwallOfferId does not exist." });
+        }
+        data.internalOfferwallOfferId = oid;
+      }
+    }
     if (Object.keys(data).length === 0) {
       return res.status(400).json({ ok: false, message: "No valid fields to update." });
     }
@@ -67,6 +82,14 @@ export async function createDefinition(req, res) {
       const em = await prisma.eventMiner.findUnique({ where: { id: data.rewardEventMinerId } });
       if (!em) {
         return res.status(400).json({ ok: false, message: "rewardEventMinerId does not exist." });
+      }
+    }
+    if (data.internalOfferwallOfferId) {
+      const offer = await prisma.internalOfferwallOffer.findUnique({
+        where: { id: data.internalOfferwallOfferId }
+      });
+      if (!offer) {
+        return res.status(400).json({ ok: false, message: "internalOfferwallOfferId does not exist." });
       }
     }
 

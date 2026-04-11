@@ -52,6 +52,12 @@ if (-not $PSBoundParameters.ContainsKey('SshUser') -and $deploySecrets['SSH_USER
 if (-not $PSBoundParameters.ContainsKey('RemotePath') -and $deploySecrets['REMOTE_PATH']) {
     $RemotePath = $deploySecrets['REMOTE_PATH']
 }
+
+# Branch on the remote for git reset (default: main). Test VM: set DEPLOY_GIT_BRANCH=develop in deploy.secrets.local
+$DeployGitBranch = 'main'
+if ($deploySecrets['DEPLOY_GIT_BRANCH'] -and $deploySecrets['DEPLOY_GIT_BRANCH'].Trim()) {
+    $DeployGitBranch = $deploySecrets['DEPLOY_GIT_BRANCH'].Trim()
+}
 if (-not $PSBoundParameters.ContainsKey('LetsEncryptDomain') -and $deploySecrets['LE_SYNC_DOMAIN']) {
     $LetsEncryptDomain = $deploySecrets['LE_SYNC_DOMAIN']
 }
@@ -152,8 +158,8 @@ try {
     }
 
     # Primeiro faz git reset no VPS
-    $remoteGitCmd = "set -e`ncd $RemotePath`ngit fetch origin`ngit reset --hard origin/main`n"
-    Write-Host "==> git reset no VPS ($SshHost)..."
+    $remoteGitCmd = "set -e`ncd $RemotePath`ngit fetch origin`ngit reset --hard origin/$DeployGitBranch`n"
+    Write-Host "==> git reset no VPS ($SshHost) branch=$DeployGitBranch ..."
     & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" $remoteGitCmd
 
     $skipEnvUpload = $deploySecrets['DEPLOY_SKIP_ENV_UPLOAD'] -eq '1' -or $deploySecrets['DEPLOY_SKIP_ENV_UPLOAD'] -eq 'true'

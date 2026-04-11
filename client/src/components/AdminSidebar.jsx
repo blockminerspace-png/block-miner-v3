@@ -23,6 +23,7 @@ import {
   Layers,
   PanelLeft,
   ListChecks,
+  LayoutGrid,
 } from 'lucide-react';
 
 /** Admin routes: icons and paths are fixed; labels use `adminSidebar.nav.*` keys. */
@@ -43,6 +44,7 @@ const ADMIN_MENU_ITEMS = [
   },
   { icon: ListChecks, labelKey: 'adminSidebar.nav.daily_tasks', path: '/admin/daily-tasks' },
   { icon: BookOpen, labelKey: 'adminSidebar.nav.read_earn', path: '/admin/read-earn' },
+  { icon: LayoutGrid, labelKey: 'adminSidebar.nav.internal_offerwall', path: '/admin/internal-offerwall' },
   { icon: Youtube, labelKey: 'adminSidebar.nav.creators', path: '/admin/creators' },
   { icon: Eye, labelKey: 'adminSidebar.nav.transparency', path: '/admin/transparency' },
   { icon: Ticket, labelKey: 'adminSidebar.nav.deposit_tickets', path: '/admin/deposit-tickets' },

@@ -1,4 +1,5 @@
 import helmet from "helmet";
+import { loadIframeHostAllowlist } from "../services/internalOfferwall/validateIframeUrl.js";
 
 function isAssetPath(pathname) {
   return Boolean(pathname && /\.(css|js|map|png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|otf)$/i.test(pathname));
@@ -42,6 +43,8 @@ function baseDirectives({ allowWebSockets }) {
     ? ["'self'", "https:", "ws:", "wss:", "http://localhost:*", "ws://localhost:*"]
     : ["'self'", "https:"];
 
+  const internalOfferwallFrameHosts = [...loadIframeHostAllowlist()].map((h) => `https://${h}`);
+
   return {
     defaultSrc: ["'self'"],
     baseUri: ["'self'"],
@@ -56,7 +59,8 @@ function baseDirectives({ allowWebSockets }) {
       "https://www.youtube.com",
       "https://www.youtube-nocookie.com",
       "https://ad.a-ads.com",
-      "https://zerads.com"
+      "https://zerads.com",
+      ...internalOfferwallFrameHosts
     ],
     objectSrc: ["'none'"],
     scriptSrcAttr: ["'none'"],

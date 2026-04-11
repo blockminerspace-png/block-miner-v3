@@ -128,6 +128,13 @@ export const SIDEBAR_ITEM_REGISTRY = {
     section: "earn",
     defaultParentItemId: "rewards_group"
   },
+  internal_offerwall: {
+    path: "/internal-offerwall",
+    labelKey: "sidebar.internal_offerwall",
+    icon: "LayoutGrid",
+    section: "earn",
+    defaultParentItemId: "rewards_group"
+  },
   daily_tasks: {
     path: "/daily-tasks",
     labelKey: "sidebar.daily_tasks",
@@ -284,6 +291,7 @@ export function buildDefaultSidebarEntries() {
     { itemId: "auto_mining", visible: true, sortOrder: 150, section: "earn", parentItemId: "rewards_group" },
     { itemId: "youtube", visible: true, sortOrder: 160, section: "earn", parentItemId: "rewards_group" },
     { itemId: "read_earn", visible: true, sortOrder: 170, section: "earn", parentItemId: "rewards_group" },
+    { itemId: "internal_offerwall", visible: true, sortOrder: 172, section: "earn", parentItemId: "rewards_group" },
 
     { itemId: "games", visible: true, sortOrder: 210, section: "social", parentItemId: null },
     { itemId: "calculator", visible: true, sortOrder: 220, section: "social", parentItemId: null },

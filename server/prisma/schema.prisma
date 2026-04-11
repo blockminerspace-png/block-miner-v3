@@ -104,6 +104,7 @@ model User {
   miniPassRewardClaims           UserMiniPassRewardClaim[]
   miniPassPurchases              UserMiniPassPurchase[]
   dailyTaskProgress              UserDailyTaskProgress[]
+  internalOfferwallAttempts      InternalOfferwallAttempt[]
 
   @@map("users")
 }
@@ -122,21 +123,70 @@ model DailyTaskDefinition {
   rewardHashRateDays   Int?      @map("reward_hash_rate_days")
   rewardBlkAmount      Decimal?  @map("reward_blk_amount") @db.Decimal(20, 8)
   rewardPolAmount      Decimal?  @map("reward_pol_amount") @db.Decimal(20, 8)
-  gameSlug             String?   @map("game_slug")
-  sortOrder            Int       @default(0) @map("sort_order")
-  isActive             Boolean   @default(true) @map("is_active")
-  validFrom            DateTime? @map("valid_from")
-  validUntil           DateTime? @map("valid_until")
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
+  gameSlug                     String?  @map("game_slug")
+  internalOfferwallOfferId     Int?     @map("internal_offerwall_offer_id")
+  sortOrder                    Int      @default(0) @map("sort_order")
+  isActive                     Boolean  @default(true) @map("is_active")
+  validFrom                    DateTime? @map("valid_from")
+  validUntil                   DateTime? @map("valid_until")
+  createdAt                    DateTime @default(now()) @map("created_at")
+  updatedAt                    DateTime @updatedAt @map("updated_at")
 
-  progress    UserDailyTaskProgress[]
-  dedupeTicks UserDailyTaskDedupeTick[]
+  progress                 UserDailyTaskProgress[]
+  dedupeTicks              UserDailyTaskDedupeTick[]
+  internalOfferwallOffer   InternalOfferwallOffer? @relation(fields: [internalOfferwallOfferId], references: [id], onDelete: SetNull)
 
   rewardMiner      Miner?      @relation(fields: [rewardMinerId], references: [id], onDelete: SetNull)
   rewardEventMiner EventMiner? @relation(fields: [rewardEventMinerId], references: [id], onDelete: SetNull)
 
   @@map("daily_task_definitions")
+}
+
+/// Admin-defined internal monetization offers (PTC iframe or general tasks).
+model InternalOfferwallOffer {
+  id                 Int      @id @default(autoincrement())
+  kind               String   @map("kind")
+  title              String
+  description        String?  @db.Text
+  iframeUrl          String?  @map("iframe_url") @db.Text
+  minViewSeconds     Int      @default(10) @map("min_view_seconds")
+  rewardKind         String   @map("reward_kind")
+  rewardBlkAmount    Decimal? @map("reward_blk_amount") @db.Decimal(20, 8)
+  rewardPolAmount    Decimal? @map("reward_pol_amount") @db.Decimal(20, 8)
+  rewardHashRate     Float?   @map("reward_hash_rate")
+  rewardHashRateDays Int?     @map("reward_hash_rate_days")
+  dailyLimitPerUser  Int      @default(3) @map("daily_limit_per_user")
+  sortOrder          Int      @default(0) @map("sort_order")
+  isActive           Boolean  @default(true) @map("is_active")
+  completionMode     String   @map("completion_mode")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  attempts             InternalOfferwallAttempt[]
+  dailyTaskDefinitions DailyTaskDefinition[]
+
+  @@map("internal_offerwall_offers")
+}
+
+model InternalOfferwallAttempt {
+  id               Int       @id @default(autoincrement())
+  userId           Int       @map("user_id")
+  offerId          Int       @map("offer_id")
+  periodKey        String    @map("period_key")
+  status           String    @map("status")
+  startedAt        DateTime  @map("started_at")
+  submittedAt      DateTime? @map("submitted_at")
+  completedAt      DateTime? @map("completed_at")
+  rewardGrantedAt  DateTime? @map("reward_granted_at")
+  auditSnapshot    String?   @map("audit_snapshot") @db.Text
+  adminNote        String?   @map("admin_note") @db.Text
+
+  user  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offer InternalOfferwallOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  @@index([userId, offerId, periodKey])
+  @@index([offerId, status])
+  @@map("internal_offerwall_attempts")
 }
 
 model UserDailyTaskProgress {

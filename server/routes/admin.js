@@ -19,6 +19,7 @@ import * as adminCheckinMilestoneController from "../controllers/adminCheckinMil
 import * as adminReadEarnController from "../controllers/adminReadEarnController.js";
 import * as sidebarNavController from "../controllers/sidebarNavController.js";
 import * as adminDailyTasksController from "../controllers/adminDailyTasksController.js";
+import * as adminInternalOfferwallController from "../controllers/adminInternalOfferwallController.js";
 import prisma from "../src/db/prisma.js";
 import path from "path";
 import fs from "fs/promises";
@@ -95,6 +96,19 @@ adminRouter.get("/daily-tasks/definitions", adminDailyTasksController.listDefini
 adminRouter.post("/daily-tasks/definitions", adminDailyTasksController.createDefinition);
 adminRouter.patch("/daily-tasks/definitions/:id", adminDailyTasksController.patchDefinition);
 adminRouter.delete("/daily-tasks/definitions/:id", adminDailyTasksController.deleteDefinition);
+
+adminRouter.get("/internal-offerwall/offers", adminInternalOfferwallController.listOffers);
+adminRouter.post("/internal-offerwall/offers", adminInternalOfferwallController.createOffer);
+adminRouter.patch("/internal-offerwall/offers/:id", adminInternalOfferwallController.patchOffer);
+adminRouter.get("/internal-offerwall/attempts", adminInternalOfferwallController.listAttempts);
+adminRouter.post(
+  "/internal-offerwall/attempts/:id/approve",
+  adminInternalOfferwallController.approveAttempt
+);
+adminRouter.post(
+  "/internal-offerwall/attempts/:id/reject",
+  adminInternalOfferwallController.rejectAttempt
+);
 
 // Dashboard Stats
 adminRouter.get("/stats", adminController.getStats);

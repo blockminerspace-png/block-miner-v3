@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Loader2, ListChecks, Plus, Trash2 } from 'lucide-react';
 import { api } from '../store/auth';
 
-const TASK_TYPES = ['LOGIN_DAY', 'MINE_BLK', 'PLAY_GAMES', 'WATCH_YOUTUBE'];
+const TASK_TYPES = ['LOGIN_DAY', 'MINE_BLK', 'PLAY_GAMES', 'WATCH_YOUTUBE', 'INTERNAL_OFFERWALL'];
 const REWARD_KINDS = ['BLK', 'POL', 'HASHRATE_TEMP', 'SHOP_MINER', 'EVENT_MINER'];
 
 function defaultCreateForm() {
@@ -21,6 +21,7 @@ function defaultCreateForm() {
     rewardMinerId: '',
     rewardEventMinerId: '',
     gameSlug: '',
+    internalOfferwallOfferId: '',
     sortOrder: '',
     autoSortOrder: true
   };
@@ -40,6 +41,10 @@ function buildCreateBody(f) {
     body.sortOrder = parseInt(String(f.sortOrder), 10);
   }
   if (String(f.gameSlug).trim()) body.gameSlug = f.gameSlug.trim();
+  if (String(f.internalOfferwallOfferId).trim()) {
+    const oid = parseInt(String(f.internalOfferwallOfferId).trim(), 10);
+    if (Number.isInteger(oid) && oid >= 1) body.internalOfferwallOfferId = oid;
+  }
   if (f.rewardKind === 'BLK') body.rewardBlkAmount = parseFloat(String(f.rewardBlkAmount).replace(',', '.'));
   if (f.rewardKind === 'POL') body.rewardPolAmount = parseFloat(String(f.rewardPolAmount).replace(',', '.'));
   if (f.rewardKind === 'HASHRATE_TEMP') {
@@ -203,7 +208,15 @@ export default function AdminDailyTasks() {
               <span className="text-xs font-semibold text-slate-400">{t('admin_daily_tasks.create_type')}</span>
               <select
                 value={createForm.taskType}
-                onChange={(e) => setCreateForm((f) => ({ ...f, taskType: e.target.value }))}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setCreateForm((f) => ({
+                    ...f,
+                    taskType: v,
+                    translationKey:
+                      v === 'INTERNAL_OFFERWALL' ? 'dailyTasks.tasks.internal_offerwall' : f.translationKey
+                  }));
+                }}
                 className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
               >
                 {TASK_TYPES.map((tt) => (
@@ -321,6 +334,19 @@ export default function AdminDailyTasks() {
                 />
               </label>
             ) : null}
+            {createForm.taskType === 'INTERNAL_OFFERWALL' ? (
+              <label className="block space-y-1 sm:col-span-2">
+                <span className="text-xs font-semibold text-slate-400">{t('admin_daily_tasks.create_internal_offerwall_offer_id')}</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={createForm.internalOfferwallOfferId}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, internalOfferwallOfferId: e.target.value }))}
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-white"
+                  placeholder="1"
+                />
+              </label>
+            ) : null}
             <label className="flex items-center gap-2 sm:col-span-2">
               <input
                 type="checkbox"
@@ -384,6 +410,7 @@ export default function AdminDailyTasks() {
                 <th className="px-4 py-3 font-semibold">{t('admin_daily_tasks.col_type')}</th>
                 <th className="px-4 py-3 font-semibold">{t('admin_daily_tasks.col_target')}</th>
                 <th className="px-4 py-3 font-semibold">{t('admin_daily_tasks.col_i18n_key')}</th>
+                <th className="px-4 py-3 font-semibold">{t('admin_daily_tasks.col_io_offer')}</th>
                 <th className="px-4 py-3 font-semibold">{t('admin_daily_tasks.col_reward')}</th>
                 <th className="px-4 py-3 font-semibold">{t('admin_daily_tasks.col_active')}</th>
                 <th className="px-4 py-3 font-semibold">{t('admin_daily_tasks.col_order')}</th>
@@ -398,6 +425,9 @@ export default function AdminDailyTasks() {
                   <td className="px-4 py-3">{r.taskType}</td>
                   <td className="px-4 py-3 font-mono text-xs">{String(r.targetValue)}</td>
                   <td className="px-4 py-3 font-mono text-xs text-slate-400">{r.translationKey}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-slate-500">
+                    {r.internalOfferwallOfferId != null ? String(r.internalOfferwallOfferId) : '—'}
+                  </td>
                   <td className="px-4 py-3">{r.rewardKind}</td>
                   <td className="px-4 py-3">
                     <label className="inline-flex cursor-pointer select-none items-center gap-2">
