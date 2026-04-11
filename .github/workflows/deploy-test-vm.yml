@@ -5,6 +5,7 @@
 #
 # Defaults (override with Variables if needed):
 #   TEST_VPS_HOST, TEST_VPS_USER, TEST_VPS_APP_PATH, TEST_REPO_URL, TEST_GIT_BRANCH
+#   TEST_VPS_APP_HOST_PORT — host port for the app (default 3001 if unset; avoids :3000 clashes)
 #
 # Optional: use SSH key instead of password — set secrets TEST_VPS_SSH_PRIVATE_KEY
 # and leave TEST_VPS_PASSWORD empty (then add key to the action step below).
@@ -90,6 +91,27 @@ jobs:
               echo "ERROR: scripts/deploy-production-safe.sh missing in $APP_ROOT"
               exit 1
             fi
+
+            # Sync repo BEFORE bash reads deploy-production-safe.sh (otherwise an old on-disk
+            # script runs for the whole job even after git pull inside that old script).
+            echo "[preflight] git fetch / reset to origin/$GIT_BRANCH"
+            git fetch origin --prune
+            if git show-ref --verify --quiet "refs/remotes/origin/$GIT_BRANCH"; then
+              git checkout "$GIT_BRANCH"
+              git reset --hard "origin/$GIT_BRANCH"
+            elif git show-ref --verify --quiet refs/remotes/origin/main; then
+              echo "[preflight] WARN: origin/$GIT_BRANCH missing; using origin/main"
+              export GIT_BRANCH=main
+              git checkout main
+              git reset --hard origin/main
+            else
+              echo "[preflight] ERROR: cannot resolve origin/$GIT_BRANCH or origin/main"; exit 1
+            fi
+
+            # Compose uses ${APP_HOST_PORT:-3000}; test VMs often have host :3000 taken.
+            REMOTE_APP_PORT='${{ vars.TEST_VPS_APP_HOST_PORT }}'
+            export APP_HOST_PORT="${REMOTE_APP_PORT:-3001}"
+
             export SKIP_APP_TARBALL=1
             export DEPLOY_GIT_MODE=reset
             export START_NGINX_PROXY=1
