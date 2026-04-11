@@ -147,5 +147,12 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(en.admin_support.dossier.miners_inventory).toBeTruthy();
     expect(pt.admin_support.dossier.miners_vault).toBeTruthy();
     expect(es.admin_support.dossier.miners_rack).toBeTruthy();
+
+    expect(en.admin_support.reply_compose_expand).toBeTruthy();
+    expect(pt.admin_support.reply_compose_expand).toBeTruthy();
+    expect(es.admin_support.reply_compose_expand).toBeTruthy();
+    expect(en.admin_support.reply_compose_collapse).toBeTruthy();
+    expect(pt.admin_support.reply_compose_collapse).toBeTruthy();
+    expect(es.admin_support.reply_compose_collapse).toBeTruthy();
   });
 });

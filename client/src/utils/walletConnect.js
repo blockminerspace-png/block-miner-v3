@@ -24,15 +24,15 @@ export function isWalletConnectConfigured() {
 
 /** Canonical app URL for WalletConnect metadata (no trailing slash). */
 export function getWalletConnectMetadataUrl() {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return String(window.location.origin).replace(/\/+$/, '');
+  }
   let fromEnv = String(import.meta.env.VITE_PUBLIC_WALLET_APP_URL || '').trim().replace(/\/+$/, '');
   if (!fromEnv) {
     const inj = readRuntimeInjected();
     fromEnv = inj && String(inj.VITE_PUBLIC_WALLET_APP_URL || '').trim().replace(/\/+$/, '');
   }
   if (fromEnv) return fromEnv;
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    return String(window.location.origin).replace(/\/+$/, '');
-  }
   return 'https://blockminer.space';
 }
 

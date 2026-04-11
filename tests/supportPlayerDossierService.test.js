@@ -22,6 +22,16 @@ describe("isPrismaMissingRelationError", () => {
     assert.equal(isPrismaMissingRelationError({ code: "42P01", message: "relation missing" }), true);
   });
 
+  it("detects missing column (P2022)", () => {
+    assert.equal(
+      isPrismaMissingRelationError({
+        code: "P2022",
+        message: 'The column `user_vault.foo` does not exist in the current database.'
+      }),
+      true
+    );
+  });
+
   it("returns false for unrelated errors", () => {
     assert.equal(isPrismaMissingRelationError({ code: "P2002", message: "Unique constraint" }), false);
   });
@@ -127,6 +137,53 @@ describe("getSupportTicketPlayerDossier", () => {
     assert.ok(r.dossier);
     assert.equal(r.dossier.ccpaymentDeposits.total, 0);
     assert.deepEqual(r.dossier.ccpaymentDeposits.rows, []);
+  });
+
+  it("returns dossier when vault slice throws", async () => {
+    const userRow = {
+      id: 10,
+      name: "A",
+      username: "a",
+      email: "a@b.c",
+      walletAddress: "0xabc",
+      isBanned: false,
+      createdAt: new Date(),
+      lastLoginAt: null,
+      polBalance: 1,
+      blkBalance: 2
+    };
+    const prisma = {
+      supportMessage: {
+        findUnique: async () => ({
+          id: 2,
+          userId: 10,
+          name: "X",
+          email: "x@y.z"
+        })
+      },
+      user: { findUnique: async () => userRow },
+      transaction: {
+        count: async () => 0,
+        findMany: async () => []
+      },
+      ccpaymentDepositEvent: { count: async () => 0, findMany: async () => [] },
+      depositTicket: { count: async () => 0, findMany: async () => [] },
+      payout: { count: async () => 0, findMany: async () => [] },
+      userMiner: { count: async () => 0, findMany: async () => [] },
+      userInventory: { count: async () => 0, findMany: async () => [] },
+      userVault: {
+        count: async () => {
+          throw new Error("unexpected vault failure");
+        },
+        findMany: async () => []
+      }
+    };
+    const r = await getSupportTicketPlayerDossier(prisma, 2, {});
+    assert.equal(r.ok, true);
+    assert.ok(r.dossier);
+    assert.equal(r.dossier.vault.total, 0);
+    assert.deepEqual(r.dossier.vault.rows, []);
+    assert.equal(r.dossier.depositTransactions.total, 0);
   });
 
   it("returns orphanTicket when user row missing", async () => {

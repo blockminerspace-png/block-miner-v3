@@ -982,6 +982,8 @@
     "select_hint": "Choose a ticket from the list to view the thread.",
     "remove_file": "Remove file",
     "reply_image_only": "(image attachment)",
+    "reply_compose_expand": "Write a reply",
+    "reply_compose_collapse": "Hide reply form",
     "dossier": {
       "section_title": "Player file",
       "loading": "Loading player data…",

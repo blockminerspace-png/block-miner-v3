@@ -618,6 +618,8 @@
     "select_hint": "Elige un ticket de la lista para ver el hilo.",
     "remove_file": "Quitar archivo",
     "reply_image_only": "(adjunto de imagen)",
+    "reply_compose_expand": "Escribir respuesta",
+    "reply_compose_collapse": "Ocultar formulario de respuesta",
     "dossier": {
       "section_title": "Expediente del jugador",
       "loading": "Cargando datos del jugador…",

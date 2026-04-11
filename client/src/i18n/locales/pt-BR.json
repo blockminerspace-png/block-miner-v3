@@ -983,6 +983,8 @@
     "select_hint": "Escolha um chamado na lista para ver a conversa.",
     "remove_file": "Remover arquivo",
     "reply_image_only": "(anexo de imagem)",
+    "reply_compose_expand": "Escrever resposta",
+    "reply_compose_collapse": "Ocultar formulário de resposta",
     "dossier": {
       "section_title": "Ficha do jogador",
       "loading": "A carregar dados do jogador…",

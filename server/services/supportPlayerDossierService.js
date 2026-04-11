@@ -1,13 +1,41 @@
 /**
  * Aggregates read-only player data for admin support tooling (support ticket context).
- * No mutations. Designed for parallel Prisma queries and bounded page sizes.
+ * No mutations. Each data slice is loaded independently so one failing table/query
+ * does not fail the whole dossier (partial results for admins).
  */
+
+import logger from "../utils/logger.js";
+
+const dossierLog = logger.child("SupportPlayerDossier");
 
 /** @param {unknown} v */
 export function toNumberOrNull(v) {
   if (v == null) return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * @template T
+ * @param {string} sliceName
+ * @param {() => Promise<T>} fn
+ * @returns {Promise<T | null>}
+ */
+async function loadDossierSlice(sliceName, fn) {
+  try {
+    return await fn();
+  } catch (e) {
+    const code = /** @type {{ code?: string }} */ (e)?.code;
+    const message = String(/** @type {{ message?: unknown }} */ (e)?.message ?? e).slice(0, 500);
+    dossierLog.warn(`Dossier slice skipped: ${sliceName}`, { code, message });
+    return null;
+  }
+}
+
+function primaryWalletList(walletAddress) {
+  if (!walletAddress || typeof walletAddress !== "string") return [];
+  const t = walletAddress.trim();
+  return t ? [t] : [];
 }
 
 /**
@@ -92,6 +120,7 @@ function skipFor(page, limit) {
 
 /**
  * Staging / partial DBs may lag migrations (e.g. `ccpayment_deposit_events`).
+ * Exported for unit tests.
  * @param {unknown} e
  */
 export function isPrismaMissingRelationError(e) {
@@ -99,43 +128,12 @@ export function isPrismaMissingRelationError(e) {
   const msg = String(/** @type {{ message?: unknown }} */ (e)?.message ?? e);
   return (
     code === "P2021" ||
+    code === "P2022" ||
     code === "42P01" ||
     /does not exist in the current database/i.test(msg) ||
-    /relation .+ does not exist/i.test(msg)
+    /relation .+ does not exist/i.test(msg) ||
+    /column .+ does not exist/i.test(msg)
   );
-}
-
-/**
- * @param {import("@prisma/client").PrismaClient} prisma
- * @param {number} userId
- * @param {{ ccpaymentPage: number; limit: number }} p
- */
-async function loadCcpaymentDepositSlice(prisma, userId, p) {
-  try {
-    return await Promise.all([
-      prisma.ccpaymentDepositEvent.count({ where: { userId } }),
-      prisma.ccpaymentDepositEvent.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        skip: skipFor(p.ccpaymentPage, p.limit),
-        take: p.limit,
-        select: {
-          id: true,
-          recordId: true,
-          amountPol: true,
-          payStatus: true,
-          credited: true,
-          txHash: true,
-          createdAt: true,
-        },
-      }),
-    ]);
-  } catch (e) {
-    if (isPrismaMissingRelationError(e)) {
-      return [0, []];
-    }
-    throw e;
-  }
 }
 
 /**
@@ -205,122 +203,190 @@ export async function getSupportTicketPlayerDossier(prisma, ticketId, query) {
 
   const [
     walletAddresses,
-    depositTxTotal,
-    depositTxRows,
-    withdrawalTxTotal,
-    withdrawalTxRows,
-    ccpaymentSlice,
-    depositTicketsTotal,
-    depositTicketsRows,
-    payoutsTotal,
-    payoutsRows,
-    minersTotal,
-    minersRows,
-    inventoryTotal,
-    inventoryRows,
-    vaultTotal,
-    vaultRows,
+    depositSplit,
+    withdrawalSplit,
+    ccpaymentSplit,
+    depositTicketsSplit,
+    payoutsSplit,
+    minersSplit,
+    inventorySplit,
+    vaultSplit,
   ] = await Promise.all([
-    collectKnownWalletAddresses(prisma, userId, user.walletAddress, 400),
-    prisma.transaction.count({ where: { userId, type: "deposit" } }),
-    prisma.transaction.findMany({
-      where: { userId, type: "deposit" },
-      orderBy: { createdAt: "desc" },
-      skip: skipFor(p.depositsPage, p.limit),
-      take: p.limit,
-      select: {
-        id: true,
-        amount: true,
-        fee: true,
-        status: true,
-        txHash: true,
-        address: true,
-        fromAddress: true,
-        createdAt: true,
-        completedAt: true,
-      },
+    loadDossierSlice("walletAddresses", () =>
+      collectKnownWalletAddresses(prisma, userId, user.walletAddress, 400)
+    ),
+    loadDossierSlice("depositTransactions", async () => {
+      const [total, rows] = await Promise.all([
+        prisma.transaction.count({ where: { userId, type: "deposit" } }),
+        prisma.transaction.findMany({
+          where: { userId, type: "deposit" },
+          orderBy: { createdAt: "desc" },
+          skip: skipFor(p.depositsPage, p.limit),
+          take: p.limit,
+          select: {
+            id: true,
+            amount: true,
+            fee: true,
+            status: true,
+            txHash: true,
+            address: true,
+            fromAddress: true,
+            createdAt: true,
+            completedAt: true,
+          },
+        }),
+      ]);
+      return { total, rows };
     }),
-    prisma.transaction.count({ where: { userId, type: "withdrawal" } }),
-    prisma.transaction.findMany({
-      where: { userId, type: "withdrawal" },
-      orderBy: { createdAt: "desc" },
-      skip: skipFor(p.withdrawalsPage, p.limit),
-      take: p.limit,
-      select: {
-        id: true,
-        amount: true,
-        fee: true,
-        status: true,
-        txHash: true,
-        address: true,
-        createdAt: true,
-        completedAt: true,
-      },
+    loadDossierSlice("withdrawalTransactions", async () => {
+      const [total, rows] = await Promise.all([
+        prisma.transaction.count({ where: { userId, type: "withdrawal" } }),
+        prisma.transaction.findMany({
+          where: { userId, type: "withdrawal" },
+          orderBy: { createdAt: "desc" },
+          skip: skipFor(p.withdrawalsPage, p.limit),
+          take: p.limit,
+          select: {
+            id: true,
+            amount: true,
+            fee: true,
+            status: true,
+            txHash: true,
+            address: true,
+            createdAt: true,
+            completedAt: true,
+          },
+        }),
+      ]);
+      return { total, rows };
     }),
-    loadCcpaymentDepositSlice(prisma, userId, p),
-    prisma.depositTicket.count({ where: { userId } }),
-    prisma.depositTicket.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      skip: skipFor(p.depositTicketsPage, p.limit),
-      take: p.limit,
-      select: {
-        id: true,
-        walletAddress: true,
-        txHash: true,
-        amountClaimed: true,
-        status: true,
-        creditedAmount: true,
-        createdAt: true,
-      },
+    loadDossierSlice("ccpaymentDeposits", async () => {
+      const [total, rows] = await Promise.all([
+        prisma.ccpaymentDepositEvent.count({ where: { userId } }),
+        prisma.ccpaymentDepositEvent.findMany({
+          where: { userId },
+          orderBy: { createdAt: "desc" },
+          skip: skipFor(p.ccpaymentPage, p.limit),
+          take: p.limit,
+          select: {
+            id: true,
+            recordId: true,
+            amountPol: true,
+            payStatus: true,
+            credited: true,
+            txHash: true,
+            createdAt: true,
+          },
+        }),
+      ]);
+      return { total, rows };
     }),
-    prisma.payout.count({ where: { userId } }),
-    prisma.payout.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      skip: skipFor(p.payoutsPage, p.limit),
-      take: p.limit,
-      select: {
-        id: true,
-        amountPol: true,
-        source: true,
-        txHash: true,
-        createdAt: true,
-      },
+    loadDossierSlice("depositTickets", async () => {
+      const [total, rows] = await Promise.all([
+        prisma.depositTicket.count({ where: { userId } }),
+        prisma.depositTicket.findMany({
+          where: { userId },
+          orderBy: { createdAt: "desc" },
+          skip: skipFor(p.depositTicketsPage, p.limit),
+          take: p.limit,
+          select: {
+            id: true,
+            walletAddress: true,
+            txHash: true,
+            amountClaimed: true,
+            status: true,
+            creditedAmount: true,
+            createdAt: true,
+          },
+        }),
+      ]);
+      return { total, rows };
     }),
-    prisma.userMiner.count({ where: { userId } }),
-    prisma.userMiner.findMany({
-      where: { userId },
-      orderBy: { slotIndex: "asc" },
-      skip: skipFor(p.minersPage, p.limit),
-      take: p.limit,
-      include: {
-        miner: { select: { name: true, slug: true, imageUrl: true } },
-      },
+    loadDossierSlice("payouts", async () => {
+      const [total, rows] = await Promise.all([
+        prisma.payout.count({ where: { userId } }),
+        prisma.payout.findMany({
+          where: { userId },
+          orderBy: { createdAt: "desc" },
+          skip: skipFor(p.payoutsPage, p.limit),
+          take: p.limit,
+          select: {
+            id: true,
+            amountPol: true,
+            source: true,
+            txHash: true,
+            createdAt: true,
+          },
+        }),
+      ]);
+      return { total, rows };
     }),
-    prisma.userInventory.count({ where: { userId } }),
-    prisma.userInventory.findMany({
-      where: { userId },
-      orderBy: { acquiredAt: "desc" },
-      skip: skipFor(p.inventoryPage, p.limit),
-      take: p.limit,
-      include: {
-        miner: { select: { name: true, slug: true, imageUrl: true } },
-      },
+    loadDossierSlice("userMiners", async () => {
+      const [total, rows] = await Promise.all([
+        prisma.userMiner.count({ where: { userId } }),
+        prisma.userMiner.findMany({
+          where: { userId },
+          orderBy: { slotIndex: "asc" },
+          skip: skipFor(p.minersPage, p.limit),
+          take: p.limit,
+          include: {
+            miner: { select: { name: true, slug: true, imageUrl: true } },
+          },
+        }),
+      ]);
+      return { total, rows };
     }),
-    prisma.userVault.count({ where: { userId } }),
-    prisma.userVault.findMany({
-      where: { userId },
-      orderBy: { storedAt: "desc" },
-      skip: skipFor(p.vaultPage, p.limit),
-      take: p.limit,
-      include: {
-        miner: { select: { name: true, slug: true, imageUrl: true } },
-      },
+    loadDossierSlice("userInventory", async () => {
+      const [total, rows] = await Promise.all([
+        prisma.userInventory.count({ where: { userId } }),
+        prisma.userInventory.findMany({
+          where: { userId },
+          orderBy: { acquiredAt: "desc" },
+          skip: skipFor(p.inventoryPage, p.limit),
+          take: p.limit,
+          include: {
+            miner: { select: { name: true, slug: true, imageUrl: true } },
+          },
+        }),
+      ]);
+      return { total, rows };
+    }),
+    loadDossierSlice("userVault", async () => {
+      const [total, rows] = await Promise.all([
+        prisma.userVault.count({ where: { userId } }),
+        prisma.userVault.findMany({
+          where: { userId },
+          orderBy: { storedAt: "desc" },
+          skip: skipFor(p.vaultPage, p.limit),
+          take: p.limit,
+          include: {
+            miner: { select: { name: true, slug: true, imageUrl: true } },
+          },
+        }),
+      ]);
+      return { total, rows };
     }),
   ]);
 
-  const [ccpaymentTotal, ccpaymentRows] = ccpaymentSlice;
+  const walletAddressesResolved =
+    walletAddresses ?? primaryWalletList(user.walletAddress);
+
+  const depositTxTotal = depositSplit?.total ?? 0;
+  const depositTxRows = depositSplit?.rows ?? [];
+  const withdrawalTxTotal = withdrawalSplit?.total ?? 0;
+  const withdrawalTxRows = withdrawalSplit?.rows ?? [];
+  const ccpaymentTotal = ccpaymentSplit?.total ?? 0;
+  const ccpaymentRows = ccpaymentSplit?.rows ?? [];
+  const depositTicketsTotal = depositTicketsSplit?.total ?? 0;
+  const depositTicketsRows = depositTicketsSplit?.rows ?? [];
+  const payoutsTotal = payoutsSplit?.total ?? 0;
+  const payoutsRows = payoutsSplit?.rows ?? [];
+  const minersTotal = minersSplit?.total ?? 0;
+  const minersRows = minersSplit?.rows ?? [];
+  const inventoryTotal = inventorySplit?.total ?? 0;
+  const inventoryRows = inventorySplit?.rows ?? [];
+  const vaultTotal = vaultSplit?.total ?? 0;
+  const vaultRows = vaultSplit?.rows ?? [];
 
   const mapTx = (t) => ({
     ...t,
@@ -396,7 +462,7 @@ export async function getSupportTicketPlayerDossier(prisma, ticketId, query) {
         polBalance: toNumberOrNull(user.polBalance),
         blkBalance: toNumberOrNull(user.blkBalance),
       },
-      walletAddresses,
+      walletAddresses: walletAddressesResolved,
       depositTransactions: {
         rows: depositTxRows.map(mapTx),
         total: depositTxTotal,

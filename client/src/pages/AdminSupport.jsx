@@ -12,7 +12,9 @@ import {
   RefreshCw,
   Loader2,
   ImagePlus,
-  X
+  X,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../store/auth';
@@ -57,6 +59,7 @@ export default function AdminSupport() {
   const [dossierLoading, setDossierLoading] = useState(false);
   const [dossierError, setDossierError] = useState(false);
   const [dossierParams, setDossierParams] = useState(defaultDossierParams);
+  const [replyComposerOpen, setReplyComposerOpen] = useState(false);
   const socketRef = useRef(null);
   const selectedIdRef = useRef(null);
   selectedIdRef.current = selectedMessage?.id ?? null;
@@ -487,61 +490,83 @@ export default function AdminSupport() {
                 ))}
               </div>
 
-              <div className="mt-auto space-y-4 border-t border-slate-800 pt-6 shrink-0">
-                <textarea
-                  placeholder={t('admin_support.reply_placeholder')}
-                  value={reply}
-                  onChange={(e) => setReply(e.target.value)}
-                  rows={3}
-                  className="w-full bg-slate-900/50 border border-slate-800 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-amber-500/50 transition-colors resize-none"
-                />
-                {replyFiles.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {replyFiles.map((f, i) => (
-                      <span
-                        key={`${f.name}-${i}`}
-                        className="inline-flex items-center gap-1 text-[10px] bg-slate-800 px-2 py-1 rounded-lg text-slate-300"
-                      >
-                        {f.name}
-                        <button
-                          type="button"
-                          onClick={() => setReplyFiles((p) => p.filter((_, j) => j !== i))}
-                          aria-label={t('admin_support.remove_file')}
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 cursor-pointer hover:border-amber-500/40">
-                    <ImagePlus className="w-4 h-4" />
-                    {t('admin_support.add_images')}
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/gif,image/webp"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => addReplyFiles(e.target.files)}
+              <div className="mt-auto shrink-0 border-t border-slate-800 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setReplyComposerOpen((o) => !o)}
+                  className="flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-left text-sm font-bold text-slate-200 transition-colors hover:border-amber-500/30 hover:bg-slate-900/70"
+                  aria-expanded={replyComposerOpen}
+                >
+                  <span className="flex items-center gap-2">
+                    <Send className="h-4 w-4 text-amber-500" />
+                    {replyComposerOpen
+                      ? t('admin_support.reply_compose_collapse')
+                      : t('admin_support.reply_compose_expand')}
+                  </span>
+                  {replyComposerOpen ? (
+                    <ChevronUp className="h-4 w-4 shrink-0 text-slate-500" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" />
+                  )}
+                </button>
+                {replyComposerOpen ? (
+                  <div className="mt-4 space-y-4">
+                    <textarea
+                      placeholder={t('admin_support.reply_placeholder')}
+                      value={reply}
+                      onChange={(e) => setReply(e.target.value)}
+                      rows={3}
+                      className="w-full resize-none rounded-2xl border border-slate-800 bg-slate-900/50 p-4 text-sm text-white transition-colors focus:border-amber-500/50 focus:outline-none"
                     />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleReply}
-                    disabled={sendingReply || (!reply.trim() && replyFiles.length === 0)}
-                    className="flex-1 min-w-[140px] h-12 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-xs uppercase tracking-[0.2em] rounded-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2 italic"
-                  >
-                    {sendingReply ? (
-                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        {t('admin_support.send')}
-                      </>
+                    {replyFiles.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {replyFiles.map((f, i) => (
+                          <span
+                            key={`${f.name}-${i}`}
+                            className="inline-flex items-center gap-1 rounded-lg bg-slate-800 px-2 py-1 text-[10px] text-slate-300"
+                          >
+                            {f.name}
+                            <button
+                              type="button"
+                              onClick={() => setReplyFiles((p) => p.filter((_, j) => j !== i))}
+                              aria-label={t('admin_support.remove_file')}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
                     )}
-                  </button>
-                </div>
+                    <div className="flex flex-wrap gap-2">
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-xs font-bold text-slate-300 hover:border-amber-500/40">
+                        <ImagePlus className="h-4 w-4" />
+                        {t('admin_support.add_images')}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => addReplyFiles(e.target.files)}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleReply}
+                        disabled={sendingReply || (!reply.trim() && replyFiles.length === 0)}
+                        className="flex h-12 min-w-[140px] flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-xs font-black uppercase tracking-[0.2em] text-white italic transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+                      >
+                        {sendingReply ? (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4" />
+                            {t('admin_support.send')}
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : (
