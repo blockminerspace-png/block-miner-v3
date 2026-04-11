@@ -2,9 +2,30 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   getSupportTicketPlayerDossier,
+  isPrismaMissingRelationError,
   parseDossierPagination,
   toNumberOrNull,
 } from "../server/services/supportPlayerDossierService.js";
+
+describe("isPrismaMissingRelationError", () => {
+  it("detects Prisma missing-table message", () => {
+    assert.equal(
+      isPrismaMissingRelationError({
+        code: "P2021",
+        message: "The table `public.ccpayment_deposit_events` does not exist in the current database."
+      }),
+      true
+    );
+  });
+
+  it("detects Postgres undefined_table code", () => {
+    assert.equal(isPrismaMissingRelationError({ code: "42P01", message: "relation missing" }), true);
+  });
+
+  it("returns false for unrelated errors", () => {
+    assert.equal(isPrismaMissingRelationError({ code: "P2002", message: "Unique constraint" }), false);
+  });
+});
 
 describe("toNumberOrNull", () => {
   it("maps decimals and null", () => {
@@ -55,6 +76,57 @@ describe("getSupportTicketPlayerDossier", () => {
     assert.equal(r.linked, false);
     assert.equal(r.dossier, null);
     assert.equal(r.ticket.email, "g@example.com");
+  });
+
+  it("returns dossier with empty ccpayment when ccpayment table is missing", async () => {
+    const userRow = {
+      id: 10,
+      name: "A",
+      username: "a",
+      email: "a@b.c",
+      walletAddress: "0xabc",
+      isBanned: false,
+      createdAt: new Date(),
+      lastLoginAt: null,
+      polBalance: 1,
+      blkBalance: 2
+    };
+    const prisma = {
+      supportMessage: {
+        findUnique: async () => ({
+          id: 2,
+          userId: 10,
+          name: "X",
+          email: "x@y.z"
+        })
+      },
+      user: { findUnique: async () => userRow },
+      transaction: {
+        count: async () => 0,
+        findMany: async () => []
+      },
+      ccpaymentDepositEvent: {
+        count: async () => {
+          const err = new Error(
+            "The table `public.ccpayment_deposit_events` does not exist in the current database."
+          );
+          /** @type {any} */ (err).code = "P2021";
+          throw err;
+        },
+        findMany: async () => []
+      },
+      depositTicket: { count: async () => 0, findMany: async () => [] },
+      payout: { count: async () => 0, findMany: async () => [] },
+      userMiner: { count: async () => 0, findMany: async () => [] },
+      userInventory: { count: async () => 0, findMany: async () => [] },
+      userVault: { count: async () => 0, findMany: async () => [] }
+    };
+    const r = await getSupportTicketPlayerDossier(prisma, 2, {});
+    assert.equal(r.ok, true);
+    assert.equal(r.linked, true);
+    assert.ok(r.dossier);
+    assert.equal(r.dossier.ccpaymentDeposits.total, 0);
+    assert.deepEqual(r.dossier.ccpaymentDeposits.rows, []);
   });
 
   it("returns orphanTicket when user row missing", async () => {

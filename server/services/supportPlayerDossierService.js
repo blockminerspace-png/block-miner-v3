@@ -91,6 +91,54 @@ function skipFor(page, limit) {
 }
 
 /**
+ * Staging / partial DBs may lag migrations (e.g. `ccpayment_deposit_events`).
+ * @param {unknown} e
+ */
+export function isPrismaMissingRelationError(e) {
+  const code = /** @type {{ code?: string }} */ (e)?.code;
+  const msg = String(/** @type {{ message?: unknown }} */ (e)?.message ?? e);
+  return (
+    code === "P2021" ||
+    code === "42P01" ||
+    /does not exist in the current database/i.test(msg) ||
+    /relation .+ does not exist/i.test(msg)
+  );
+}
+
+/**
+ * @param {import("@prisma/client").PrismaClient} prisma
+ * @param {number} userId
+ * @param {{ ccpaymentPage: number; limit: number }} p
+ */
+async function loadCcpaymentDepositSlice(prisma, userId, p) {
+  try {
+    return await Promise.all([
+      prisma.ccpaymentDepositEvent.count({ where: { userId } }),
+      prisma.ccpaymentDepositEvent.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        skip: skipFor(p.ccpaymentPage, p.limit),
+        take: p.limit,
+        select: {
+          id: true,
+          recordId: true,
+          amountPol: true,
+          payStatus: true,
+          credited: true,
+          txHash: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+  } catch (e) {
+    if (isPrismaMissingRelationError(e)) {
+      return [0, []];
+    }
+    throw e;
+  }
+}
+
+/**
  * @param {import("@prisma/client").PrismaClient} prisma
  * @param {number} ticketId
  * @param {Record<string, string | undefined>} query
@@ -161,8 +209,7 @@ export async function getSupportTicketPlayerDossier(prisma, ticketId, query) {
     depositTxRows,
     withdrawalTxTotal,
     withdrawalTxRows,
-    ccpaymentTotal,
-    ccpaymentRows,
+    ccpaymentSlice,
     depositTicketsTotal,
     depositTicketsRows,
     payoutsTotal,
@@ -210,22 +257,7 @@ export async function getSupportTicketPlayerDossier(prisma, ticketId, query) {
         completedAt: true,
       },
     }),
-    prisma.ccpaymentDepositEvent.count({ where: { userId } }),
-    prisma.ccpaymentDepositEvent.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      skip: skipFor(p.ccpaymentPage, p.limit),
-      take: p.limit,
-      select: {
-        id: true,
-        recordId: true,
-        amountPol: true,
-        payStatus: true,
-        credited: true,
-        txHash: true,
-        createdAt: true,
-      },
-    }),
+    loadCcpaymentDepositSlice(prisma, userId, p),
     prisma.depositTicket.count({ where: { userId } }),
     prisma.depositTicket.findMany({
       where: { userId },
@@ -287,6 +319,8 @@ export async function getSupportTicketPlayerDossier(prisma, ticketId, query) {
       },
     }),
   ]);
+
+  const [ccpaymentTotal, ccpaymentRows] = ccpaymentSlice;
 
   const mapTx = (t) => ({
     ...t,
