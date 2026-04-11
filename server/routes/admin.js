@@ -20,6 +20,7 @@ import * as adminReadEarnController from "../controllers/adminReadEarnController
 import * as sidebarNavController from "../controllers/sidebarNavController.js";
 import * as adminDailyTasksController from "../controllers/adminDailyTasksController.js";
 import * as adminInternalOfferwallController from "../controllers/adminInternalOfferwallController.js";
+import { adminYoutubeStreamRouter } from "./admin-youtube-stream.js";
 import prisma from "../src/db/prisma.js";
 import path from "path";
 import fs from "fs/promises";
@@ -109,6 +110,8 @@ adminRouter.post(
   "/internal-offerwall/attempts/:id/reject",
   adminInternalOfferwallController.rejectAttempt
 );
+
+adminRouter.use(adminYoutubeStreamRouter);
 
 // Dashboard Stats
 adminRouter.get("/stats", adminController.getStats);

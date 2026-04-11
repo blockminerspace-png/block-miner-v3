@@ -56,6 +56,7 @@ import AdminReadEarn from './pages/AdminReadEarn';
 import AdminUserSidebar from './pages/AdminUserSidebar';
 import AdminDailyTasks from './pages/AdminDailyTasks';
 import AdminInternalOfferwall from './pages/AdminInternalOfferwall';
+import AdminStreaming from './pages/AdminStreaming';
 import AdminMiniPass from './pages/AdminMiniPass';
 import AdminMiniPassSeason from './pages/AdminMiniPassSeason';
 import ReadEarn from './pages/ReadEarn';
@@ -215,6 +216,7 @@ function App() {
           <Route path="/admin/daily-tasks" element={<AdminDailyTasks />} />
           <Route path="/admin/read-earn" element={<AdminReadEarn />} />
           <Route path="/admin/internal-offerwall" element={<AdminInternalOfferwall />} />
+          <Route path="/admin/streaming" element={<AdminStreaming />} />
           <Route path="/admin/user-sidebar" element={<AdminUserSidebar />} />
           <Route path="/admin/mini-pass" element={<AdminMiniPass />} />
           <Route path="/admin/mini-pass/:id" element={<AdminMiniPassSeason />} />

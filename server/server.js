@@ -58,6 +58,7 @@ import * as bannerController from "./controllers/bannerController.js";
 import * as transparencyController from "./controllers/transparencyController.js";
 // Models & Utils
 import { startCronTasks } from "./cron/index.js";
+import { shutdownAllStreams } from "./services/streaming/streamRunner.js";
 import { startDepositVerifier } from "./services/depositVerifier.js";
 import { startContractDepositSync } from "./services/contractDepositSync.js";
 import { registerMinerSocketHandlers } from "./src/socket/registerMinerSocketHandlers.js";
@@ -466,7 +467,13 @@ async function bootstrap() {
 
     server.listen(port, host, () => {
       logger.info(`Server running on ${host}:${port}`);
-      
+
+      const shutdownStreams = () => {
+        shutdownAllStreams().catch(() => {});
+      };
+      process.once("SIGINT", shutdownStreams);
+      process.once("SIGTERM", shutdownStreams);
+
       // Start background tasks
       startCronTasks({
         engine,

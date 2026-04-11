@@ -31,12 +31,19 @@ function defaultForm() {
     rewardHashRateDays: '1',
     completionMode: 'USER_SELF_CLAIM',
     sortOrder: '0',
-    isActive: true
+    isActive: true,
+    requiredActionsText: '',
+    targetCountryCodes: '',
+    externalInfoUrl: 'https://',
+    verificationNote: ''
   };
 }
 
 /** @param {Record<string, unknown>} row */
 function rowToForm(row) {
+  const meta = row.taskMetadata && typeof row.taskMetadata === 'object' ? row.taskMetadata : {};
+  const actions = Array.isArray(meta.requiredActions) ? meta.requiredActions.join('\n') : '';
+  const countries = Array.isArray(meta.targetCountryCodes) ? meta.targetCountryCodes.join(', ') : '';
   return {
     kind: String(row.kind || KIND_PTC),
     title: String(row.title || ''),
@@ -51,7 +58,11 @@ function rowToForm(row) {
     rewardHashRateDays: String(row.rewardHashRateDays ?? 1),
     completionMode: String(row.completionMode || 'USER_SELF_CLAIM'),
     sortOrder: String(row.sortOrder ?? 0),
-    isActive: Boolean(row.isActive)
+    isActive: Boolean(row.isActive),
+    requiredActionsText: actions,
+    targetCountryCodes: countries,
+    externalInfoUrl: meta.externalInfoUrl != null ? String(meta.externalInfoUrl) : 'https://',
+    verificationNote: meta.verificationNote != null ? String(meta.verificationNote) : ''
   };
 }
 
@@ -81,6 +92,27 @@ function buildApiBody(form) {
     body.rewardHashRate = parseFloat(String(form.rewardHashRate).replace(',', '.'));
     body.rewardHashRateDays = parseInt(String(form.rewardHashRateDays), 10);
   }
+
+  const meta = {};
+  const lines = String(form.requiredActionsText || '')
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (lines.length) meta.requiredActions = lines;
+  const cc = String(form.targetCountryCodes || '')
+    .trim()
+    .split(/[\s,]+/)
+    .map((s) => s.trim().toUpperCase())
+    .filter(Boolean);
+  if (cc.length) meta.targetCountryCodes = cc;
+  if (form.kind === KIND_GEN) {
+    const ext = String(form.externalInfoUrl || '').trim();
+    if (ext && ext !== 'https://' && ext !== 'http://') meta.externalInfoUrl = ext;
+  }
+  const vn = String(form.verificationNote || '').trim();
+  if (vn) meta.verificationNote = vn;
+  body.taskMetadata = Object.keys(meta).length ? meta : null;
+
   return body;
 }
 
@@ -405,6 +437,44 @@ export default function AdminInternalOfferwall() {
                     </label>
                   </>
                 ) : null}
+                <label className="block space-y-1 sm:col-span-3">
+                  <span className="text-xs font-semibold text-slate-400">{t('admin_internal_offerwall.form_required_actions')}</span>
+                  <textarea
+                    value={form.requiredActionsText}
+                    onChange={(e) => setForm((f) => ({ ...f, requiredActionsText: e.target.value }))}
+                    rows={3}
+                    placeholder={t('admin_internal_offerwall.form_required_actions_ph')}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+                  />
+                </label>
+                <label className="block space-y-1 sm:col-span-2">
+                  <span className="text-xs font-semibold text-slate-400">{t('admin_internal_offerwall.form_target_countries')}</span>
+                  <input
+                    value={form.targetCountryCodes}
+                    onChange={(e) => setForm((f) => ({ ...f, targetCountryCodes: e.target.value }))}
+                    placeholder="BR, US"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-white"
+                  />
+                </label>
+                {form.kind === KIND_GEN ? (
+                  <label className="block space-y-1 sm:col-span-3">
+                    <span className="text-xs font-semibold text-slate-400">{t('admin_internal_offerwall.form_external_info_url')}</span>
+                    <input
+                      value={form.externalInfoUrl}
+                      onChange={(e) => setForm((f) => ({ ...f, externalInfoUrl: e.target.value }))}
+                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-sm text-white"
+                    />
+                  </label>
+                ) : null}
+                <label className="block space-y-1 sm:col-span-3">
+                  <span className="text-xs font-semibold text-slate-400">{t('admin_internal_offerwall.form_verification_note')}</span>
+                  <textarea
+                    value={form.verificationNote}
+                    onChange={(e) => setForm((f) => ({ ...f, verificationNote: e.target.value }))}
+                    rows={2}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white"
+                  />
+                </label>
                 <label className="block space-y-1 sm:col-span-2">
                   <span className="text-xs font-semibold text-slate-400">{t('admin_internal_offerwall.form_completion')}</span>
                   <select

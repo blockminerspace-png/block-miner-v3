@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { LayoutGrid, Loader2, PlayCircle, Send } from 'lucide-react';
@@ -48,6 +49,7 @@ function useElapsedSeconds(startedAtIso, active) {
 
 export default function InternalOfferwall() {
   const { t } = useTranslation();
+  const [searchParams] = useSearchParams();
   const [flagLoading, setFlagLoading] = useState(true);
   const [featureEnabled, setFeatureEnabled] = useState(false);
   const [offersLoading, setOffersLoading] = useState(false);
@@ -110,6 +112,25 @@ export default function InternalOfferwall() {
     loadOffers();
   }, [featureEnabled, flagLoading, loadOffers]);
 
+  const focusOfferId = useMemo(() => {
+    const raw = searchParams.get('offer');
+    const n = parseInt(String(raw || ''), 10);
+    return Number.isInteger(n) && n > 0 ? n : null;
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!focusOfferId || offersLoading || !offers.length) return;
+    const exists = offers.some((o) => o.id === focusOfferId);
+    if (!exists) {
+      toast.error(t('internalOfferwallPage.inactive_or_missing'));
+      return;
+    }
+    const id = requestAnimationFrame(() => {
+      document.getElementById(`io-offer-${focusOfferId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [focusOfferId, offers, offersLoading, t]);
+
   const attemptByOfferId = useMemo(() => {
     const m = new Map();
     for (const a of openAttempts) {
@@ -151,7 +172,7 @@ export default function InternalOfferwall() {
         if (d.status === 'PENDING_REVIEW') toast.success(t('internalOfferwallPage.submit_pending'));
         else toast.success(t('internalOfferwallPage.submit_ok'));
         await loadOffers();
-      } else       if (d?.code === 'MIN_VIEW_NOT_MET') {
+      } else if (d?.code === 'MIN_VIEW_NOT_MET') {
         toast.error(d.message || t('internalOfferwallPage.load_error'));
       } else {
         toast.error(d?.message || t('internalOfferwallPage.load_error'));
@@ -212,6 +233,7 @@ export default function InternalOfferwall() {
             return (
               <OfferCard
                 key={offer.id}
+                domId={`io-offer-${offer.id}`}
                 offer={offer}
                 attempt={attempt}
                 t={t}
@@ -233,6 +255,7 @@ export default function InternalOfferwall() {
 }
 
 function OfferCard({
+  domId,
   offer,
   attempt,
   t,
@@ -254,7 +277,7 @@ function OfferCard({
   const remaining = Math.max(0, Math.ceil(minSec - elapsed));
 
   return (
-    <li className="rounded-2xl border border-white/5 bg-slate-900/50 p-5 space-y-4">
+    <li id={domId} className="rounded-2xl border border-white/5 bg-slate-900/50 p-5 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -267,6 +290,21 @@ function OfferCard({
             </span>
           </div>
           {offer.description ? <p className="text-sm text-slate-400 mt-2 whitespace-pre-wrap">{offer.description}</p> : null}
+          {Array.isArray(offer.taskMetadata?.requiredActions) && offer.taskMetadata.requiredActions.length > 0 ? (
+            <ul className="list-decimal pl-5 text-sm text-slate-400 mt-2 space-y-1">
+              {offer.taskMetadata.requiredActions.map((a, i) => (
+                <li key={i}>{a}</li>
+              ))}
+            </ul>
+          ) : null}
+          {Array.isArray(offer.taskMetadata?.targetCountryCodes) && offer.taskMetadata.targetCountryCodes.length > 0 ? (
+            <p className="text-xs text-slate-500 mt-2">
+              {t('internalOfferwallPage.target_regions')}: {offer.taskMetadata.targetCountryCodes.join(', ')}
+            </p>
+          ) : null}
+          {offer.taskMetadata?.verificationNote ? (
+            <p className="text-xs text-slate-500 mt-2 whitespace-pre-wrap">{offer.taskMetadata.verificationNote}</p>
+          ) : null}
           <p className="text-sm text-sky-300/90 mt-2 font-semibold">{rewardLabel}</p>
         </div>
         {!attempt ? (
@@ -307,7 +345,19 @@ function OfferCard({
               )}
             </div>
           ) : (
-            <p className="text-sm text-slate-400">{t('internalOfferwallPage.general_started_hint')}</p>
+            <div className="space-y-2 text-sm text-slate-400">
+              <p>{t('internalOfferwallPage.general_started_hint')}</p>
+              {offer.taskMetadata?.externalInfoUrl ? (
+                <a
+                  href={offer.taskMetadata.externalInfoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sky-400 hover:underline break-all"
+                >
+                  {t('internalOfferwallPage.open_external_link')}
+                </a>
+              ) : null}
+            </div>
           )}
 
           <p className="text-xs text-slate-500">

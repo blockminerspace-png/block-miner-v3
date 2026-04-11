@@ -24,6 +24,7 @@ import {
   validateIframeUrl
 } from "./validateIframeUrl.js";
 import { isInternalOfferwallEnabled } from "./internalOfferwallFeature.js";
+import { normalizeTaskMetadata } from "./internalOfferwallTaskMetadata.js";
 
 /**
  * @param {unknown} v
@@ -121,6 +122,13 @@ export function parseAdminOfferBody(body) {
     data.rewardHashRateDays = days;
   }
 
+  const metaIn = b.taskMetadata !== undefined ? b.taskMetadata : b.task_metadata;
+  const meta = normalizeTaskMetadata(kind, metaIn);
+  if (!meta.ok) {
+    return { ok: false, status: 400, message: meta.message };
+  }
+  data.taskMetadata = meta.value;
+
   return { ok: true, data };
 }
 
@@ -177,7 +185,8 @@ function publicOfferShape(row) {
     rewardHashRate: row.rewardHashRate,
     rewardHashRateDays: row.rewardHashRateDays,
     completionMode: row.completionMode,
-    sortOrder: row.sortOrder
+    sortOrder: row.sortOrder,
+    taskMetadata: row.taskMetadata && typeof row.taskMetadata === "object" ? row.taskMetadata : null
   };
 }
 
@@ -194,7 +203,8 @@ export async function userListOffers(userId) {
     where: {
       userId,
       periodKey,
-      status: { in: [ATTEMPT_STATUS_STARTED, ATTEMPT_STATUS_PENDING_REVIEW] }
+      status: { in: [ATTEMPT_STATUS_STARTED, ATTEMPT_STATUS_PENDING_REVIEW] },
+      offer: { isActive: true }
     },
     include: { offer: true }
   });

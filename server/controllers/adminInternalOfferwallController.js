@@ -25,7 +25,8 @@ function offerToPlain(row) {
     dailyLimitPerUser: row.dailyLimitPerUser,
     sortOrder: row.sortOrder,
     isActive: row.isActive,
-    completionMode: row.completionMode
+    completionMode: row.completionMode,
+    taskMetadata: row.taskMetadata && typeof row.taskMetadata === "object" ? row.taskMetadata : null
   };
 }
 
