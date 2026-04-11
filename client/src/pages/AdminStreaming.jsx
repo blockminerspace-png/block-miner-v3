@@ -37,10 +37,25 @@ function emptyCreateForm() {
 
 function statusTone(status) {
   const s = String(status || '').toUpperCase();
-  if (s === 'ONLINE') return 'text-emerald-400 bg-emerald-500/15';
+  if (s === 'ONLINE' || s === 'LIVE') return 'text-emerald-400 bg-emerald-500/15';
   if (s === 'STARTING') return 'text-amber-400 bg-amber-500/15';
   if (s === 'ERROR') return 'text-rose-400 bg-rose-500/15';
   return 'text-slate-400 bg-slate-800';
+}
+
+/** @param {{ workerAlive?: boolean, lastWorkerStatus?: string, desiredRunning?: boolean }} r */
+function rowDisplayStatus(r) {
+  if (r.workerAlive) return 'LIVE';
+  return String(r.lastWorkerStatus || 'OFFLINE');
+}
+
+/** @param {{ workerAlive?: boolean, lastWorkerStatus?: string, desiredRunning?: boolean }} r */
+function rowIsStarting(r) {
+  return Boolean(
+    r.desiredRunning &&
+      String(r.lastWorkerStatus || '').toUpperCase() === 'STARTING' &&
+      !r.workerAlive
+  );
 }
 
 export default function AdminStreaming() {
@@ -52,27 +67,31 @@ export default function AdminStreaming() {
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState(/** @type {number | null} */ (null));
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/admin/streaming/destinations');
-      if (res.data?.ok) setRows(res.data.destinations || []);
-      else toast.error(t('admin_streaming.load_error'));
-    } catch {
-      toast.error(t('admin_streaming.load_error'));
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
+  const load = useCallback(
+    async (opts = {}) => {
+      const silent = Boolean(opts.silent);
+      if (!silent) setLoading(true);
+      try {
+        const res = await api.get('/admin/streaming/destinations');
+        if (res.data?.ok) setRows(res.data.destinations || []);
+        else if (!silent) toast.error(t('admin_streaming.load_error'));
+      } catch {
+        if (!silent) toast.error(t('admin_streaming.load_error'));
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [t]
+  );
 
   useEffect(() => {
-    load();
+    void load({ silent: false });
   }, [load]);
 
   useEffect(() => {
     const id = setInterval(() => {
-      void load();
-    }, 5000);
+      void load({ silent: true });
+    }, 8000);
     return () => clearInterval(id);
   }, [load]);
 
@@ -97,7 +116,7 @@ export default function AdminStreaming() {
         toast.success(t('admin_streaming.save_ok'));
         setShowForm(false);
         setForm(emptyCreateForm());
-        await load();
+        await load({ silent: true });
       } else {
         toastStreamingFailure(t, { response: { status: res.status, data: res.data } });
       }
@@ -114,7 +133,7 @@ export default function AdminStreaming() {
       const res = await api.post(`/admin/streaming/destinations/${id}/start`);
       if (res.data?.ok) {
         toast.success(t('admin_streaming.start_ok'));
-        await load();
+        await load({ silent: true });
       } else {
         toast.error(res.data?.message || t('admin_streaming.load_error'));
       }
@@ -131,7 +150,7 @@ export default function AdminStreaming() {
       const res = await api.post(`/admin/streaming/destinations/${id}/stop`);
       if (res.data?.ok) {
         toast.success(t('admin_streaming.stop_ok'));
-        await load();
+        await load({ silent: true });
       } else {
         toast.error(res.data?.message || t('admin_streaming.load_error'));
       }
@@ -149,7 +168,7 @@ export default function AdminStreaming() {
       const res = await api.delete(`/admin/streaming/destinations/${id}`);
       if (res.data?.ok) {
         toast.success(t('admin_streaming.delete_ok'));
-        await load();
+        await load({ silent: true });
       } else {
         toast.error(res.data?.message || t('admin_streaming.load_error'));
       }
@@ -294,7 +313,15 @@ export default function AdminStreaming() {
         <p className="text-slate-500 text-sm">{t('admin_streaming.empty')}</p>
       ) : (
         <ul className="space-y-4">
-          {rows.map((r) => (
+          {rows.map((r) => {
+            const alive = Boolean(r.workerAlive);
+            const starting = rowIsStarting(r);
+            const badge = rowDisplayStatus(r);
+            const badgeLabel =
+              alive && badge === 'LIVE' ? t('admin_streaming.badge_capturing') : badge;
+            const startDisabled =
+              busyId === r.id || !r.hasStreamKey || !r.enabled || alive || starting;
+            return (
             <li key={r.id} className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -304,8 +331,12 @@ export default function AdminStreaming() {
                     {t('admin_streaming.rtmp')}: <span className="font-mono">{r.rtmpUrl}</span>
                   </p>
                 </div>
-                <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded-md ${statusTone(r.lastWorkerStatus)}`}>
-                  {r.lastWorkerStatus}
+                <span
+                  className={`text-[10px] uppercase font-bold px-2 py-1 rounded-md ${statusTone(
+                    alive ? 'LIVE' : r.lastWorkerStatus
+                  )}`}
+                >
+                  {badgeLabel}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2 text-xs text-slate-400">
@@ -321,18 +352,26 @@ export default function AdminStreaming() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  disabled={busyId === r.id || !r.hasStreamKey || !r.enabled}
+                  disabled={startDisabled}
                   onClick={() => start(r.id)}
                   className="inline-flex items-center gap-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
                 >
-                  {busyId === r.id ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Radio className="h-4 w-4" aria-hidden />}
-                  {t('admin_streaming.start')}
+                  {busyId === r.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  ) : (
+                    <Radio className="h-4 w-4" aria-hidden />
+                  )}
+                  {starting ? t('admin_streaming.button_starting') : t('admin_streaming.start')}
                 </button>
                 <button
                   type="button"
                   disabled={busyId === r.id}
                   onClick={() => stop(r.id)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-slate-800"
+                  className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold ${
+                    alive || starting
+                      ? 'border-rose-500/50 bg-rose-600/20 text-rose-100 hover:bg-rose-600/30'
+                      : 'border-slate-600 text-slate-200 hover:bg-slate-800'
+                  }`}
                 >
                   <Square className="h-4 w-4" aria-hidden />
                   {t('admin_streaming.stop')}
@@ -348,7 +387,8 @@ export default function AdminStreaming() {
                 </button>
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>

@@ -1,17 +1,27 @@
 import {
   adminCreateStreamDestination,
   adminDeleteStreamDestination,
-  adminGetStreamDestination,
-  adminListStreamDestinations,
-  adminPatchStreamDestination
+  adminPatchStreamDestination,
+  destinationToAdminJson
 } from "../services/streaming/youtubeStreamService.js";
-import { startStreamForDestination, stopStreamForDestination } from "../services/streaming/streamRunner.js";
+import {
+  isStreamActive,
+  reconcileAllStaleStreamDestinations,
+  reconcileStaleStreamDbState,
+  startStreamForDestination,
+  stopStreamForDestination
+} from "../services/streaming/streamRunner.js";
 import prisma from "../src/db/prisma.js";
 
 export async function listDestinations(_req, res) {
   try {
-    const rows = await adminListStreamDestinations();
-    res.json({ ok: true, destinations: rows });
+    await reconcileAllStaleStreamDestinations();
+    const rows = await prisma.streamDestination.findMany({ orderBy: [{ id: "asc" }] });
+    const destinations = rows.map((r) => ({
+      ...destinationToAdminJson(r),
+      workerAlive: isStreamActive(r.id)
+    }));
+    res.json({ ok: true, destinations });
   } catch (e) {
     console.error("adminYoutubeStream listDestinations", e);
     res.status(500).json({ ok: false, message: "Failed to list stream destinations." });
@@ -21,11 +31,22 @@ export async function listDestinations(_req, res) {
 export async function getDestination(req, res) {
   try {
     const id = parseInt(String(req.params.id || ""), 10);
-    const out = await adminGetStreamDestination(id);
-    if (!out.ok) {
-      return res.status(out.status).json({ ok: false, message: out.message });
+    if (!Number.isInteger(id) || id < 1) {
+      return res.status(400).json({ ok: false, message: "Invalid id." });
     }
-    res.json({ ok: true, destination: out.destination });
+    const row = await prisma.streamDestination.findUnique({ where: { id } });
+    if (!row) {
+      return res.status(404).json({ ok: false, message: "Destination not found." });
+    }
+    await reconcileStaleStreamDbState(row);
+    const fresh = await prisma.streamDestination.findUnique({ where: { id } });
+    if (!fresh) {
+      return res.status(404).json({ ok: false, message: "Destination not found." });
+    }
+    res.json({
+      ok: true,
+      destination: { ...destinationToAdminJson(fresh), workerAlive: isStreamActive(id) }
+    });
   } catch (e) {
     console.error("adminYoutubeStream getDestination", e);
     res.status(500).json({ ok: false, message: "Failed to load destination." });

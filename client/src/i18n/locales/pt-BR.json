@@ -947,6 +947,8 @@
     "form_a_bitrate": "Taxa de áudio (kbps)",
     "create": "Salvar destino",
     "start": "Iniciar",
+    "button_starting": "A iniciar…",
+    "badge_capturing": "Ao vivo (captura)",
     "stop": "Parar",
     "delete": "Excluir",
     "rtmp": "RTMP",

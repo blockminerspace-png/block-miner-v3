@@ -163,3 +163,39 @@ export async function shutdownAllStreams() {
 export function isStreamActive(id) {
   return active.has(id);
 }
+
+/** If DB says ONLINE/STARTING but this process has no worker (crash/restart), fix DB so admin UI matches reality. */
+const STALE_STARTING_MS = 120_000;
+
+export async function reconcileStaleStreamDbState(row) {
+  if (active.has(row.id)) return;
+  const st = String(row.lastWorkerStatus || "").toUpperCase();
+  if (st === "ONLINE") {
+    await updateRow(row.id, {
+      desiredRunning: false,
+      lastWorkerStatus: "OFFLINE",
+      lastStoppedAt: new Date(),
+      lastError:
+        "Stream process is not running (server restarted or the capture worker exited). Use Start again after fixing the issue."
+    });
+    return;
+  }
+  if (st === "STARTING" && row.desiredRunning) {
+    const started = row.lastStartedAt instanceof Date ? row.lastStartedAt.getTime() : 0;
+    if (started && Date.now() - started > STALE_STARTING_MS) {
+      await updateRow(row.id, {
+        desiredRunning: false,
+        lastWorkerStatus: "ERROR",
+        lastStoppedAt: new Date(),
+        lastError: "Start did not complete (timeout or server restarted). Check logs and try again."
+      });
+    }
+  }
+}
+
+export async function reconcileAllStaleStreamDestinations() {
+  const rows = await prisma.streamDestination.findMany({ orderBy: { id: "asc" } });
+  for (const row of rows) {
+    await reconcileStaleStreamDbState(row);
+  }
+}
