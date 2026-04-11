@@ -1,7 +1,6 @@
-# Optional: push-to-main deploy over SSH. Add repo Secrets:
-#   VPS_HOST, VPS_USER, VPS_SSH_PRIVATE_KEY
-# Optional Variable (Settings → Secrets and variables → Actions → Variables):
-#   VPS_APP_PATH  (default below: /root/block-miner)
+# Optional: push-to-main deploy over SSH. Enable with repo Variable ENABLE_VPS_DEPLOY=true
+# Secrets: VPS_HOST, VPS_USER, VPS_SSH_PRIVATE_KEY
+# Optional Variable: VPS_APP_PATH (default /root/block-miner)
 name: Deploy VPS
 
 on:
@@ -14,6 +13,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     if: >-
+      vars.ENABLE_VPS_DEPLOY == 'true' &&
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main'
