@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import {
   validateSidebarEntriesPayload,
   buildDefaultSidebarEntries,
+  coerceInternalOfferwallEarnRoot,
   coerceParentLockedSidebarEntries,
   mergeMissingSidebarRegistryEntries
 } from "../server/services/sidebarNavRegistry.js";
@@ -121,4 +122,28 @@ test("read_earn is nested under rewards_group in default resolved nav", () => {
   const earn = cats.find((c) => c.section === "earn");
   const group = earn.items.find((x) => x.itemId === "rewards_group");
   assert.ok(group?.children?.some((c) => c.itemId === "read_earn" && c.path === "/read-earn"));
+});
+
+test("internal_offerwall is top-level earn in default entries and resolved nav", () => {
+  const d = buildDefaultSidebarEntries();
+  const row = d.find((x) => x.itemId === "internal_offerwall");
+  assert.equal(row.parentItemId, null);
+  const cats = buildResolvedCategories(d);
+  const earn = cats.find((c) => c.section === "earn");
+  const link = earn.items.find((x) => x.itemId === "internal_offerwall");
+  assert.ok(link);
+  assert.equal(link.path, "/internal-offerwall");
+});
+
+test("coerceInternalOfferwallEarnRoot moves internal_offerwall out of rewards_group", () => {
+  const d = buildDefaultSidebarEntries();
+  const i = d.findIndex((x) => x.itemId === "internal_offerwall");
+  assert.ok(i >= 0);
+  d[i] = { ...d[i], parentItemId: "rewards_group" };
+  const { entries, changed } = coerceInternalOfferwallEarnRoot(d);
+  assert.equal(changed, true);
+  const row = entries.find((x) => x.itemId === "internal_offerwall");
+  assert.equal(row.parentItemId, null);
+  const v = validateSidebarEntriesPayload(entries);
+  assert.equal(v.ok, true);
 });

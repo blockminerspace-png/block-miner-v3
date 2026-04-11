@@ -133,7 +133,7 @@ export const SIDEBAR_ITEM_REGISTRY = {
     labelKey: "sidebar.internal_offerwall",
     icon: "LayoutGrid",
     section: "earn",
-    defaultParentItemId: "rewards_group"
+    defaultParentItemId: null
   },
   daily_tasks: {
     path: "/daily-tasks",
@@ -225,6 +225,29 @@ export function buildAdminItemMeta() {
  * @param {unknown[]} entries
  * @returns {{ entries: object[], changed: boolean }}
  */
+/**
+ * Lifts internal offerwall to earn root when registry default is root (legacy rows had it under rewards_group).
+ * @param {unknown[]} entries
+ * @returns {{ entries: object[], changed: boolean }}
+ */
+export function coerceInternalOfferwallEarnRoot(entries) {
+  if (!Array.isArray(entries)) return { entries: /** @type {object[]} */ (entries), changed: false };
+  const want = SIDEBAR_ITEM_REGISTRY.internal_offerwall?.defaultParentItemId ?? null;
+  let changed = false;
+  const next = entries.map((e) => {
+    if (!e || typeof e !== "object") return /** @type {object} */ (e);
+    const row = /** @type {{ itemId: string, parentItemId?: string | null }} */ (e);
+    if (row.itemId !== "internal_offerwall") return /** @type {object} */ (e);
+    const cur = row.parentItemId ?? null;
+    if (cur !== want) {
+      changed = true;
+      return { ...row, parentItemId: want, section: "earn" };
+    }
+    return /** @type {object} */ (e);
+  });
+  return { entries: next, changed };
+}
+
 export function coerceParentLockedSidebarEntries(entries) {
   if (!Array.isArray(entries)) return { entries: /** @type {object[]} */ (entries), changed: false };
   let changed = false;
@@ -285,13 +308,13 @@ export function buildDefaultSidebarEntries() {
     { itemId: "checkin", visible: true, sortOrder: 110, section: "earn", parentItemId: null },
     { itemId: "mini_pass", visible: true, sortOrder: 115, section: "earn", parentItemId: null },
     { itemId: "daily_tasks", visible: true, sortOrder: 118, section: "earn", parentItemId: null },
+    { itemId: "internal_offerwall", visible: true, sortOrder: 119, section: "earn", parentItemId: null },
     { itemId: "rewards_group", visible: true, sortOrder: 120, section: "earn", parentItemId: null },
     { itemId: "faucet", visible: true, sortOrder: 130, section: "earn", parentItemId: "rewards_group" },
     { itemId: "shortlinks", visible: true, sortOrder: 140, section: "earn", parentItemId: "rewards_group" },
     { itemId: "auto_mining", visible: true, sortOrder: 150, section: "earn", parentItemId: "rewards_group" },
     { itemId: "youtube", visible: true, sortOrder: 160, section: "earn", parentItemId: "rewards_group" },
     { itemId: "read_earn", visible: true, sortOrder: 170, section: "earn", parentItemId: "rewards_group" },
-    { itemId: "internal_offerwall", visible: true, sortOrder: 172, section: "earn", parentItemId: "rewards_group" },
 
     { itemId: "games", visible: true, sortOrder: 210, section: "social", parentItemId: null },
     { itemId: "calculator", visible: true, sortOrder: 220, section: "social", parentItemId: null },

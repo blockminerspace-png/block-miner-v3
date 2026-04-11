@@ -60,6 +60,7 @@ export function resolveSidebarIcon(iconName) {
 
 const MINI_PASS_PATH = '/mini-pass';
 const DAILY_TASKS_PATH = '/daily-tasks';
+const INTERNAL_OFFERWALL_PATH = '/internal-offerwall';
 
 /**
  * Ensures Mini Pass and Daily Tasks are never nested under the Rewards folder (legacy payloads).
@@ -108,6 +109,20 @@ export function normalizeMiniPassOutOfRewardsGroup(categories) {
               labelKey: ch.labelKey || 'sidebar.daily_tasks',
               icon: ch.icon || 'ListChecks',
               path: ch.path || DAILY_TASKS_PATH,
+            },
+          });
+        } else if (
+          ch?.itemId === 'internal_offerwall' ||
+          ch?.path === INTERNAL_OFFERWALL_PATH ||
+          ch?.labelKey === 'sidebar.internal_offerwall'
+        ) {
+          pulled.push({
+            order: 2,
+            entry: {
+              itemId: 'internal_offerwall',
+              labelKey: ch.labelKey || 'sidebar.internal_offerwall',
+              icon: ch.icon || 'LayoutGrid',
+              path: ch.path || INTERNAL_OFFERWALL_PATH,
             },
           });
         } else {

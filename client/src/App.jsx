@@ -174,6 +174,7 @@ function App() {
             }
           />
           <Route path="/read-earn" element={<ReadEarn />} />
+          <Route path="/internal-offerwall" element={<InternalOfferwall />} />
           <Route path="/mini-pass" element={<MiniPass />} />
           <Route path="/mini-pass/:seasonId" element={<MiniPass />} />
           <Route path="/daily-tasks" element={<DailyTasks />} />
