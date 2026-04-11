@@ -324,7 +324,7 @@ ok=0
 i=0
 while [ $i -lt 45 ]; do
   i=$((i+1))
-  code=$(curl -sS --connect-timeout 3 --max-time 12 -o /dev/null -w '%{http_code}' "http://127.0.0.1:__HEALTH_PORT__/health" 2>/dev/null || echo 000)
+  code=$(curl -sS --connect-timeout 3 --max-time 12 -o /dev/null -w "%{http_code}" "http://127.0.0.1:__HEALTH_PORT__/health" 2>/dev/null || echo 000)
   echo "health_try:$i http:$code"
   if [ "$code" = "200" ]; then ok=1; break; fi
   sleep 2
@@ -336,7 +336,8 @@ if [ "$ok" != "1" ]; then
 fi
 echo "health_ok:200"
 exit 0
-'@.Replace('__REMOTE_PATH__', $RemotePath).Replace('__HEALTH_PORT__', $healthPort).Replace('__COMPOSE_SERVICE__', $ComposeService)
+'@
+    $healthRemote = $healthRemote.Replace('__REMOTE_PATH__', $RemotePath).Replace('__HEALTH_PORT__', $healthPort).Replace('__COMPOSE_SERVICE__', $ComposeService)
     Write-Host "==> Waiting for application health on 127.0.0.1:${healthPort}/health ..."
     & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" (ConvertTo-UnixLf $healthRemote)
     if ($LASTEXITCODE -ne 0) { throw "Health check SSH step failed (plink exit $LASTEXITCODE)." }
