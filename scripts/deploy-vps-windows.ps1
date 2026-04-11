@@ -74,6 +74,7 @@ function Get-ViteEnvOverrideMap {
     param([hashtable]$Secrets)
     $map = @{}
     $names = @(
+        'APP_HOST_PORT',
         'VITE_WALLETCONNECT_PROJECT_ID',
         'VITE_PUBLIC_WALLET_APP_URL',
         'VITE_POLYGON_RPC_URL',
@@ -215,7 +216,11 @@ fi
         & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" $syncCmd
     }
 
-    # Por último faz o build e restart (serviço típico: app → 127.0.0.1:3000)
+    # Por último faz o build e restart (host port = APP_HOST_PORT in .env.production, default 3000)
+    $healthPort = '3000'
+    if ($deploySecrets['APP_HOST_PORT'] -and $deploySecrets['APP_HOST_PORT'].Trim()) {
+        $healthPort = $deploySecrets['APP_HOST_PORT'].Trim()
+    }
     $orph = if ($RemoveOrphans) { ' --remove-orphans' } else { '' }
     # --env-file .env.production: injects VITE_* into compose build args so WalletConnect project id ships in the SPA bundle.
     $composeEnv = "docker compose --env-file .env.production"
@@ -234,7 +239,7 @@ $composeEnv up -d nginx
 $composeEnv ps
 $composeEnv exec -T nginx nginx -s reload 2>/dev/null || true
 sleep 2
-curl -sS -o /dev/null -w 'health_http:%{http_code}\n' http://127.0.0.1:3000/health || true
+curl -sS -o /dev/null -w 'health_http:%{http_code}\n' http://127.0.0.1:${healthPort}/health || true
 "@
     Write-Host "==> docker compose build no VPS ($SshHost)..."
     & $PlinkExe -batch -ssh @plinkHostKeyArgs -pwfile $tmpPw "${SshUser}@${SshHost}" $remoteBuildCmd
