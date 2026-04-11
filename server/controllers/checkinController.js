@@ -24,13 +24,25 @@ function isFreeSyntheticTx(txHash, userId, checkinDate) {
   return txHash === syntheticFreeTxHash(userId, checkinDate);
 }
 
+/**
+ * Treasury address for on-chain check-in (Polygon). CHECKIN_RECEIVER wins;
+ * if unset or zero, falls back to DEPOSIT_WALLET_ADDRESS so staging is not
+ * stuck on free check-in when only the deposit treasury is configured.
+ */
+export function resolveCheckinReceiverFromEnv(env = process.env) {
+  for (const key of ["CHECKIN_RECEIVER", "DEPOSIT_WALLET_ADDRESS"]) {
+    const r = (env[key] || "").trim();
+    if (r && r.toLowerCase() !== ZERO) return r;
+  }
+  return "";
+}
+
 function getReceiver() {
-  return (process.env.CHECKIN_RECEIVER || "").trim();
+  return resolveCheckinReceiverFromEnv();
 }
 
 function paymentCheckinEnabled() {
-  const r = getReceiver();
-  return Boolean(r && r.toLowerCase() !== ZERO);
+  return Boolean(getReceiver());
 }
 
 async function getTodayRow(userId) {
@@ -257,7 +269,7 @@ export async function claimCheckin(req, res) {
   }
 }
 
-/** Legacy blockchain check-in (only if CHECKIN_RECEIVER is set). */
+/** On-chain POL check-in when a treasury address is configured (CHECKIN_RECEIVER or DEPOSIT_WALLET_ADDRESS). */
 export async function confirmCheckin(req, res) {
   try {
     if (!paymentCheckinEnabled()) {
