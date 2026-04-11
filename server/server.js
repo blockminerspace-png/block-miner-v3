@@ -53,7 +53,7 @@ import { adminAutoMiningRewardsRouter } from "./routes/admin-auto-mining-rewards
 import supportRouter from "./routes/support.js";
 import userRouter from "./routes/user.js";
 import { sidebarNavRouter } from "./routes/sidebar-nav.js";
-import { publicLiveStatsRouter } from "./routes/public-live-stats.js";
+import * as publicLiveStatsController from "./controllers/publicLiveStatsController.js";
 import * as healthController from "./controllers/healthController.js";
 import * as bannerController from "./controllers/bannerController.js";
 import * as transparencyController from "./controllers/transparencyController.js";
@@ -280,7 +280,6 @@ app.use("/api/swap", swapRouter);
 app.use("/api/support", supportRouter);
 app.use("/api/user", userRouter);
 app.use("/api/sidebar", sidebarNavRouter);
-app.use("/api/public", publicLiveStatsRouter);
 // app.use("/api/ptp", ptpRouter);
 
 // 6. Admin Routes
@@ -288,6 +287,12 @@ import { adminRouter } from "./routes/admin.js";
 app.use("/api/admin/auth", adminAuthRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/admin/auto-mining-rewards", adminAutoMiningRewardsRouter);
+
+const publicLiveStatsLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 120,
+});
+app.get("/api/public/live-stats", publicLiveStatsLimiter, publicLiveStatsController.getLiveStats);
 
 // Public stats (no auth — used by Landing page)
 app.get("/api/public-stats", async (req, res) => {
