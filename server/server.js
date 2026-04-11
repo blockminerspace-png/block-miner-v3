@@ -292,7 +292,7 @@ const publicLiveStatsLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   max: 120,
 });
-app.get("/api/public/live-stats", publicLiveStatsLimiter, publicLiveStatsController.getLiveStats);
+app.get("/api/live-server-stats", publicLiveStatsLimiter, publicLiveStatsController.getLiveStats);
 
 // Public stats (no auth — used by Landing page)
 app.get("/api/public-stats", async (req, res) => {

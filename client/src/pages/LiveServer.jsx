@@ -30,7 +30,7 @@ export default function LiveServer() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const res = await fetch('/api/public/live-stats', { credentials: 'omit' });
+      const res = await fetch('/api/live-server-stats', { credentials: 'omit' });
       const data = await res.json();
       if (!data?.ok || !data.stats) {
         setError(t('liveServer.load_error'));
