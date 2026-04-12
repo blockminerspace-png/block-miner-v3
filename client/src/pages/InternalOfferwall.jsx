@@ -368,24 +368,43 @@ function OfferCard({
             </div>
           )}
 
-          <p className="text-xs text-slate-500">
-            {t('internalOfferwallPage.min_view_hint', { seconds: String(minSec) })}
-            {minSec > 0 && remaining > 0 ? (
-              <span className="text-slate-400"> — {remaining}s</span>
-            ) : null}
-          </p>
+          {minSec > 0 ? (
+            !canSubmit ? (
+              <div
+                className="rounded-2xl border border-sky-500/25 bg-sky-950/30 px-6 py-8 text-center"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                <p className="text-xs font-bold uppercase tracking-widest text-sky-300/90">
+                  {t('internalOfferwallPage.countdown_title')}
+                </p>
+                <p className="mt-3 text-5xl font-black tabular-nums tracking-tight text-white sm:text-6xl">{remaining}</p>
+                <p className="mt-1 text-sm text-slate-400">{t('internalOfferwallPage.countdown_unit')}</p>
+                <p className="mt-4 text-xs text-slate-500 max-w-md mx-auto">
+                  {t('internalOfferwallPage.min_view_hint', { seconds: String(minSec) })}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm font-semibold text-emerald-400/95">{t('internalOfferwallPage.countdown_ready')}</p>
+            )
+          ) : (
+            <p className="text-xs text-slate-500">{t('internalOfferwallPage.min_view_zero_hint')}</p>
+          )}
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={!canSubmit || submitBusy}
-              onClick={onSubmit}
-              className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm disabled:opacity-40"
-            >
-              {submitBusy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : <Send className="w-4 h-4" aria-hidden />}
-              {t('internalOfferwallPage.submit')}
-            </button>
-          </div>
+          {canSubmit ? (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={submitBusy}
+                onClick={onSubmit}
+                className="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm disabled:opacity-40"
+              >
+                {submitBusy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : <Send className="w-4 h-4" aria-hidden />}
+                {t('internalOfferwallPage.submit')}
+              </button>
+            </div>
+          ) : null}
         </>
       ) : null}
     </li>
