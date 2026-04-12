@@ -39,6 +39,37 @@ END $$;
 CREATE INDEX IF NOT EXISTS "user_owned_machines_user_id_location_idx"
   ON "user_owned_machines"("user_id", "location");
 
+-- Some environments never had a Prisma migration for vault (db push only); create before ALTER/backfill.
+CREATE TABLE IF NOT EXISTS "user_vault" (
+    "id" SERIAL NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "miner_id" INTEGER,
+    "miner_name" TEXT NOT NULL,
+    "level" INTEGER NOT NULL DEFAULT 1,
+    "hash_rate" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "slot_size" INTEGER NOT NULL DEFAULT 1,
+    "image_url" TEXT,
+    "stored_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "user_vault_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX IF NOT EXISTS "user_vault_user_id_idx" ON "user_vault"("user_id");
+
+DO $$ BEGIN
+    ALTER TABLE "user_vault" ADD CONSTRAINT "user_vault_user_id_fkey"
+      FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    ALTER TABLE "user_vault" ADD CONSTRAINT "user_vault_miner_id_fkey"
+      FOREIGN KEY ("miner_id") REFERENCES "miners"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
+
 ALTER TABLE "user_inventory" ADD COLUMN IF NOT EXISTS "owned_machine_id" INTEGER;
 ALTER TABLE "user_miners" ADD COLUMN IF NOT EXISTS "owned_machine_id" INTEGER;
 ALTER TABLE "user_vault" ADD COLUMN IF NOT EXISTS "owned_machine_id" INTEGER;

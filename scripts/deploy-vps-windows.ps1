@@ -48,6 +48,10 @@ if (Test-Path -LiteralPath $deploySecretsPath) {
         if ($k) { $deploySecrets[$k] = $v }
     }
 }
+# One-shot Prisma recovery (e.g. P3018): set in shell before deploy, no secrets file edit.
+if (-not [string]::IsNullOrWhiteSpace($env:DEPLOY_PRISMA_MIGRATE_RESOLVE_ROLLED_BACK)) {
+    $deploySecrets['DEPLOY_PRISMA_MIGRATE_RESOLVE_ROLLED_BACK'] = $env:DEPLOY_PRISMA_MIGRATE_RESOLVE_ROLLED_BACK.Trim()
+}
 # Parâmetros passados na linha de comando ganham sobre deploy.secrets.local
 if (-not $PSBoundParameters.ContainsKey('SshHost') -and $deploySecrets['SSH_HOST']) {
     $SshHost = $deploySecrets['SSH_HOST']
