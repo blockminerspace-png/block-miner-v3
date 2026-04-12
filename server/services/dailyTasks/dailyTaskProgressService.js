@@ -84,9 +84,13 @@ async function bumpOneTask(tx, { userId, definition, periodKey, delta, now }) {
  * Increments progress for all active definitions of a task type (idempotent per dedupeKey).
  * @param {number} userId
  * @param {string} taskType
- * @param {{ dedupeKey: string, delta: number, gameSlug?: string | null }} opts
+ * @param {{ dedupeKey: string, delta: number, gameSlug?: string | null, internalOfferwallOfferId?: number | null }} opts
  */
-export async function bumpDailyTasksForUser(userId, taskType, { dedupeKey, delta, gameSlug } = {}) {
+export async function bumpDailyTasksForUser(
+  userId,
+  taskType,
+  { dedupeKey, delta, gameSlug, internalOfferwallOfferId } = {}
+) {
   if (!userId || !dedupeKey) return;
   const d = Number(delta);
   if (!Number.isFinite(d) || d <= 0) return;
