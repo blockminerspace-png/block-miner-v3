@@ -9,12 +9,25 @@ const KIND_PTC = 'PTC_IFRAME';
 const MODE_ADMIN = 'ADMIN_APPROVAL';
 const STATUS_STARTED = 'STARTED';
 
-/** @param {string} url @returns {boolean} true if a tab was likely opened */
+/**
+ * Opens partner URL in a new tab. Do not pass `noopener` in the windowFeatures string:
+ * Chromium returns `null` (no WindowProxy) when noopener is requested, so we would skip
+ * partner-opened tracking even though the tab opened. We open with `_blank` then sever opener.
+ *
+ * @param {string} url
+ * @returns {boolean} true if a window reference was returned (tab was not blocked)
+ */
 function openPartnerInNewTab(url) {
   const u = String(url || '').trim();
   if (!u) return false;
-  const w = window.open(u, '_blank', 'noopener,noreferrer');
-  return Boolean(w);
+  const w = window.open(u, '_blank');
+  if (!w) return false;
+  try {
+    w.opener = null;
+  } catch {
+    // ignore (older browsers / tightened policies)
+  }
+  return true;
 }
 function rewardLine(t, offer) {
   const k = String(offer.rewardKind || '').toUpperCase();
