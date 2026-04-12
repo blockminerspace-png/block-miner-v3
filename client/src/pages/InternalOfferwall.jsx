@@ -10,23 +10,27 @@ const MODE_ADMIN = 'ADMIN_APPROVAL';
 const STATUS_STARTED = 'STARTED';
 
 /**
- * Opens partner URL in a new tab. Do not pass `noopener` in the windowFeatures string:
- * Chromium returns `null` (no WindowProxy) when noopener is requested, so we would skip
- * partner-opened tracking even though the tab opened. We open with `_blank` then sever opener.
+ * Opens the partner URL in a new tab with a full document URL as Referer.
+ * Our nginx sets Referrer-Policy: strict-origin-when-cross-origin, which truncates cross-origin
+ * referrers to the origin only; some PTC partners (e.g. traffic exchanges) reject that as "direct".
+ * A real <a> click with referrerPolicy "unsafe-url" overrides policy for this navigation only.
+ * Use rel="noopener" but NOT "noreferrer" — noreferrer strips the Referer header entirely.
  *
  * @param {string} url
- * @returns {boolean} true if a window reference was returned (tab was not blocked)
+ * @returns {boolean} always true when url is non-empty (popup blockers are rare for user-initiated synthetic clicks)
  */
-function openPartnerInNewTab(url) {
+function openPartnerWithReferrer(url) {
   const u = String(url || '').trim();
   if (!u) return false;
-  const w = window.open(u, '_blank');
-  if (!w) return false;
-  try {
-    w.opener = null;
-  } catch {
-    // ignore (older browsers / tightened policies)
-  }
+  const a = document.createElement('a');
+  a.href = u;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.referrerPolicy = 'unsafe-url';
+  a.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
   return true;
 }
 function rewardLine(t, offer) {
@@ -165,7 +169,7 @@ export default function InternalOfferwall() {
   ) => {
     const targetUrl = String(offer.iframeUrl || '').trim();
     if (!targetUrl) return;
-    const opened = openPartnerInNewTab(targetUrl);
+    const opened = openPartnerWithReferrer(targetUrl);
     if (!opened) {
       toast.info(t('internalOfferwallPage.popup_blocked'));
       return;

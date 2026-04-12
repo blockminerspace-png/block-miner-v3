@@ -542,7 +542,7 @@
     "countdown_title": "Tiempo restante",
     "countdown_unit": "segundos",
     "countdown_ready": "Tiempo cumplido — ya puedes enviar.",
-    "ptc_new_window_hint": "La página del socio se abre en una pestaña nueva. Completa los pasos allí, vuelve aquí y envía cuando termine el temporizador.",
+    "ptc_new_window_hint": "La página del socio se abre en una pestaña nueva. Completa los pasos allí, vuelve aquí y envía cuando termine el temporizador. El socio comprueba que la visita viene de BlockMiner (referrer): extensiones o modos que eliminan el referer pueden invalidar la visita.",
     "open_partner_new_window": "Abrir página del socio (nueva pestaña)",
     "popup_blocked": "Se bloqueó la nueva pestaña. Permite ventanas emergentes para este sitio o pulsa el botón de abajo para abrir al socio.",
     "partner_not_opened": "Abre primero la página del socio con el botón, espera aquí el temporizador y luego envía.",
