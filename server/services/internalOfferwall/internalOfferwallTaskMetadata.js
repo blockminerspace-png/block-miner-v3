@@ -1,5 +1,6 @@
 import { OFFER_KIND_GENERAL_TASK, OFFER_KIND_PTC_IFRAME } from "./internalOfferwallConstants.js";
-import { isAllowHttpIframe, loadIframeHostAllowlist, validateIframeUrl } from "./validateIframeUrl.js";
+import { getIframeHostAllowlistCachedSync } from "./iframeHostAllowlistCache.js";
+import { isAllowHttpIframe, validateIframeUrl } from "./validateIframeUrl.js";
 
 /**
  * @param {unknown} raw
@@ -22,11 +23,15 @@ function asObject(raw) {
 /**
  * @param {string} kind
  * @param {unknown} raw
- * @returns {{ ok: true, value: object | null } | { ok: false, message: string }}
+ * @param {{ allowHttp?: boolean, allowedHosts?: Set<string> }} [options]
+ * @returns {{ ok: true, value: object | null } | { ok: false, message: string, code?: string, host?: string }}
  */
-export function normalizeTaskMetadata(kind, raw) {
+export function normalizeTaskMetadata(kind, raw, options = {}) {
   const obj = asObject(raw);
   if (!obj) return { ok: true, value: null };
+
+  const allowHttp = options.allowHttp ?? isAllowHttpIframe();
+  const allowedHosts = options.allowedHosts ?? getIframeHostAllowlistCachedSync();
 
   const out = {};
 
@@ -74,13 +79,17 @@ export function normalizeTaskMetadata(kind, raw) {
     if (kind !== OFFER_KIND_GENERAL_TASK) {
       return { ok: false, message: "externalInfoUrl is only allowed for GENERAL_TASK offers." };
     }
-    const hosts = loadIframeHostAllowlist();
     const vr = validateIframeUrl(String(ext), {
-      allowHttp: isAllowHttpIframe(),
-      allowedHosts: hosts
+      allowHttp,
+      allowedHosts
     });
     if (!vr.ok) {
-      return { ok: false, message: vr.message };
+      return {
+        ok: false,
+        message: vr.message,
+        ...(vr.code ? { code: vr.code } : {}),
+        ...(vr.host ? { host: vr.host } : {})
+      };
     }
     out.externalInfoUrl = vr.url;
   }

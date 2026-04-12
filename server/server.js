@@ -10,6 +10,7 @@ import helmet from "helmet";
 import { Server } from "socket.io";
 
 import prisma from "./src/db/prisma.js";
+import { refreshIframeHostAllowlistCache } from "./services/internalOfferwall/iframeHostAllowlistCache.js";
 import { MiningEngine } from "./src/miningEngine.js";
 import { setMiningEngine } from "./src/miningEngineInstance.js";
 import loggerLib from "./utils/logger.js";
@@ -440,6 +441,11 @@ async function bootstrap() {
     // Ensure shortlink reward is correctly set up
     await ensureDefaultInternalReward().catch(err => logger.error("Failed to ensure shortlink reward", { error: err.message }));
     await ensureFaucetReward().catch(err => logger.error("Failed to ensure faucet reward", { error: err.message }));
+    await refreshIframeHostAllowlistCache(prisma).catch((err) =>
+      logger.error("Failed to warm internal offerwall iframe allowlist cache", {
+        error: String(err?.message || err)
+      })
+    );
 
     if (envFlag("RUN_STARTUP_DATA_MIGRATIONS", false)) {
       // --- ONE-TIME SCRIPT: Reset all shortlinks on startup ---

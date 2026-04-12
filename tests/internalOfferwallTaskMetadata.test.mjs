@@ -24,4 +24,24 @@ describe("normalizeTaskMetadata", () => {
     });
     assert.equal(r.ok, false);
   });
+
+  it("rejects external URL when host is not in the provided allowlist", () => {
+    const r = normalizeTaskMetadata(
+      OFFER_KIND_GENERAL_TASK,
+      { externalInfoUrl: "https://unknown-partner.example/x" },
+      { allowedHosts: new Set(["other.com"]) }
+    );
+    assert.equal(r.ok, false);
+    if (!r.ok) assert.equal(r.code, "IFRAME_URL_NOT_ALLOWED");
+  });
+
+  it("accepts external URL when host matches the allowlist", () => {
+    const r = normalizeTaskMetadata(
+      OFFER_KIND_GENERAL_TASK,
+      { externalInfoUrl: "https://www.example.com/path" },
+      { allowedHosts: new Set(["example.com"]) }
+    );
+    assert.equal(r.ok, true);
+    if (r.ok) assert.match(String(r.value?.externalInfoUrl || ""), /^https:\/\/www\.example\.com\//);
+  });
 });

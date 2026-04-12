@@ -125,6 +125,20 @@ function rewardSummary(row) {
   return k;
 }
 
+/**
+ * @param {(key: string, opts?: Record<string, string>) => string} t
+ * @param {{ message?: string, code?: string, details?: { host?: string } } | undefined} data
+ */
+function formatInternalOfferwallApiError(t, data) {
+  if (data?.code === 'IFRAME_HOST_INVALID') {
+    return t('admin_internal_offerwall.error_iframe_host_invalid');
+  }
+  if (data?.code === 'IFRAME_URL_NOT_ALLOWED' && data.details?.host) {
+    return t('admin_internal_offerwall.error_iframe_not_allowed', { host: data.details.host });
+  }
+  return data?.message || t('admin_internal_offerwall.load_error');
+}
+
 export default function AdminInternalOfferwall() {
   const { t } = useTranslation();
   const [tab, setTab] = useState(/** @type {'offers' | 'review'} */ ('offers'));
@@ -209,10 +223,10 @@ export default function AdminInternalOfferwall() {
         closeForm();
         await loadOffers();
       } else {
-        toast.error(res.data?.message || t('admin_internal_offerwall.load_error'));
+        toast.error(formatInternalOfferwallApiError(t, res.data));
       }
     } catch (e) {
-      toast.error(e?.response?.data?.message || t('admin_internal_offerwall.load_error'));
+      toast.error(formatInternalOfferwallApiError(t, e?.response?.data));
     } finally {
       setSaving(false);
     }
@@ -226,10 +240,10 @@ export default function AdminInternalOfferwall() {
         toast.success(t('admin_internal_offerwall.save_ok'));
         await loadOffers();
       } else {
-        toast.error(res.data?.message || t('admin_internal_offerwall.load_error'));
+        toast.error(formatInternalOfferwallApiError(t, res.data));
       }
     } catch (e) {
-      toast.error(e?.response?.data?.message || t('admin_internal_offerwall.load_error'));
+      toast.error(formatInternalOfferwallApiError(t, e?.response?.data));
     } finally {
       setBusyId(null);
     }
@@ -243,10 +257,10 @@ export default function AdminInternalOfferwall() {
         toast.success(t('admin_internal_offerwall.save_ok'));
         await loadAttempts();
       } else {
-        toast.error(res.data?.message || t('admin_internal_offerwall.load_error'));
+        toast.error(formatInternalOfferwallApiError(t, res.data));
       }
     } catch (e) {
-      toast.error(e?.response?.data?.message || t('admin_internal_offerwall.load_error'));
+      toast.error(formatInternalOfferwallApiError(t, e?.response?.data));
     } finally {
       setBusyId(null);
     }
@@ -264,10 +278,10 @@ export default function AdminInternalOfferwall() {
         setRejectNote('');
         await loadAttempts();
       } else {
-        toast.error(res.data?.message || t('admin_internal_offerwall.load_error'));
+        toast.error(formatInternalOfferwallApiError(t, res.data));
       }
     } catch (e) {
-      toast.error(e?.response?.data?.message || t('admin_internal_offerwall.load_error'));
+      toast.error(formatInternalOfferwallApiError(t, e?.response?.data));
     } finally {
       setBusyId(null);
     }

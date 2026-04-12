@@ -2,7 +2,9 @@ import prisma from "../src/db/prisma.js";
 import {
   adminApproveAttempt,
   adminCreateOffer,
+  adminDeactivateFrameHostById,
   adminListAttempts,
+  adminListFrameHosts,
   adminListOffers,
   adminPatchOffer,
   adminRejectAttempt,
@@ -42,9 +44,11 @@ export async function listOffers(_req, res) {
 
 export async function createOffer(req, res) {
   try {
-    const parsed = parseAdminOfferBody(req.body);
+    const parsed = await parseAdminOfferBody(prisma, req.body);
     if (!parsed.ok) {
-      return res.status(parsed.status).json({ ok: false, message: parsed.message, code: parsed.code });
+      const payload = { ok: false, message: parsed.message, code: parsed.code };
+      if (parsed.details) payload.details = parsed.details;
+      return res.status(parsed.status).json(payload);
     }
     const row = await adminCreateOffer(parsed.data);
     res.status(201).json({ ok: true, offer: row });
@@ -65,9 +69,11 @@ export async function patchOffer(req, res) {
       return res.status(404).json({ ok: false, message: "Offer not found." });
     }
     const merged = { ...offerToPlain(existing), ...req.body };
-    const parsed = parseAdminOfferBody(merged);
+    const parsed = await parseAdminOfferBody(prisma, merged);
     if (!parsed.ok) {
-      return res.status(parsed.status).json({ ok: false, message: parsed.message, code: parsed.code });
+      const payload = { ok: false, message: parsed.message, code: parsed.code };
+      if (parsed.details) payload.details = parsed.details;
+      return res.status(parsed.status).json(payload);
     }
     const row = await adminPatchOffer(id, parsed.data);
     res.json({ ok: true, offer: row });
@@ -108,6 +114,30 @@ export async function approveAttempt(req, res) {
   } catch (e) {
     console.error("adminInternalOfferwall approveAttempt", e);
     res.status(500).json({ ok: false, message: "Failed to approve attempt." });
+  }
+}
+
+export async function listFrameHosts(_req, res) {
+  try {
+    const rows = await adminListFrameHosts();
+    res.json({ ok: true, frameHosts: rows });
+  } catch (e) {
+    console.error("adminInternalOfferwall listFrameHosts", e);
+    res.status(500).json({ ok: false, message: "Failed to list frame hosts." });
+  }
+}
+
+export async function deactivateFrameHost(req, res) {
+  try {
+    const id = parseInt(String(req.params.id || ""), 10);
+    const out = await adminDeactivateFrameHostById(id);
+    if (!out.ok) {
+      return res.status(out.status).json({ ok: false, message: out.message });
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("adminInternalOfferwall deactivateFrameHost", e);
+    res.status(500).json({ ok: false, message: "Failed to update frame host." });
   }
 }
 

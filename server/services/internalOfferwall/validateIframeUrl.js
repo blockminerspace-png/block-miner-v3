@@ -1,7 +1,60 @@
 /**
+ * True if hostname matches an entry exactly or is a subdomain of an entry
+ * (e.g. allowlist "example.com" matches "www.example.com" and "a.b.example.com").
+ * @param {string} host
+ * @param {Set<string>} allowedHosts
+ */
+export function hostMatchesIframeAllowlist(host, allowedHosts) {
+  const h = String(host || "").toLowerCase();
+  if (!h) return false;
+  if (allowedHosts.has(h)) return true;
+  for (const entry of allowedHosts) {
+    const e = String(entry || "").toLowerCase();
+    if (!e) continue;
+    if (h === e) return true;
+    if (h.endsWith("." + e)) return true;
+  }
+  return false;
+}
+
+/**
+ * frame-src sources for CSP: each allowlisted host plus wildcard subdomains.
+ * @param {Set<string>} allowedHosts
+ * @returns {string[]}
+ */
+export function expandCspFrameSrcHostSources(allowedHosts) {
+  const out = [];
+  const seen = new Set();
+  for (const h of allowedHosts) {
+    const host = String(h || "").trim().toLowerCase();
+    if (!host) continue;
+    if (host.includes(":")) continue;
+    if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+      const direct = `https://${host}`;
+      if (!seen.has(direct)) {
+        seen.add(direct);
+        out.push(direct);
+      }
+      continue;
+    }
+    const direct = `https://${host}`;
+    if (!seen.has(direct)) {
+      seen.add(direct);
+      out.push(direct);
+    }
+    const wild = `https://*.${host}`;
+    if (!seen.has(wild)) {
+      seen.add(wild);
+      out.push(wild);
+    }
+  }
+  return out;
+}
+
+/**
  * @param {string} rawUrl
  * @param {{ allowHttp: boolean, allowedHosts: Set<string> }} opts
- * @returns {{ ok: true, url: string } | { ok: false, code: string, message: string }}
+ * @returns {{ ok: true, url: string } | { ok: false, code: string, message: string, host?: string }}
  */
 export function validateIframeUrl(rawUrl, { allowHttp, allowedHosts }) {
   const trimmed = String(rawUrl || "").trim();
@@ -29,31 +82,15 @@ export function validateIframeUrl(rawUrl, { allowHttp, allowedHosts }) {
   if (!host || host === "localhost") {
     return { ok: false, code: "IFRAME_URL_HOST", message: "Invalid iframe host." };
   }
-  if (!allowedHosts.has(host)) {
+  if (!hostMatchesIframeAllowlist(host, allowedHosts)) {
     return {
       ok: false,
       code: "IFRAME_URL_NOT_ALLOWED",
-      message: "Iframe host is not on the allowlist. Ask an administrator to add it to INTERNAL_OFFERWALL_CSP_FRAME_HOSTS."
+      host,
+      message: "Iframe host is not on the allowlist (refresh the allowlist cache or save the offer again to register the host)."
     };
   }
   return { ok: true, url: parsed.toString() };
-}
-
-/**
- * Builds hostname allowlist from env plus safe defaults.
- * @returns {Set<string>}
- */
-export function loadIframeHostAllowlist() {
-  const defaults = ["zerads.com", "www.youtube.com", "www.youtube-nocookie.com"];
-  const raw = String(process.env.INTERNAL_OFFERWALL_CSP_FRAME_HOSTS || "").trim();
-  const parts = raw
-    ? raw
-        .split(/[\s,]+/)
-        .map((s) => s.trim().toLowerCase())
-        .filter(Boolean)
-    : [];
-  const set = new Set([...defaults, ...parts]);
-  return set;
 }
 
 export function isAllowHttpIframe() {

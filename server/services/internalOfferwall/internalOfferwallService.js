@@ -18,13 +18,14 @@ import {
   REWARD_HASHRATE_TEMP,
   REWARD_POL
 } from "./internalOfferwallConstants.js";
-import {
-  isAllowHttpIframe,
-  loadIframeHostAllowlist,
-  validateIframeUrl
-} from "./validateIframeUrl.js";
+import { isAllowHttpIframe, validateIframeUrl } from "./validateIframeUrl.js";
 import { isInternalOfferwallEnabled } from "./internalOfferwallFeature.js";
 import { normalizeTaskMetadata } from "./internalOfferwallTaskMetadata.js";
+import {
+  getIframeHostAllowlistCachedSync,
+  refreshIframeHostAllowlistCache,
+  upsertActiveFrameHost
+} from "./iframeHostAllowlistCache.js";
 
 /**
  * @param {unknown} v
@@ -39,10 +40,11 @@ function clampInt(v, min, max, fallback) {
 }
 
 /**
+ * @param {import("@prisma/client").PrismaClient} prisma
  * @param {object} body
- * @returns {{ ok: true, data: object } | { ok: false, status: number, message: string, code?: string }}
+ * @returns {Promise<{ ok: true, data: object } | { ok: false, status: number, message: string, code?: string, details?: { host: string } }>}
  */
-export function parseAdminOfferBody(body) {
+export async function parseAdminOfferBody(prisma, body) {
   if (!body || typeof body !== "object") {
     return { ok: false, status: 400, message: "Invalid JSON body." };
   }
@@ -60,15 +62,34 @@ export function parseAdminOfferBody(body) {
       ? null
       : String(b.description).trim().slice(0, 8000) || null;
 
+  await refreshIframeHostAllowlistCache(prisma);
+  const allowHttp = isAllowHttpIframe();
+
   let iframeUrl = null;
   if (kind === OFFER_KIND_PTC_IFRAME) {
-    const hosts = loadIframeHostAllowlist();
-    const vr = validateIframeUrl(String(b.iframeUrl || ""), {
-      allowHttp: isAllowHttpIframe(),
+    let hosts = getIframeHostAllowlistCachedSync();
+    let vr = validateIframeUrl(String(b.iframeUrl || ""), {
+      allowHttp,
       allowedHosts: hosts
     });
+    if (!vr.ok && vr.code === "IFRAME_URL_NOT_ALLOWED" && vr.host) {
+      const up = await upsertActiveFrameHost(prisma, vr.host);
+      if (!up.ok) {
+        return { ok: false, status: 400, message: up.message, code: "IFRAME_HOST_INVALID" };
+      }
+      await refreshIframeHostAllowlistCache(prisma);
+      hosts = getIframeHostAllowlistCachedSync();
+      vr = validateIframeUrl(String(b.iframeUrl || ""), {
+        allowHttp,
+        allowedHosts: hosts
+      });
+    }
     if (!vr.ok) {
-      return { ok: false, status: 400, message: vr.message, code: vr.code };
+      const base = { ok: false, status: 400, message: vr.message, code: vr.code };
+      if (vr.code === "IFRAME_URL_NOT_ALLOWED" && vr.host) {
+        return { ...base, details: { host: vr.host } };
+      }
+      return base;
     }
     iframeUrl = vr.url;
   } else if (b.iframeUrl !== undefined && String(b.iframeUrl).trim()) {
@@ -123,13 +144,53 @@ export function parseAdminOfferBody(body) {
   }
 
   const metaIn = b.taskMetadata !== undefined ? b.taskMetadata : b.task_metadata;
-  const meta = normalizeTaskMetadata(kind, metaIn);
+  const metaOpts = { allowHttp, allowedHosts: getIframeHostAllowlistCachedSync() };
+  let meta = normalizeTaskMetadata(kind, metaIn, metaOpts);
+  if (!meta.ok && meta.code === "IFRAME_URL_NOT_ALLOWED" && meta.host) {
+    const up = await upsertActiveFrameHost(prisma, meta.host);
+    if (!up.ok) {
+      return { ok: false, status: 400, message: up.message, code: "IFRAME_HOST_INVALID" };
+    }
+    await refreshIframeHostAllowlistCache(prisma);
+    metaOpts.allowedHosts = getIframeHostAllowlistCachedSync();
+    meta = normalizeTaskMetadata(kind, metaIn, metaOpts);
+  }
   if (!meta.ok) {
-    return { ok: false, status: 400, message: meta.message };
+    const base = { ok: false, status: 400, message: meta.message };
+    if (meta.code === "IFRAME_URL_NOT_ALLOWED" && meta.host) {
+      return { ...base, code: meta.code, details: { host: meta.host } };
+    }
+    return base;
   }
   data.taskMetadata = meta.value;
 
   return { ok: true, data };
+}
+
+export async function adminListFrameHosts() {
+  return prisma.internalOfferwallFrameHost.findMany({
+    orderBy: { hostname: "asc" },
+    select: { id: true, hostname: true, isActive: true, createdAt: true }
+  });
+}
+
+/**
+ * @param {number} id
+ */
+export async function adminDeactivateFrameHostById(id) {
+  if (!Number.isInteger(id) || id < 1) {
+    return { ok: false, status: 400, message: "Invalid frame host id." };
+  }
+  const row = await prisma.internalOfferwallFrameHost.findUnique({ where: { id } });
+  if (!row) {
+    return { ok: false, status: 404, message: "Frame host not found." };
+  }
+  await prisma.internalOfferwallFrameHost.update({
+    where: { id },
+    data: { isActive: false }
+  });
+  await refreshIframeHostAllowlistCache(prisma);
+  return { ok: true };
 }
 
 export async function adminListOffers() {

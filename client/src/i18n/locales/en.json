@@ -1037,6 +1037,8 @@
     "validation_iframe_invalid": "Iframe URL is not a valid URL.",
     "validation_iframe_https": "Iframe URL must use http or https.",
     "validation_iframe_host": "Iframe URL must include a valid public hostname (not localhost).",
+    "error_iframe_not_allowed": "The iframe host \"{{host}}\" could not be allowlisted automatically. Check the hostname and try again, or remove the frame host in admin if it was disabled.",
+    "error_iframe_host_invalid": "That iframe hostname is not allowed (invalid format, localhost, or IP address).",
     "validation_external_url_invalid": "External info URL is invalid or missing a valid hostname.",
     "validation_reward_blk_positive": "BLK reward must be a positive number.",
     "validation_reward_pol_positive": "POL reward must be a positive number.",

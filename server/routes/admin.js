@@ -111,6 +111,11 @@ adminRouter.post(
   "/internal-offerwall/attempts/:id/reject",
   adminInternalOfferwallController.rejectAttempt
 );
+adminRouter.get("/internal-offerwall/frame-hosts", adminInternalOfferwallController.listFrameHosts);
+adminRouter.delete(
+  "/internal-offerwall/frame-hosts/:id",
+  adminInternalOfferwallController.deactivateFrameHost
+);
 
 adminRouter.use(adminYoutubeStreamRouter);
 

@@ -1,5 +1,6 @@
 import helmet from "helmet";
-import { loadIframeHostAllowlist } from "../services/internalOfferwall/validateIframeUrl.js";
+import { getIframeHostAllowlistCachedSync } from "../services/internalOfferwall/iframeHostAllowlistCache.js";
+import { expandCspFrameSrcHostSources } from "../services/internalOfferwall/validateIframeUrl.js";
 
 function isAssetPath(pathname) {
   return Boolean(pathname && /\.(css|js|map|png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|otf)$/i.test(pathname));
@@ -43,7 +44,7 @@ function baseDirectives({ allowWebSockets }) {
     ? ["'self'", "https:", "ws:", "wss:", "http://localhost:*", "ws://localhost:*"]
     : ["'self'", "https:"];
 
-  const internalOfferwallFrameHosts = [...loadIframeHostAllowlist()].map((h) => `https://${h}`);
+  const internalOfferwallFrameHosts = expandCspFrameSrcHostSources(getIframeHostAllowlistCachedSync());
 
   return {
     defaultSrc: ["'self'"],
@@ -113,17 +114,13 @@ function baseDirectives({ allowWebSockets }) {
 }
 
 export function createCspMiddleware() {
-  const appCsp = helmet.contentSecurityPolicy({
-    useDefaults: false,
-    directives: baseDirectives({ allowWebSockets: true })
-  });
-
   return (req, res, next) => {
     const group = getRouteGroup(req.path);
     if (group === "api") {
       next();
       return;
     }
-    appCsp(req, res, next);
+    const directives = baseDirectives({ allowWebSockets: true });
+    helmet.contentSecurityPolicy({ useDefaults: false, directives })(req, res, next);
   };
 }

@@ -171,6 +171,16 @@ model InternalOfferwallOffer {
   @@map("internal_offerwall_offers")
 }
 
+/// Hostnames allowed to load in iframes / CSP frame-src (admin + auto-registered from offer URLs).
+model InternalOfferwallFrameHost {
+  id        Int      @id @default(autoincrement())
+  hostname  String   @unique @map("hostname") @db.VarChar(253)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("internal_offerwall_frame_hosts")
+}
+
 /// Admin-managed RTMP stream (capture URL + YouTube ingest). Secrets stored encrypted at rest.
 model StreamDestination {
   id                   Int       @id @default(autoincrement())

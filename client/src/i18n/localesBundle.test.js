@@ -107,6 +107,12 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(en.admin_internal_offerwall.validation_iframe_required).toBeTruthy();
     expect(pt.admin_internal_offerwall.validation_iframe_required).toBeTruthy();
     expect(es.admin_internal_offerwall.validation_iframe_required).toBeTruthy();
+    expect(en.admin_internal_offerwall.error_iframe_not_allowed).toContain("{{host}}");
+    expect(pt.admin_internal_offerwall.error_iframe_not_allowed).toContain("{{host}}");
+    expect(es.admin_internal_offerwall.error_iframe_not_allowed).toContain("{{host}}");
+    expect(en.admin_internal_offerwall.error_iframe_host_invalid).toBeTruthy();
+    expect(pt.admin_internal_offerwall.error_iframe_host_invalid).toBeTruthy();
+    expect(es.admin_internal_offerwall.error_iframe_host_invalid).toBeTruthy();
     expect(en.adminSidebar.nav.internal_offerwall).toBeTruthy();
     expect(pt.adminSidebar.nav.internal_offerwall).toBeTruthy();
     expect(es.adminSidebar.nav.internal_offerwall).toBeTruthy();
