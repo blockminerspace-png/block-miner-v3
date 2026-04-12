@@ -908,6 +908,7 @@
     "ptc_new_window_hint": "A página do parceiro abre em uma nova aba. Conclua os passos lá, volte aqui e envie após o cronômetro.",
     "open_partner_new_window": "Abrir página do parceiro (nova aba)",
     "popup_blocked": "A nova aba foi bloqueada. Permita pop-ups para este site ou toque no botão abaixo para abrir o parceiro.",
+    "partner_not_opened": "Abra a página do parceiro com o botão primeiro, aguarde aqui o cronômetro e só então envie.",
     "submit_ok": "Recompensa concedida.",
     "submit_pending": "Enviado para revisão.",
     "daily_limit": "Você atingiu o limite diário desta oferta.",

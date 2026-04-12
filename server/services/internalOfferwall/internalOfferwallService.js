@@ -26,6 +26,8 @@ import {
   refreshIframeHostAllowlistCache,
   upsertActiveFrameHost
 } from "./iframeHostAllowlistCache.js";
+import { assertMinViewForSubmit } from "./internalOfferwallMinView.js";
+import { notifyInternalOfferwallCompletion } from "./internalOfferwallCompletionWebhook.js";
 
 /**
  * @param {unknown} v
@@ -295,6 +297,7 @@ export async function userListOffers(userId) {
     offerId: open.offerId,
     status: open.status,
     startedAt: open.startedAt.toISOString(),
+    partnerOpenedAt: open.partnerOpenedAt ? open.partnerOpenedAt.toISOString() : null,
     offer: publicOfferShape(open.offer)
   }));
   return {
@@ -347,7 +350,8 @@ export async function userStartOffer(userId, offerId) {
         id: existing.id,
         offerId: existing.offerId,
         status: existing.status,
-        startedAt: existing.startedAt.toISOString()
+        startedAt: existing.startedAt.toISOString(),
+        partnerOpenedAt: existing.partnerOpenedAt ? existing.partnerOpenedAt.toISOString() : null
       }
     };
   }
@@ -367,8 +371,47 @@ export async function userStartOffer(userId, offerId) {
       id: attempt.id,
       offerId: attempt.offerId,
       status: attempt.status,
-      startedAt: attempt.startedAt.toISOString()
+      startedAt: attempt.startedAt.toISOString(),
+      partnerOpenedAt: attempt.partnerOpenedAt ? attempt.partnerOpenedAt.toISOString() : null
     }
+  };
+}
+
+/**
+ * Records that the user opened the partner page (PTC only). Each call resets the min-view clock.
+ *
+ * @param {number} userId
+ * @param {number} attemptId
+ */
+export async function userMarkPartnerOpened(userId, attemptId) {
+  if (!isInternalOfferwallEnabled()) {
+    return { ok: false, status: 403, code: "FEATURE_DISABLED", message: "This feature is disabled." };
+  }
+  const attempt = await prisma.internalOfferwallAttempt.findFirst({
+    where: { id: attemptId, userId },
+    include: { offer: true }
+  });
+  if (!attempt || !attempt.offer?.isActive) {
+    return { ok: false, status: 404, code: "ATTEMPT_NOT_FOUND", message: "Attempt not found." };
+  }
+  if (attempt.status !== ATTEMPT_STATUS_STARTED) {
+    return { ok: false, status: 400, code: "INVALID_STATE", message: "This attempt cannot be updated now." };
+  }
+  if (String(attempt.offer.kind).toUpperCase() !== OFFER_KIND_PTC_IFRAME) {
+    return { ok: false, status: 400, code: "NOT_PTC_OFFER", message: "Partner open tracking applies only to paid-view offers." };
+  }
+  if (!String(attempt.offer.iframeUrl || "").trim()) {
+    return { ok: false, status: 400, code: "NO_PARTNER_URL", message: "This offer has no partner URL configured." };
+  }
+
+  const now = new Date();
+  await prisma.internalOfferwallAttempt.update({
+    where: { id: attemptId },
+    data: { partnerOpenedAt: now }
+  });
+  return {
+    ok: true,
+    partnerOpenedAt: now.toISOString()
   };
 }
 
@@ -392,8 +435,22 @@ export async function userSubmitAttempt(userId, attemptId) {
   }
 
   const now = new Date();
-  const elapsedSec = (now.getTime() - attempt.startedAt.getTime()) / 1000;
-  if (elapsedSec < attempt.offer.minViewSeconds) {
+  const minView = assertMinViewForSubmit({
+    offerKind: attempt.offer.kind,
+    startedAt: attempt.startedAt,
+    partnerOpenedAt: attempt.partnerOpenedAt,
+    now,
+    minViewSeconds: attempt.offer.minViewSeconds
+  });
+  if (!minView.ok) {
+    if (minView.code === "PARTNER_NOT_OPENED") {
+      return {
+        ok: false,
+        status: 400,
+        code: "PARTNER_NOT_OPENED",
+        message: "Open the partner page using the button, wait on this tab, then submit."
+      };
+    }
     return {
       ok: false,
       status: 400,
@@ -468,6 +525,15 @@ export async function userSubmitAttempt(userId, attemptId) {
     getMiningEngine()?.reloadMinerProfile(userId).catch(() => {});
   }
 
+  notifyInternalOfferwallCompletion({
+    event: "INTERNAL_OFFERWALL_SELF_CLAIM_COMPLETED",
+    attemptId: attempt.id,
+    userId,
+    offerId: attempt.offerId,
+    offerKind: attempt.offer.kind,
+    completedAtIso: now.toISOString()
+  });
+
   return {
     ok: true,
     status: "COMPLETED",
@@ -528,6 +594,15 @@ export async function adminApproveAttempt(attemptId) {
     await syncUserBaseHashRate(attempt.userId);
     getMiningEngine()?.reloadMinerProfile(attempt.userId).catch(() => {});
   }
+
+  notifyInternalOfferwallCompletion({
+    event: "INTERNAL_OFFERWALL_ADMIN_APPROVED",
+    attemptId: attempt.id,
+    userId: attempt.userId,
+    offerId: attempt.offerId,
+    offerKind: attempt.offer.kind,
+    completedAtIso: now.toISOString()
+  });
 
   return { ok: true };
 }

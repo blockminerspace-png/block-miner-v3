@@ -104,6 +104,9 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(en.internalOfferwallPage.open_partner_new_window).toBeTruthy();
     expect(pt.internalOfferwallPage.ptc_new_window_hint).toBeTruthy();
     expect(es.internalOfferwallPage.popup_blocked).toBeTruthy();
+    expect(en.internalOfferwallPage.partner_not_opened).toBeTruthy();
+    expect(pt.internalOfferwallPage.partner_not_opened).toBeTruthy();
+    expect(es.internalOfferwallPage.partner_not_opened).toBeTruthy();
     expect(en.internalOfferwallPage.countdown_title).toBeTruthy();
     expect(pt.internalOfferwallPage.countdown_ready).toBeTruthy();
     expect(es.internalOfferwallPage.countdown_unit).toBeTruthy();

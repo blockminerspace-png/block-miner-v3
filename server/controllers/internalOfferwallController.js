@@ -1,5 +1,6 @@
 import {
   userListOffers,
+  userMarkPartnerOpened,
   userStartOffer,
   userSubmitAttempt
 } from "../services/internalOfferwall/internalOfferwallService.js";
@@ -40,6 +41,27 @@ export async function postStart(req, res) {
   } catch (e) {
     console.error("internalOfferwall postStart", e);
     res.status(500).json({ ok: false, message: "Failed to start offer." });
+  }
+}
+
+export async function postPartnerOpened(req, res) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ ok: false, message: "Unauthorized." });
+    }
+    const attemptId = parseInt(String(req.params.attemptId || ""), 10);
+    if (!Number.isInteger(attemptId) || attemptId < 1) {
+      return res.status(400).json({ ok: false, message: "Invalid attempt id." });
+    }
+    const out = await userMarkPartnerOpened(userId, attemptId);
+    if (!out.ok) {
+      return res.status(out.status).json({ ok: false, code: out.code, message: out.message });
+    }
+    res.json({ ok: true, partnerOpenedAt: out.partnerOpenedAt });
+  } catch (e) {
+    console.error("internalOfferwall postPartnerOpened", e);
+    res.status(500).json({ ok: false, message: "Failed to record partner open." });
   }
 }
 

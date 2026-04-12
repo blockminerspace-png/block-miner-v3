@@ -213,6 +213,7 @@ model InternalOfferwallAttempt {
   periodKey        String    @map("period_key")
   status           String    @map("status")
   startedAt        DateTime  @map("started_at")
+  partnerOpenedAt  DateTime? @map("partner_opened_at")
   submittedAt      DateTime? @map("submitted_at")
   completedAt      DateTime? @map("completed_at")
   rewardGrantedAt  DateTime? @map("reward_granted_at")

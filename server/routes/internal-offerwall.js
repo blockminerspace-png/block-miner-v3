@@ -17,6 +17,12 @@ internalOfferwallRouter.post(
   internalOfferwallController.postStart
 );
 internalOfferwallRouter.post(
+  "/attempts/:attemptId/partner-opened",
+  requireAuth,
+  writeLimiter,
+  internalOfferwallController.postPartnerOpened
+);
+internalOfferwallRouter.post(
   "/attempts/:attemptId/submit",
   requireAuth,
   writeLimiter,

@@ -545,6 +545,7 @@
     "ptc_new_window_hint": "La página del socio se abre en una pestaña nueva. Completa los pasos allí, vuelve aquí y envía cuando termine el temporizador.",
     "open_partner_new_window": "Abrir página del socio (nueva pestaña)",
     "popup_blocked": "Se bloqueó la nueva pestaña. Permite ventanas emergentes para este sitio o pulsa el botón de abajo para abrir al socio.",
+    "partner_not_opened": "Abre primero la página del socio con el botón, espera aquí el temporizador y luego envía.",
     "submit_ok": "Recompensa concedida.",
     "submit_pending": "Enviado para revisión.",
     "daily_limit": "Has alcanzado el límite diario de esta oferta.",

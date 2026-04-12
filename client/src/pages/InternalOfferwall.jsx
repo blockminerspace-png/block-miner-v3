@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -65,6 +65,7 @@ export default function InternalOfferwall() {
   const [openAttempts, setOpenAttempts] = useState([]);
   const [startBusyId, setStartBusyId] = useState(/** @type {number | null} */ (null));
   const [submitBusyId, setSubmitBusyId] = useState(/** @type {number | null} */ (null));
+  const [partnerBusyAttemptId, setPartnerBusyAttemptId] = useState(/** @type {number | null} */ (null));
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -145,6 +146,34 @@ export default function InternalOfferwall() {
     return m;
   }, [openAttempts]);
 
+  const onPartnerPageOpen = async (
+    /** @type {{ iframeUrl?: string | null }} */ offer,
+    /** @type {{ id: number }} */ attempt
+  ) => {
+    const targetUrl = String(offer.iframeUrl || '').trim();
+    if (!targetUrl) return;
+    const opened = openPartnerInNewTab(targetUrl);
+    if (!opened) {
+      toast.info(t('internalOfferwallPage.popup_blocked'));
+      return;
+    }
+    setPartnerBusyAttemptId(attempt.id);
+    try {
+      const res = await api.post(`/internal-offerwall/attempts/${attempt.id}/partner-opened`);
+      const d = res.data;
+      if (d?.ok) {
+        await loadOffers();
+      } else {
+        toast.error(d?.message || t('internalOfferwallPage.load_error'));
+      }
+    } catch (e) {
+      const d = e?.response?.data;
+      toast.error(d?.message || t('internalOfferwallPage.load_error'));
+    } finally {
+      setPartnerBusyAttemptId(null);
+    }
+  };
+
   const onStart = async (/** @type {{ id: number, kind?: string, iframeUrl?: string | null }} */ offer) => {
     const offerId = offer.id;
     setStartBusyId(offerId);
@@ -152,14 +181,6 @@ export default function InternalOfferwall() {
       const res = await api.post(`/internal-offerwall/offers/${offerId}/start`);
       const d = res.data;
       if (d?.ok) {
-        const isPtc = String(offer.kind || '').toUpperCase() === KIND_PTC;
-        const targetUrl = String(offer.iframeUrl || '').trim();
-        if (isPtc && targetUrl) {
-          const opened = openPartnerInNewTab(targetUrl);
-          if (!opened) {
-            toast.info(t('internalOfferwallPage.popup_blocked'));
-          }
-        }
         await loadOffers();
       } else if (d?.code === 'DAILY_LIMIT' || res.status === 429) {
         toast.error(t('internalOfferwallPage.daily_limit'));
@@ -189,6 +210,8 @@ export default function InternalOfferwall() {
         await loadOffers();
       } else if (d?.code === 'MIN_VIEW_NOT_MET') {
         toast.error(d.message || t('internalOfferwallPage.load_error'));
+      } else if (d?.code === 'PARTNER_NOT_OPENED') {
+        toast.error(t('internalOfferwallPage.partner_not_opened'));
       } else {
         toast.error(d?.message || t('internalOfferwallPage.load_error'));
       }
@@ -196,6 +219,8 @@ export default function InternalOfferwall() {
       const d = e?.response?.data;
       if (d?.code === 'MIN_VIEW_NOT_MET') {
         toast.error(d?.message || t('internalOfferwallPage.load_error'));
+      } else if (d?.code === 'PARTNER_NOT_OPENED') {
+        toast.error(t('internalOfferwallPage.partner_not_opened'));
       } else {
         toast.error(d?.message || t('internalOfferwallPage.load_error'));
       }
@@ -255,8 +280,10 @@ export default function InternalOfferwall() {
                 rewardLabel={rewardLine(t, offer)}
                 startBusy={startBusyId === offer.id}
                 submitBusy={submitBusyId === attempt?.id}
+                partnerBusy={partnerBusyAttemptId === attempt?.id}
                 onStart={() => onStart(offer)}
                 onSubmit={() => attempt && onSubmit(attempt.id)}
+                onPartnerOpen={attempt ? () => onPartnerPageOpen(offer, attempt) : undefined}
               />
             );
           })}
@@ -274,28 +301,19 @@ function OfferCard({
   rewardLabel,
   startBusy,
   submitBusy,
+  partnerBusy,
   onStart,
-  onSubmit
+  onSubmit,
+  onPartnerOpen
 }) {
   const isPtc = String(offer.kind).toUpperCase() === KIND_PTC;
   const minSec = Number(offer.minViewSeconds) || 0;
 
-  // Min-view timer: baseline = max(server startedAt, first paint for this attempt) so a
-  // stale STARTED row does not show "time up" immediately after reload.
-  /** @type {import('react').MutableRefObject<{ attemptId: number; iso: string } | null>} */
-  const minViewClockRef = useRef(null);
-  if (attempt?.status === STATUS_STARTED && attempt.startedAt && Number.isInteger(attempt.id)) {
-    if (!minViewClockRef.current || minViewClockRef.current.attemptId !== attempt.id) {
-      const serverMs = new Date(attempt.startedAt).getTime();
-      const baselineMs = Math.max(serverMs, Date.now());
-      minViewClockRef.current = { attemptId: attempt.id, iso: new Date(baselineMs).toISOString() };
-    }
-  } else {
-    minViewClockRef.current = null;
-  }
-
-  const timerActive = attempt?.status === STATUS_STARTED && Boolean(minViewClockRef.current?.iso);
-  const elapsed = useElapsedSeconds(minViewClockRef.current?.iso || attempt?.startedAt || '', timerActive);
+  const clockIso = isPtc
+    ? String(attempt?.partnerOpenedAt || '')
+    : String(attempt?.startedAt || '');
+  const timerActive = attempt?.status === STATUS_STARTED && Boolean(clockIso);
+  const elapsed = useElapsedSeconds(clockIso, timerActive);
   const canSubmit = attempt?.status === STATUS_STARTED && elapsed >= minSec;
   const modeSelf = String(offer.completionMode || '') !== MODE_ADMIN;
   const remaining = Math.max(0, Math.ceil(minSec - elapsed));
@@ -355,15 +373,15 @@ function OfferCard({
               <p className="text-sm text-slate-400">{t('internalOfferwallPage.ptc_new_window_hint')}</p>
               <button
                 type="button"
-                onClick={() => {
-                  const opened = openPartnerInNewTab(String(offer.iframeUrl));
-                  if (!opened) {
-                    toast.info(t('internalOfferwallPage.popup_blocked'));
-                  }
-                }}
-                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-sm"
+                disabled={partnerBusy || !onPartnerOpen}
+                onClick={() => onPartnerOpen?.()}
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-sm disabled:opacity-50"
               >
-                <ExternalLink className="w-4 h-4 shrink-0" aria-hidden />
+                {partnerBusy ? (
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden />
+                ) : (
+                  <ExternalLink className="w-4 h-4 shrink-0" aria-hidden />
+                )}
                 {t('internalOfferwallPage.open_partner_new_window')}
               </button>
             </div>

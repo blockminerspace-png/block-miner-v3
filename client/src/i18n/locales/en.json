@@ -981,6 +981,7 @@
     "ptc_new_window_hint": "The partner page opens in a new tab. Complete the steps there, then return here and submit after the timer.",
     "open_partner_new_window": "Open partner page (new tab)",
     "popup_blocked": "The new tab was blocked. Allow pop-ups for this site or tap the button below to open the partner page.",
+    "partner_not_opened": "Open the partner page with the button first, wait here for the timer, then submit.",
     "submit_ok": "Reward granted.",
     "submit_pending": "Submitted for review.",
     "daily_limit": "You reached today's limit for this offer.",
