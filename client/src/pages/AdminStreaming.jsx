@@ -8,7 +8,7 @@ const walletOrigin = (import.meta.env.VITE_PUBLIC_WALLET_APP_URL || 'https://blo
   /\/$/,
   ''
 );
-const DEFAULT_CAPTURE = `${walletOrigin}/dashboardcrypto/`;
+const DEFAULT_CAPTURE = `${walletOrigin}/crypto-broadcast/`;
 
 /**
  * @param {(k: string) => string} t

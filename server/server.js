@@ -331,31 +331,34 @@ app.get("/api/transparency", transparencyController.getPublicEntries);
 app.use('/uploads', express.static('/app/uploads'));
 
 const publicPath = path.join(__dirname, "..", "client", "dist");
-const dashboardCryptoDist = path.join(publicPath, "dashboardcrypto");
-const dashboardCryptoSrc = path.join(__dirname, "..", "client", "public", "dashboardcrypto");
-const dashboardCryptoRoot = existsSync(path.join(dashboardCryptoDist, "index.html"))
-  ? dashboardCryptoDist
-  : dashboardCryptoSrc;
-const dashboardCryptoIndexPath = path.join(dashboardCryptoRoot, "index.html");
+// Static crypto broadcast board (TradingView, etc.) — NOT under /dashboardcrypto so the SPA route
+// `/dashboardcrypto` works like `/liveserver` (no competing Express handlers → no redirect loops).
+const cryptoBroadcastDist = path.join(publicPath, "crypto-broadcast");
+const cryptoBroadcastSrc = path.join(__dirname, "..", "client", "public", "crypto-broadcast");
+const cryptoBroadcastRoot = existsSync(path.join(cryptoBroadcastDist, "index.html"))
+  ? cryptoBroadcastDist
+  : cryptoBroadcastSrc;
+const cryptoBroadcastIndexPath = path.join(cryptoBroadcastRoot, "index.html");
 
-// Serve index without a trailing-slash redirect — some reverse proxies normalize paths and
-// a 302 to `/dashboardcrypto/` can loop (ERR_TOO_MANY_REDIRECTS) when the slash is stripped again.
-app.get("/dashboardcrypto", (_req, res, next) => {
-  if (!existsSync(dashboardCryptoIndexPath)) {
+function sendCryptoBroadcastIndex(res, next) {
+  if (!existsSync(cryptoBroadcastIndexPath)) {
     next();
     return;
   }
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
   res.type("html");
-  res.sendFile(dashboardCryptoIndexPath, (err) => {
+  res.sendFile(cryptoBroadcastIndexPath, (err) => {
     if (err) next(err);
   });
-});
+}
+
+app.get("/crypto-broadcast", (_req, res, next) => sendCryptoBroadcastIndex(res, next));
+app.get("/crypto-broadcast/", (_req, res, next) => sendCryptoBroadcastIndex(res, next));
 
 app.use(
-  "/dashboardcrypto",
-  express.static(dashboardCryptoRoot, {
-    index: "index.html",
+  "/crypto-broadcast",
+  express.static(cryptoBroadcastRoot, {
+    index: false,
     setHeaders(res, filePath) {
       if (/\.html$/i.test(filePath)) {
         res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");

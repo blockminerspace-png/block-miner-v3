@@ -1,8 +1,8 @@
 {
   "name": "BlockMiner Crypto Live Dashboard",
   "short_name": "BM Dashboard",
-  "start_url": "/dashboardcrypto/",
-  "scope": "/dashboardcrypto/",
+  "start_url": "/crypto-broadcast/",
+  "scope": "/crypto-broadcast/",
   "display": "fullscreen",
   "background_color": "#0b0e14",
   "theme_color": "#0b0e14",
