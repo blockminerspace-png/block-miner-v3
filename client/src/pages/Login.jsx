@@ -55,7 +55,7 @@ export default function Login() {
             }
 
             if (res.data.ok) {
-                await checkSession();
+                await checkSession({ silent: true });
                 navigate('/dashboard');
             }
         } catch (err) {

@@ -79,7 +79,7 @@ const ProtectedLayout = () => {
   const { isAuthenticated, isLoading, checkSession } = useAuthStore();
 
   useEffect(() => {
-    void checkSession();
+    void checkSession({ silent: true });
   }, [checkSession]);
 
   if (isLoading) {
@@ -115,13 +115,13 @@ const ProtectedLayout = () => {
 };
 
 function App() {
-  const { checkSession, isLoading } = useAuthStore();
+  const { checkSession, authHydrated } = useAuthStore();
 
   useEffect(() => {
-    checkSession();
+    void checkSession();
   }, [checkSession]);
 
-  if (isLoading) {
+  if (!authHydrated) {
     return (
       <div className="min-h-screen bg-background flex justify-center items-center">
         <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>

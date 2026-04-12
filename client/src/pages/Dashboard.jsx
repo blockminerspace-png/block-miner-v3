@@ -94,7 +94,7 @@ export default function Dashboard() {
             if (res.data.ok) {
                 toast.success(res.data.message || 'Indicador vinculado com sucesso!');
                 setRefInput('');
-                await checkSession();
+                await checkSession({ silent: true });
             }
         } catch (err) {
             toast.error(err?.response?.data?.message || 'Erro ao vincular indicador.');

@@ -64,20 +64,53 @@ api.interceptors.response.use(
     }
 );
 
+/** Deduplicates overlapping checkSession calls (e.g. App + ProtectedLayout on first paint). */
+let sessionCheckPromise = null;
+
 export const useAuthStore = create((set) => ({
     user: null,
     isAuthenticated: false,
     isLoading: true,
+    /** After first session resolution; App must not block the router on later checks. */
+    authHydrated: false,
     error: null,
 
-    checkSession: async () => {
-        try {
-            set({ isLoading: true, error: null });
-            const response = await api.get('/auth/session', { timeout: 20000 });
-            set({ user: response.data.user, isAuthenticated: true, isLoading: false });
-        } catch (error) {
-            set({ user: null, isAuthenticated: false, isLoading: false });
+    /**
+     * @param {{ silent?: boolean }} [opts] If silent, do not set global isLoading (avoids unmounting BrowserRouter).
+     */
+    checkSession: async (opts) => {
+        const silent = Boolean(opts && opts.silent);
+        if (typeof window !== 'undefined') {
+            const path = window.location.pathname || '';
+            if (path.startsWith('/admin')) {
+                set({ user: null, isAuthenticated: false, isLoading: false, error: null, authHydrated: true });
+                return;
+            }
         }
+        if (sessionCheckPromise) {
+            return sessionCheckPromise;
+        }
+        const run = async () => {
+            try {
+                if (!silent) {
+                    set({ isLoading: true, error: null });
+                }
+                const response = await api.get('/auth/session', { timeout: 20000 });
+                const u = response.data?.user ?? null;
+                set({
+                    user: u,
+                    isAuthenticated: Boolean(u),
+                    isLoading: false,
+                });
+            } catch {
+                set({ user: null, isAuthenticated: false, isLoading: false });
+            } finally {
+                sessionCheckPromise = null;
+                set({ authHydrated: true });
+            }
+        };
+        sessionCheckPromise = run();
+        return sessionCheckPromise;
     },
 
     login: async (identifier, password) => {
