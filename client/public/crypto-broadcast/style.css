@@ -33,28 +33,88 @@ body {
     align-items: center;
 }
 
-/* Subtle hint until the browser grants fullscreen (requires a user gesture on many engines). */
-.fullscreen-hint {
+/* Leave space under the fixed chromeless tip bar so the clock row is not covered. */
+body.body--chromeless-pad .dashboard-container {
+    padding-top: 108px;
+}
+
+/* Until fullscreen / PWA standalone: Chrome keeps tabs + URL bar — we need an explicit click (gesture). */
+.chromeless-bar {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     z-index: 10000;
-    padding: 10px 16px;
-    text-align: center;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.75);
-    background: rgba(0, 0, 0, 0.55);
+    padding: 12px 16px 14px;
+    background: rgba(5, 8, 18, 0.92);
     border-bottom: 1px solid var(--glass-border);
-    pointer-events: none;
-    transition: opacity 0.35s ease, transform 0.35s ease;
+    backdrop-filter: blur(8px);
+    transition: opacity 0.35s ease, transform 0.35s ease, max-height 0.35s ease;
 }
 
-.fullscreen-hint.hidden {
+.chromeless-bar.hidden {
     opacity: 0;
-    transform: translateY(-100%);
+    transform: translateY(-110%);
     pointer-events: none;
+    max-height: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.chromeless-bar__inner {
+    max-width: 960px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.chromeless-bar__text {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.92);
+    margin: 0 0 6px;
+    line-height: 1.35;
+}
+
+.chromeless-bar__text--muted {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 10px;
+}
+
+.chromeless-bar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+}
+
+.chromeless-bar__btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--accent-color);
+    background: linear-gradient(90deg, #ff7eb3, #ff758c);
+    color: #0b0e14;
+    cursor: pointer;
+}
+
+.chromeless-bar__btn:hover {
+    filter: brightness(1.08);
+}
+
+.chromeless-bar__btn--ghost {
+    background: transparent;
+    color: var(--accent-color);
+    border-color: rgba(255, 126, 179, 0.5);
+}
+
+.chromeless-bar__btn.hidden {
+    display: none;
 }
 
 .background-overlay {

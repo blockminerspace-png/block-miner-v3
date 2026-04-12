@@ -9,47 +9,147 @@ const CRYPTO_DATA = {
 let tvWidget = null;
 let currentActiveSymbol = "bitcoin";
 
-function hideFullscreenHint() {
-  const hint = document.getElementById("fullscreen-hint");
-  if (hint) hint.classList.add("hidden");
+/** User-facing copy (en + pt-BR + es) — static broadcast page, no React i18n. */
+const CHROMELESS_I18N = {
+  en: {
+    line1:
+      "In a normal Chrome tab the address bar and tabs always stay visible — websites cannot remove them.",
+    line2:
+      "Use the button below (or F11 on Windows/Linux). For a window with almost no Chrome UI, install this page as an app, or launch: chrome.exe --kiosk and this URL.",
+    btnFs: "Enter fullscreen",
+    btnInstall: "Install as app"
+  },
+  "pt-BR": {
+    line1:
+      "Num separador normal do Chrome a barra de endereço e os separadores ficam sempre visíveis — o site não consegue tirá-los sozinho.",
+    line2:
+      "Use o botão abaixo (ou F11 no Windows/Linux). Para quase sem interface, instale esta página como aplicação, ou arranque o Chrome com --kiosk e este URL.",
+    btnFs: "Entrar em tela cheia",
+    btnInstall: "Instalar como aplicação"
+  },
+  es: {
+    line1:
+      "En una pestaña normal de Chrome la barra de direcciones y las pestañas siguen visibles: la página no puede quitarlas sola.",
+    line2:
+      "Usa el botón (o F11 en Windows/Linux). Para casi sin interfaz, instala esta página como app, o inicia Chrome con --kiosk y esta URL.",
+    btnFs: "Pantalla completa",
+    btnInstall: "Instalar como app"
+  }
+};
+
+function pickChromelessLocale() {
+  const lang = String(navigator.language || "en").toLowerCase();
+  if (lang.startsWith("pt")) return CHROMELESS_I18N["pt-BR"];
+  if (lang.startsWith("es")) return CHROMELESS_I18N.es;
+  return CHROMELESS_I18N.en;
+}
+
+function isStandaloneOrFullscreenDisplayMode() {
+  try {
+    if (window.matchMedia("(display-mode: standalone)").matches) return true;
+    if (window.matchMedia("(display-mode: fullscreen)").matches) return true;
+    if (window.matchMedia("(display-mode: minimal-ui)").matches) return true;
+  } catch {
+    /* ignore */
+  }
+  return Boolean(navigator.standalone);
+}
+
+function hideChromelessBar() {
+  const bar = document.getElementById("chromeless-bar");
+  if (bar) bar.classList.add("hidden");
+  document.body.classList.remove("body--chromeless-pad");
+}
+
+async function requestDocumentFullscreen() {
+  const root = document.documentElement;
+  if (document.fullscreenElement) {
+    hideChromelessBar();
+    return true;
+  }
+  try {
+    if (root.requestFullscreen) {
+      try {
+        await root.requestFullscreen({ navigationUI: "hide" });
+      } catch {
+        await root.requestFullscreen();
+      }
+    } else if (root.webkitRequestFullscreen) {
+      root.webkitRequestFullscreen();
+    } else if (root.msRequestFullscreen) {
+      root.msRequestFullscreen();
+    } else {
+      return false;
+    }
+  } catch {
+    return false;
+  }
+  return Boolean(document.fullscreenElement);
 }
 
 /**
- * Request true fullscreen where the browser allows it (often after a user gesture).
- * PWA manifest uses display=fullscreen; this complements manual capture and OBS Browser Source.
+ * Normal Chrome tabs cannot hide the omnibox without user gesture, fullscreen API, PWA, or --kiosk.
  */
-function initBroadcastFullscreen() {
-  const root = document.documentElement;
-
-  async function requestFs() {
-    try {
-      if (document.fullscreenElement) {
-        hideFullscreenHint();
-        return;
-      }
-      if (root.requestFullscreen) {
-        await root.requestFullscreen();
-      } else if (root.webkitRequestFullscreen) {
-        root.webkitRequestFullscreen();
-      } else if (root.msRequestFullscreen) {
-        root.msRequestFullscreen();
-      }
-    } catch {
-      /* ignored — policy may require gesture */
-    }
-    if (document.fullscreenElement) hideFullscreenHint();
+function initChromelessUi() {
+  if (isStandaloneOrFullscreenDisplayMode()) {
+    hideChromelessBar();
+    return;
   }
 
+  document.body.classList.add("body--chromeless-pad");
+
+  const t = pickChromelessLocale();
+  const line1 = document.getElementById("chromeless-line1");
+  const line2 = document.getElementById("chromeless-line2");
+  const btnFs = document.getElementById("btn-enter-fullscreen");
+  const btnIn = document.getElementById("btn-install-pwa");
+  if (line1) line1.textContent = t.line1;
+  if (line2) line2.textContent = t.line2;
+  if (btnFs) btnFs.textContent = t.btnFs;
+  if (btnIn) btnIn.textContent = t.btnInstall;
+
   document.addEventListener("fullscreenchange", () => {
-    if (document.fullscreenElement) hideFullscreenHint();
+    if (document.fullscreenElement) {
+      hideChromelessBar();
+      return;
+    }
+    if (!isStandaloneOrFullscreenDisplayMode()) {
+      const bar = document.getElementById("chromeless-bar");
+      if (bar) bar.classList.remove("hidden");
+      document.body.classList.add("body--chromeless-pad");
+    }
+  });
+
+  btnFs?.addEventListener("click", async () => {
+    const ok = await requestDocumentFullscreen();
+    if (ok) hideChromelessBar();
+  });
+
+  let deferredPrompt = null;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (btnIn) {
+      btnIn.hidden = false;
+      btnIn.classList.remove("hidden");
+    }
+  });
+
+  btnIn?.addEventListener("click", async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    try {
+      await deferredPrompt.userChoice;
+    } catch {
+      /* ignore */
+    }
+    deferredPrompt = null;
+    btnIn.classList.add("hidden");
+    btnIn.hidden = true;
   });
 
   window.addEventListener("load", () => {
-    void requestFs();
-  });
-
-  ["click", "keydown", "pointerdown"].forEach((evt) => {
-    document.addEventListener(evt, () => void requestFs(), { capture: true });
+    void requestDocumentFullscreen();
   });
 }
 
@@ -198,7 +298,7 @@ function switchChart(id) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  initBroadcastFullscreen();
+  initChromelessUi();
 
   setInterval(updateClock, 1000);
   updateClock();

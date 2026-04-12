@@ -11,6 +11,7 @@
     <title>Crypto Live Dashboard</title>
     <base href="/crypto-broadcast/">
     <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,8 +21,15 @@
 </head>
 
 <body>
-    <div id="fullscreen-hint" class="fullscreen-hint" aria-live="polite">
-        Click or press any key for fullscreen — optimized for OBS / server capture
+    <div id="chromeless-bar" class="chromeless-bar" role="region" aria-label="Fullscreen">
+        <div class="chromeless-bar__inner">
+            <p id="chromeless-line1" class="chromeless-bar__text"></p>
+            <p id="chromeless-line2" class="chromeless-bar__text chromeless-bar__text--muted"></p>
+            <div class="chromeless-bar__actions">
+                <button type="button" id="btn-enter-fullscreen" class="chromeless-bar__btn"></button>
+                <button type="button" id="btn-install-pwa" class="chromeless-bar__btn chromeless-bar__btn--ghost hidden" hidden></button>
+            </div>
+        </div>
     </div>
 
     <div class="background-overlay"></div>
