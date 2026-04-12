@@ -1,19 +1,23 @@
-import express from 'express';
-import { requireAuth } from '../middleware/auth.js';
-import { getVault, moveToVault, retrieveFromVault } from '../controllers/vaultController.js';
+import express from "express";
+import { requireAuth } from "../middleware/auth.js";
+import { createRateLimiter } from "../middleware/rateLimit.js";
+import { validateBody } from "../middleware/validate.js";
+import { getVault, moveToVault, retrieveFromVault } from "../controllers/vaultController.js";
+import { moveToVaultBodySchema, retrieveFromVaultBodySchema } from "../utils/vaultSchemas.js";
 
 const router = express.Router();
 
-// All vault routes require authentication
 router.use(requireAuth);
 
-// Get vault contents
-router.get('/', getVault);
+const vaultWriteLimiter = createRateLimiter({ windowMs: 60_000, max: 40 });
 
-// Move machine to vault from inventory or rack
-router.post('/move-to-vault', moveToVault);
-
-// Retrieve machine from vault to inventory or rack
-router.post('/retrieve-from-vault', retrieveFromVault);
+router.get("/", getVault);
+router.post("/move-to-vault", vaultWriteLimiter, validateBody(moveToVaultBodySchema), moveToVault);
+router.post(
+  "/retrieve-from-vault",
+  vaultWriteLimiter,
+  validateBody(retrieveFromVaultBodySchema),
+  retrieveFromVault
+);
 
 export default router;

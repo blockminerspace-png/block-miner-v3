@@ -52,28 +52,11 @@ export async function getVault(req, res) {
 
 export async function moveToVault(req, res) {
   try {
-    const source = req.body?.source;
-    const rawItemId = req.body?.itemId;
-    const itemId = Number(rawItemId);
-
-    if (!source || rawItemId === undefined || rawItemId === null || rawItemId === "") {
-      return res.status(400).json({
-        ok: false,
-        code: "VAULT_BAD_REQUEST",
-        message: "Source and itemId are required.",
-      });
-    }
-    if (!Number.isInteger(itemId) || itemId < 1) {
-      return res.status(400).json({
-        ok: false,
-        code: "VAULT_BAD_ITEM",
-        message: "Invalid itemId.",
-      });
-    }
+    const { source, itemId } = req.body;
 
     const now = new Date();
 
-    if (source === 'inventory') {
+    if (source === "inventory") {
       // Move from inventory to vault
       const inventoryItem = await inventoryModel.getInventoryItem(req.user.id, itemId);
       if (!inventoryItem) {
@@ -101,7 +84,7 @@ export async function moveToVault(req, res) {
         });
       });
 
-    } else if (source === 'rack') {
+    } else if (source === "rack") {
       // Move from rack to vault
       const userMiner = await prisma.userMiner.findFirst({
         where: {
@@ -138,21 +121,14 @@ export async function moveToVault(req, res) {
 
       await syncMiningProfileBestEffort(req.user.id);
 
-    } else {
-      return res.status(400).json({
-        ok: false,
-        code: "VAULT_BAD_SOURCE",
-        message: "Invalid source. Must be 'inventory' or 'rack'.",
-      });
     }
 
-    // Create notification
     const engine = getMiningEngine();
     if (engine) {
       await createNotification({
         userId: req.user.id,
-        title: "Máquina Guardada no Vault",
-        message: "Sua máquina foi movida com segurança para o vault.",
+        title: "Miner stored",
+        message: "Your miner was moved to the warehouse (vault).",
         type: "info",
         io: engine.io
       });
@@ -196,10 +172,6 @@ export async function retrieveFromVault(req, res) {
   try {
     const { destination, vaultId } = req.body;
 
-    if (!destination || !vaultId) {
-      return res.status(400).json({ ok: false, message: "Destination and vaultId are required." });
-    }
-
     const vaultItem = await vaultModel.getVaultItem(req.user.id, vaultId);
     if (!vaultItem) {
       return res.status(404).json({ ok: false, message: "Item not found in vault." });
@@ -207,7 +179,7 @@ export async function retrieveFromVault(req, res) {
 
     const now = new Date();
 
-    if (destination === 'inventory') {
+    if (destination === "inventory") {
       await prisma.$transaction(async (tx) => {
         const minerId = await safeVaultMinerId(tx, vaultItem.minerId);
         await tx.userInventory.create({
@@ -229,9 +201,8 @@ export async function retrieveFromVault(req, res) {
         });
       });
 
-    } else if (destination === 'rack') {
-      // Move from vault to rack
-      const slotIndex = Number(req.body?.slotIndex);
+    } else if (destination === "rack") {
+      const slotIndex = Number(req.body.slotIndex);
       if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= 80) {
         return res.status(400).json({ ok: false, message: "Invalid slot position." });
       }
@@ -293,17 +264,14 @@ export async function retrieveFromVault(req, res) {
 
       await syncMiningProfileBestEffort(req.user.id);
 
-    } else {
-      return res.status(400).json({ ok: false, message: "Invalid destination. Must be 'inventory' or 'rack'." });
     }
 
-    // Create notification
     const engine = getMiningEngine();
     if (engine) {
       await createNotification({
         userId: req.user.id,
-        title: "Máquina Retirada do Vault",
-        message: "Sua máquina foi retirada do vault com sucesso.",
+        title: "Miner retrieved",
+        message: "Your miner was removed from the warehouse (vault).",
         type: "success",
         io: engine.io
       });

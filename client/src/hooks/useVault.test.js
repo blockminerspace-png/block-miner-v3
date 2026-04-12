@@ -17,11 +17,7 @@ describe('useVault', () => {
 
   describe('moveToVault', () => {
     it('should update machine status to VAULT and call API', async () => {
-      const mockMachine = {
-        id: 'machine-1',
-        location: 'INVENTORY',
-        status: 'IDLE',
-      };
+      const mockMachineId = 42;
 
       const mockResponse = { data: { ok: true } };
       api.post.mockResolvedValue(mockResponse);
@@ -29,17 +25,17 @@ describe('useVault', () => {
       const { result } = renderHook(() => useVault());
 
       await act(async () => {
-        await result.current.moveToVault(mockMachine.id, 'inventory');
+        await result.current.moveToVault(mockMachineId, "inventory");
       });
 
-      expect(api.post).toHaveBeenCalledWith('/vault/move-to-vault', {
-        itemId: mockMachine.id,
-        source: 'inventory',
+      expect(api.post).toHaveBeenCalledWith("/vault/move-to-vault", {
+        itemId: mockMachineId,
+        source: "inventory"
       });
     });
 
     it('should throw error if API call fails', async () => {
-      const mockMachineId = 'machine-1';
+      const mockMachineId = 99;
       const mockError = new Error('API Error');
 
       api.post.mockRejectedValue(mockError);
@@ -52,7 +48,7 @@ describe('useVault', () => {
 
   describe('retrieveFromVault', () => {
     it('should update machine status to INVENTORY and call API', async () => {
-      const mockMachineId = 'machine-1';
+      const mockMachineId = 99;
 
       const mockResponse = { data: { ok: true } };
       api.post.mockResolvedValue(mockResponse);
@@ -70,7 +66,7 @@ describe('useVault', () => {
     });
 
     it('should throw error if API call fails', async () => {
-      const mockMachineId = 'machine-1';
+      const mockMachineId = 99;
       const mockError = new Error('API Error');
 
       api.post.mockRejectedValue(mockError);

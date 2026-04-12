@@ -21,6 +21,7 @@ import {
   Sparkles,
   ListChecks,
   LayoutGrid,
+  Crosshair,
 } from 'lucide-react';
 
 /** Lucide name → component (user sidebar API returns `icon` string). */
@@ -47,6 +48,7 @@ export const SIDEBAR_ICON_MAP = {
   Sparkles,
   ListChecks,
   LayoutGrid,
+  Crosshair,
 };
 
 /**

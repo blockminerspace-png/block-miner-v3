@@ -104,6 +104,9 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(en.admin_internal_offerwall.nav).toBeTruthy();
     expect(pt.admin_internal_offerwall.nav).toBeTruthy();
     expect(es.admin_internal_offerwall.nav).toBeTruthy();
+    expect(en.admin_internal_offerwall.validation_iframe_required).toBeTruthy();
+    expect(pt.admin_internal_offerwall.validation_iframe_required).toBeTruthy();
+    expect(es.admin_internal_offerwall.validation_iframe_required).toBeTruthy();
     expect(en.adminSidebar.nav.internal_offerwall).toBeTruthy();
     expect(pt.adminSidebar.nav.internal_offerwall).toBeTruthy();
     expect(es.adminSidebar.nav.internal_offerwall).toBeTruthy();
@@ -180,5 +183,26 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(en.admin_support.reply_compose_collapse).toBeTruthy();
     expect(pt.admin_support.reply_compose_collapse).toBeTruthy();
     expect(es.admin_support.reply_compose_collapse).toBeTruthy();
+  });
+
+  it("exposes inventory backpack → warehouse strings in en, pt-BR, and es", () => {
+    expect(en.inventory.backpack_send_warehouse).toBeTruthy();
+    expect(pt.inventory.backpack_send_warehouse).toBeTruthy();
+    expect(es.inventory.backpack_send_warehouse).toBeTruthy();
+    expect(en.inventory.backpack_qty_hint).toContain("{{count}}");
+    expect(pt.inventory.backpack_qty_hint).toContain("{{count}}");
+    expect(es.inventory.backpack_qty_hint).toContain("{{count}}");
+  });
+
+  it("exposes Hash Tap Sprint minigame strings and sidebar label in en, pt-BR, and es", () => {
+    expect(en.sidebar.minigame).toBeTruthy();
+    expect(pt.sidebar.minigame).toBeTruthy();
+    expect(es.sidebar.minigame).toBeTruthy();
+    expect(en.minigame.title).toBeTruthy();
+    expect(pt.minigame.title).toBeTruthy();
+    expect(es.minigame.title).toBeTruthy();
+    expect(en.minigame.errors.TOO_EARLY).toBeTruthy();
+    expect(pt.minigame.errors.TOO_EARLY).toBeTruthy();
+    expect(es.minigame.errors.TOO_EARLY).toBeTruthy();
   });
 });

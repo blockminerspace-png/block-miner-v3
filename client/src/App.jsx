@@ -24,6 +24,7 @@ import PublicRoom from './pages/PublicRoom';
 import Settings from './pages/Settings';
 import AutoMining from './pages/AutoMining';
 import Games from './pages/Games';
+import MinigamePage from './pages/MinigamePage';
 import ShortlinkStep from './pages/ShortlinkStep';
 import Roadmap from './pages/Roadmap';
 import Manual from './pages/Manual';
@@ -75,7 +76,11 @@ import Support from './pages/Support';
 import SidebarPathGate from './components/SidebarPathGate';
 
 const ProtectedLayout = () => {
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, isLoading, checkSession } = useAuthStore();
+
+  useEffect(() => {
+    void checkSession();
+  }, [checkSession]);
 
   if (isLoading) {
     return (
@@ -188,6 +193,7 @@ function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/support" element={<Support />} />
           <Route path="/games" element={<Games />} />
+          <Route path="/minigame" element={<MinigamePage />} />
           <Route path="/roadmap" element={<Roadmap />} />
           <Route path="/manual" element={<Manual />} />
           <Route path="/calculator" element={<CalculatorPage />} />
