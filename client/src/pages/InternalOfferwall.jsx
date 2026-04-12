@@ -2,12 +2,20 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { LayoutGrid, Loader2, PlayCircle, Send } from 'lucide-react';
+import { ExternalLink, LayoutGrid, Loader2, PlayCircle, Send } from 'lucide-react';
 import { api } from '../store/auth';
 
 const KIND_PTC = 'PTC_IFRAME';
 const MODE_ADMIN = 'ADMIN_APPROVAL';
 const STATUS_STARTED = 'STARTED';
+
+/** @param {string} url @returns {boolean} true if a tab was likely opened */
+function openPartnerInNewTab(url) {
+  const u = String(url || '').trim();
+  if (!u) return false;
+  const w = window.open(u, '_blank', 'noopener,noreferrer');
+  return Boolean(w);
+}
 function rewardLine(t, offer) {
   const k = String(offer.rewardKind || '').toUpperCase();
   if (k === 'BLK' && offer.rewardBlkAmount != null) {
@@ -57,8 +65,6 @@ export default function InternalOfferwall() {
   const [openAttempts, setOpenAttempts] = useState([]);
   const [startBusyId, setStartBusyId] = useState(/** @type {number | null} */ (null));
   const [submitBusyId, setSubmitBusyId] = useState(/** @type {number | null} */ (null));
-  const [iframeErrorOfferId, setIframeErrorOfferId] = useState(/** @type {number | null} */ (null));
-
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -139,12 +145,21 @@ export default function InternalOfferwall() {
     return m;
   }, [openAttempts]);
 
-  const onStart = async (offerId) => {
+  const onStart = async (/** @type {{ id: number, kind?: string, iframeUrl?: string | null }} */ offer) => {
+    const offerId = offer.id;
     setStartBusyId(offerId);
     try {
       const res = await api.post(`/internal-offerwall/offers/${offerId}/start`);
       const d = res.data;
       if (d?.ok) {
+        const isPtc = String(offer.kind || '').toUpperCase() === KIND_PTC;
+        const targetUrl = String(offer.iframeUrl || '').trim();
+        if (isPtc && targetUrl) {
+          const opened = openPartnerInNewTab(targetUrl);
+          if (!opened) {
+            toast.info(t('internalOfferwallPage.popup_blocked'));
+          }
+        }
         await loadOffers();
       } else if (d?.code === 'DAILY_LIMIT' || res.status === 429) {
         toast.error(t('internalOfferwallPage.daily_limit'));
@@ -240,11 +255,8 @@ export default function InternalOfferwall() {
                 rewardLabel={rewardLine(t, offer)}
                 startBusy={startBusyId === offer.id}
                 submitBusy={submitBusyId === attempt?.id}
-                iframeFailed={iframeErrorOfferId === offer.id}
-                onStart={() => onStart(offer.id)}
+                onStart={() => onStart(offer)}
                 onSubmit={() => attempt && onSubmit(attempt.id)}
-                onIframeError={() => setIframeErrorOfferId(offer.id)}
-                onIframeLoad={() => setIframeErrorOfferId((id) => (id === offer.id ? null : id))}
               />
             );
           })}
@@ -262,11 +274,8 @@ function OfferCard({
   rewardLabel,
   startBusy,
   submitBusy,
-  iframeFailed,
   onStart,
-  onSubmit,
-  onIframeError,
-  onIframeLoad
+  onSubmit
 }) {
   const isPtc = String(offer.kind).toUpperCase() === KIND_PTC;
   const minSec = Number(offer.minViewSeconds) || 0;
@@ -327,22 +336,21 @@ function OfferCard({
       {attempt?.status === 'STARTED' ? (
         <>
           {isPtc && offer.iframeUrl ? (
-            <div className="rounded-xl border border-white/10 bg-black/40 overflow-hidden aspect-video max-h-[420px]">
-              {iframeFailed ? (
-                <div className="flex items-center justify-center h-full min-h-[200px] text-sm text-slate-500 px-4 text-center">
-                  {t('internalOfferwallPage.iframe_error')}
-                </div>
-              ) : (
-                <iframe
-                  title={offer.title}
-                  src={offer.iframeUrl}
-                  className="w-full h-full min-h-[240px] border-0"
-                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                  referrerPolicy="no-referrer"
-                  onError={onIframeError}
-                  onLoad={onIframeLoad}
-                />
-              )}
+            <div className="rounded-xl border border-white/10 bg-black/40 p-4 space-y-3">
+              <p className="text-sm text-slate-400">{t('internalOfferwallPage.ptc_new_window_hint')}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  const opened = openPartnerInNewTab(String(offer.iframeUrl));
+                  if (!opened) {
+                    toast.info(t('internalOfferwallPage.popup_blocked'));
+                  }
+                }}
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-sm"
+              >
+                <ExternalLink className="w-4 h-4 shrink-0" aria-hidden />
+                {t('internalOfferwallPage.open_partner_new_window')}
+              </button>
             </div>
           ) : (
             <div className="space-y-2 text-sm text-slate-400">

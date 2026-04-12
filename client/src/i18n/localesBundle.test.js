@@ -101,6 +101,9 @@ describe("locale bundles (pt-BR / es parity)", () => {
     expect(en.internalOfferwallPage.empty).toBeTruthy();
     expect(pt.internalOfferwallPage.empty).toBeTruthy();
     expect(es.internalOfferwallPage.empty).toBeTruthy();
+    expect(en.internalOfferwallPage.open_partner_new_window).toBeTruthy();
+    expect(pt.internalOfferwallPage.ptc_new_window_hint).toBeTruthy();
+    expect(es.internalOfferwallPage.popup_blocked).toBeTruthy();
     expect(en.admin_internal_offerwall.nav).toBeTruthy();
     expect(pt.admin_internal_offerwall.nav).toBeTruthy();
     expect(es.admin_internal_offerwall.nav).toBeTruthy();
