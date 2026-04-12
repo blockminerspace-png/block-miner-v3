@@ -50,8 +50,13 @@ export async function startLiveRtmpPipeline(opts) {
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
+        "--disable-infobars",
+        "--disable-session-crashed-bubble",
+        "--disable-features=TranslateUI",
         `--window-size=${width},${height}`,
-        "--start-maximized"
+        "--window-position=0,0",
+        // True fullscreen capture without browser chrome (tabs / address bar).
+        "--kiosk"
       ]
     });
     const context = await browser.newContext({
@@ -60,6 +65,7 @@ export async function startLiveRtmpPipeline(opts) {
     });
     const page = await context.newPage();
     await page.goto(captureUrl, { waitUntil: "domcontentloaded", timeout: 120000 });
+    // Kiosk already fills the display; optional extra fullscreen for embedded players.
     await page
       .evaluate(async () => {
         try {

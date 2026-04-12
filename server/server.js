@@ -1,5 +1,6 @@
 import "dotenv/config";
 import path from "path";
+import { existsSync } from "fs";
 import fs from "fs/promises";
 import http from "http";
 import { fileURLToPath } from "url";
@@ -58,7 +59,11 @@ import * as bannerController from "./controllers/bannerController.js";
 import * as transparencyController from "./controllers/transparencyController.js";
 // Models & Utils
 import { startCronTasks } from "./cron/index.js";
-import { shutdownAllStreams } from "./services/streaming/streamRunner.js";
+import {
+  resumeDesiredStreamsAfterBoot,
+  shutdownAllStreams,
+  startStreamDesiredWatchdog
+} from "./services/streaming/streamRunner.js";
 import { startDepositVerifier } from "./services/depositVerifier.js";
 import { startContractDepositSync } from "./services/contractDepositSync.js";
 import { registerMinerSocketHandlers } from "./src/socket/registerMinerSocketHandlers.js";
@@ -326,6 +331,28 @@ app.get("/api/transparency", transparencyController.getPublicEntries);
 app.use('/uploads', express.static('/app/uploads'));
 
 const publicPath = path.join(__dirname, "..", "client", "dist");
+const dashboardCryptoDist = path.join(publicPath, "dashboardcrypto");
+const dashboardCryptoSrc = path.join(__dirname, "..", "client", "public", "dashboardcrypto");
+const dashboardCryptoRoot = existsSync(path.join(dashboardCryptoDist, "index.html"))
+  ? dashboardCryptoDist
+  : dashboardCryptoSrc;
+
+app.get("/dashboardcrypto", (_req, res) => {
+  res.redirect(302, "/dashboardcrypto/");
+});
+
+app.use(
+  "/dashboardcrypto",
+  express.static(dashboardCryptoRoot, {
+    index: "index.html",
+    setHeaders(res, filePath) {
+      if (/\.html$/i.test(filePath)) {
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+      }
+    }
+  })
+);
+
 // Hashed Vite assets can be cached forever; unhashed JS/CSS must revalidate so users never
 // stick on an old bundle after deploy (stale check-in UI, etc.).
 app.use(
@@ -473,6 +500,17 @@ async function bootstrap() {
       };
       process.once("SIGINT", shutdownStreams);
       process.once("SIGTERM", shutdownStreams);
+
+      if (process.env.NODE_ENV !== "test") {
+        setTimeout(() => {
+          void resumeDesiredStreamsAfterBoot().catch((err) =>
+            logger.error("resume streaming after boot failed", {
+              error: String(err?.message || err)
+            })
+          );
+        }, 8000);
+        startStreamDesiredWatchdog();
+      }
 
       // Start background tasks
       startCronTasks({

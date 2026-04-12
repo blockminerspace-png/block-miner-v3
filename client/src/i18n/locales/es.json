@@ -557,10 +557,24 @@
     "form_external_info_url": "URL informativa (solo tareas generales, host permitido)",
     "form_verification_note": "Nota de verificación para usuarios (opcional)"
   },
+  "dashboard_crypto_stream": {
+    "title": "BlockMiner — Panel crypto",
+    "subtitle": "Instantánea pública en vivo para captura de stream (sin inicio de sesión).",
+    "badge_live": "En vivo",
+    "online": "en línea",
+    "card_hashrate": "Red",
+    "card_blocks": "Último bloque",
+    "card_pol": "POL en saldos",
+    "card_users": "Jugadores",
+    "recent_blocks": "Bloques recientes",
+    "no_blocks": "Aún no hay bloques."
+  },
   "admin_streaming": {
     "title": "Streaming en vivo (RTMP)",
     "subtitle": "Captura una página web y envía RTMP a YouTube Live, Twitch u otro ingest compatible. Crea destinos e inicia o detén cada transmisión.",
     "hint_linux": "Requiere Linux con ffmpeg, Xvfb y Playwright en el servidor. Las claves RTMP se cifran con STREAM_ENCRYPTION_KEY (64 hex) en el host de la API.",
+    "hint_kiosk": "El navegador de captura se ejecuta en modo quiosco (pantalla completa, sin pestañas ni barra de direcciones). Por defecto se usa /dashboardcrypto: panel público de estadísticas (sin login) para captura headless.",
+    "hint_auto_resume": "Si el proceso de la API se reinicia o ffmpeg se detiene con el destino aún activado para emitir, el worker reintenta automáticamente con esperas progresivas (luego se detiene con error hasta que pulses Iniciar).",
     "hint_encryption": "Añade STREAM_ENCRYPTION_KEY al entorno del servidor (p. ej. en deploy.secrets.local en el deploy Windows — ver docs/DEPLOYMENT.md). Ejemplo: openssl rand -hex 32",
     "error_encryption_key": "Al servidor le falta STREAM_ENCRYPTION_KEY (64 hex). Añádela al .env en la VM o a deploy.secrets.local y vuelve a desplegar.",
     "load_error": "No se pudo cargar la configuración de streaming.",

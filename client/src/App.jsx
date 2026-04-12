@@ -68,6 +68,7 @@ import Transparency from './pages/Transparency';
 import TransparencyErrorBoundary from './components/TransparencyErrorBoundary';
 import Landing from './pages/Landing';
 import LiveServer from './pages/LiveServer';
+import DashboardCryptoStream from './pages/DashboardCryptoStream';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfUse from './pages/TermsOfUse';
 import Support from './pages/Support';
@@ -154,6 +155,7 @@ function App() {
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-of-use" element={<TermsOfUse />} />
         <Route path="/liveserver" element={<LiveServer />} />
+        <Route path="/dashboardcrypto" element={<DashboardCryptoStream />} />
 
         <Route element={<ProtectedLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />

@@ -4,7 +4,11 @@ import { toast } from 'sonner';
 import { Loader2, Plus, Radio, Square, Trash2, Video } from 'lucide-react';
 import { api } from '../store/auth';
 
-const DEFAULT_CAPTURE = 'https://tests.blockminer.space/liveserver';
+const walletOrigin = (import.meta.env.VITE_PUBLIC_WALLET_APP_URL || 'https://blockminer.space').replace(
+  /\/$/,
+  ''
+);
+const DEFAULT_CAPTURE = `${walletOrigin}/dashboardcrypto/`;
 
 /**
  * @param {(k: string) => string} t
@@ -189,6 +193,8 @@ export default function AdminStreaming() {
           <h1 className="text-2xl font-black tracking-tight text-white">{t('admin_streaming.title')}</h1>
           <p className="mt-1 max-w-3xl text-sm text-slate-400">{t('admin_streaming.subtitle')}</p>
           <p className="mt-2 max-w-3xl text-xs text-slate-500">{t('admin_streaming.hint_linux')}</p>
+          <p className="mt-1 max-w-3xl text-xs text-slate-500">{t('admin_streaming.hint_kiosk')}</p>
+          <p className="mt-1 max-w-3xl text-xs text-slate-500">{t('admin_streaming.hint_auto_resume')}</p>
           <p className="mt-1 max-w-3xl text-xs text-amber-200/80">{t('admin_streaming.hint_encryption')}</p>
         </div>
       </div>

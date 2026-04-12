@@ -993,10 +993,24 @@
     "form_external_info_url": "External info URL (general tasks only, allowlisted host)",
     "form_verification_note": "Verification note for users (optional)"
   },
+  "dashboard_crypto_stream": {
+    "title": "BlockMiner — Crypto dashboard",
+    "subtitle": "Public live snapshot for stream capture (no login).",
+    "badge_live": "Live",
+    "online": "online",
+    "card_hashrate": "Network",
+    "card_blocks": "Latest block",
+    "card_pol": "POL in balances",
+    "card_users": "Players",
+    "recent_blocks": "Recent blocks",
+    "no_blocks": "No blocks yet."
+  },
   "admin_streaming": {
     "title": "Live streaming (RTMP)",
     "subtitle": "Capture a web page and push RTMP to YouTube Live, Twitch, or any compatible ingest. Add destinations, then start or stop each stream.",
     "hint_linux": "Requires Linux with ffmpeg, Xvfb, and Playwright on the server. Stream keys are encrypted with STREAM_ENCRYPTION_KEY (64 hex chars) on the API host.",
+    "hint_kiosk": "The capture browser runs in kiosk mode (fullscreen, no tabs or address bar). Default source is /dashboardcrypto — a public stats board (no login) suitable for headless capture.",
+    "hint_auto_resume": "If the API process restarts or ffmpeg stops while a destination is still set to run, the worker retries automatically with backoff (then stops with an error until you press Start).",
     "hint_encryption": "Add STREAM_ENCRYPTION_KEY to the server environment (e.g. merge via deploy.secrets.local — see docs/DEPLOYMENT.md). Example: openssl rand -hex 32",
     "error_encryption_key": "The server is missing STREAM_ENCRYPTION_KEY (64 hex characters). Add it to .env on the VM or to deploy.secrets.local for Windows deploy, then redeploy.",
     "load_error": "Could not load streaming configuration.",
