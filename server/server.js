@@ -336,9 +336,20 @@ const dashboardCryptoSrc = path.join(__dirname, "..", "client", "public", "dashb
 const dashboardCryptoRoot = existsSync(path.join(dashboardCryptoDist, "index.html"))
   ? dashboardCryptoDist
   : dashboardCryptoSrc;
+const dashboardCryptoIndexPath = path.join(dashboardCryptoRoot, "index.html");
 
-app.get("/dashboardcrypto", (_req, res) => {
-  res.redirect(302, "/dashboardcrypto/");
+// Serve index without a trailing-slash redirect — some reverse proxies normalize paths and
+// a 302 to `/dashboardcrypto/` can loop (ERR_TOO_MANY_REDIRECTS) when the slash is stripped again.
+app.get("/dashboardcrypto", (_req, res, next) => {
+  if (!existsSync(dashboardCryptoIndexPath)) {
+    next();
+    return;
+  }
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.type("html");
+  res.sendFile(dashboardCryptoIndexPath, (err) => {
+    if (err) next(err);
+  });
 });
 
 app.use(
