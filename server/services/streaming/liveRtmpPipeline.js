@@ -1,4 +1,32 @@
 import { spawn } from "child_process";
+import loggerLib from "../../utils/logger.js";
+
+const logger = loggerLib.child("LiveRtmpPipeline");
+
+/**
+ * @param {import('playwright').Page} page
+ */
+async function tryCdpWindowFullscreen(page) {
+  const session = await page.context().newCDPSession(page);
+  const { targetInfo } = await session.send("Target.getTargetInfo");
+  const targetId = targetInfo.targetId;
+  const { windowId } = await session.send("Browser.getWindowForTarget", { targetId });
+  await session.send("Browser.setWindowBounds", {
+    windowId,
+    bounds: { windowState: "fullscreen" }
+  });
+}
+
+/**
+ * @param {import('playwright').Page} page
+ */
+async function tryOsFullscreenKeys(page) {
+  await page.bringToFront().catch(() => {});
+  for (let i = 0; i < 2; i++) {
+    await page.keyboard.press("F11").catch(() => {});
+    await new Promise((r) => setTimeout(r, 700));
+  }
+}
 
 /**
  * @param {object} opts
@@ -46,6 +74,7 @@ export async function startLiveRtmpPipeline(opts) {
     browser = await chromium.launch({
       headless: false,
       env: browserEnv,
+      ignoreDefaultArgs: ["--enable-automation"],
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -53,19 +82,20 @@ export async function startLiveRtmpPipeline(opts) {
         "--disable-infobars",
         "--disable-session-crashed-bubble",
         "--disable-features=TranslateUI",
+        "--disable-blink-features=AutomationControlled",
         `--window-size=${width},${height}`,
         "--window-position=0,0",
-        // True fullscreen capture without browser chrome (tabs / address bar).
+        "--start-fullscreen",
+        // Prefer kiosk; CDP + F11 below cover Playwright builds that still show browser chrome.
         "--kiosk"
       ]
     });
     const context = await browser.newContext({
-      viewport: { width, height },
+      viewport: null,
       ignoreHTTPSErrors: true
     });
     const page = await context.newPage();
     await page.goto(captureUrl, { waitUntil: "domcontentloaded", timeout: 120000 });
-    // Kiosk already fills the display; optional extra fullscreen for embedded players.
     await page
       .evaluate(async () => {
         try {
@@ -76,6 +106,17 @@ export async function startLiveRtmpPipeline(opts) {
         }
       })
       .catch(() => {});
+
+    try {
+      await tryCdpWindowFullscreen(page);
+    } catch (e) {
+      logger.warn("cdp window fullscreen failed", { error: String(e?.message || e) });
+    }
+    try {
+      await tryOsFullscreenKeys(page);
+    } catch (e) {
+      logger.warn("keyboard fullscreen failed", { error: String(e?.message || e) });
+    }
 
     const ffmpegInput = `${display}.0+0,0`;
     const buf = Math.max(1000, Math.floor(videoBitrateK * 2));
