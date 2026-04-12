@@ -15,7 +15,7 @@ import { enqueueAuditEvent, buildAuditEventFromHttpRequest } from "../src/audit/
 import { AuditEventType, AuditEventStatus } from "../src/audit/constants.js";
 import { getUserByRefCode, createReferral, listReferredUsers } from "../models/referralModel.js";
 import { getMinerBySlug } from "../models/minersModel.js";
-import { addInventoryItem } from "../models/inventoryModel.js";
+import { createInventoryWithOwnedMachineTx } from "../services/userOwnedMachineService.js";
 import { getAnonymizedRequestIp } from "../utils/clientIp.js";
 import { getMiningEngine } from "../src/miningEngineInstance.js";
 import { isSmtpConfigured, sendPasswordResetEmail } from "../utils/mailer.js";
@@ -258,16 +258,17 @@ authRouter.post("/register", authLimiter, validateBody(registerSchema), async (r
       const welcomeMiner = await ensureWelcomeMiner();
       
       // IMPORTANT: Add to INVENTORY, not directly to RACK
-      await tx.userInventory.create({
-        data: {
-          userId: user.id,
-          minerId: welcomeMiner.id,
-          minerName: welcomeMiner.name,
-          hashRate: welcomeMiner.baseHashRate,
-          slotSize: welcomeMiner.slotSize,
-          imageUrl: welcomeMiner.imageUrl,
-          acquiredAt: new Date()
-        }
+      const regNow = new Date();
+      await createInventoryWithOwnedMachineTx(tx, {
+        userId: user.id,
+        minerId: welcomeMiner.id,
+        minerName: welcomeMiner.name,
+        level: 1,
+        hashRate: welcomeMiner.baseHashRate,
+        slotSize: welcomeMiner.slotSize,
+        imageUrl: welcomeMiner.imageUrl,
+        acquiredAt: regNow,
+        updatedAt: regNow,
       });
 
       // Seed sala 1 + racks automáticos no registro

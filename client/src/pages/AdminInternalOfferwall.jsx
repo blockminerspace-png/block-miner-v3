@@ -12,6 +12,7 @@ import {
   X
 } from 'lucide-react';
 import { api } from '../store/auth';
+import { validateAdminInternalOfferwallForm } from '../utils/adminInternalOfferwallValidate.js';
 
 const KIND_PTC = 'PTC_IFRAME';
 const KIND_GEN = 'GENERAL_TASK';
@@ -21,7 +22,7 @@ function defaultForm() {
     kind: KIND_PTC,
     title: '',
     description: '',
-    iframeUrl: 'https://',
+    iframeUrl: '',
     minViewSeconds: '10',
     dailyLimitPerUser: '3',
     rewardKind: 'BLK',
@@ -34,7 +35,7 @@ function defaultForm() {
     isActive: true,
     requiredActionsText: '',
     targetCountryCodes: '',
-    externalInfoUrl: 'https://',
+    externalInfoUrl: '',
     verificationNote: ''
   };
 }
@@ -48,7 +49,7 @@ function rowToForm(row) {
     kind: String(row.kind || KIND_PTC),
     title: String(row.title || ''),
     description: row.description != null ? String(row.description) : '',
-    iframeUrl: String(row.iframeUrl || 'https://'),
+    iframeUrl: String(row.iframeUrl || ''),
     minViewSeconds: String(row.minViewSeconds ?? 10),
     dailyLimitPerUser: String(row.dailyLimitPerUser ?? 3),
     rewardKind: String(row.rewardKind || 'BLK'),
@@ -61,7 +62,7 @@ function rowToForm(row) {
     isActive: Boolean(row.isActive),
     requiredActionsText: actions,
     targetCountryCodes: countries,
-    externalInfoUrl: meta.externalInfoUrl != null ? String(meta.externalInfoUrl) : 'https://',
+    externalInfoUrl: meta.externalInfoUrl != null ? String(meta.externalInfoUrl) : '',
     verificationNote: meta.verificationNote != null ? String(meta.verificationNote) : ''
   };
 }
@@ -192,6 +193,11 @@ export default function AdminInternalOfferwall() {
   };
 
   const onSave = async () => {
+    const validation = validateAdminInternalOfferwallForm(form);
+    if (!validation.ok) {
+      toast.error(t(validation.i18nKey));
+      return;
+    }
     setSaving(true);
     try {
       const body = buildApiBody(form);

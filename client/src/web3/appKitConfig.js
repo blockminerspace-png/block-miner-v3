@@ -29,4 +29,8 @@ createAppKit({
     url: metaUrl,
     icons: [`${metaUrl}/favicon.ico`],
   },
+  // Fewer optional Reown analytics calls. Persistent 403s need a real VITE_WALLETCONNECT_PROJECT_ID and allowed domains in the Reown dashboard.
+  features: {
+    analytics: false,
+  },
 });

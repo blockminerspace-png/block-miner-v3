@@ -12,6 +12,7 @@ import {
   REWARD_POL,
   REWARD_SHOP_MINER
 } from "./miniPassConstants.js";
+import { createInventoryWithOwnedMachineTx } from "../userOwnedMachineService.js";
 
 async function getOrCreateMiniPassGameId(tx = prisma) {
   const g = await tx.game.upsert({
@@ -42,18 +43,16 @@ export async function fulfillMiniPassLevelReward(tx, { userId, reward }) {
     if (!minerId) throw new Error("MINER_REQUIRED");
     const miner = await tx.miner.findUnique({ where: { id: minerId } });
     if (!miner) throw new Error("MINER_NOT_FOUND");
-    await tx.userInventory.create({
-      data: {
-        userId,
-        minerId: miner.id,
-        minerName: miner.name,
-        level: 1,
-        hashRate: Number(miner.baseHashRate || 0),
-        slotSize: Number(miner.slotSize || 1),
-        imageUrl: miner.imageUrl || "/machines/reward1.png",
-        acquiredAt: now,
-        updatedAt: now
-      }
+    await createInventoryWithOwnedMachineTx(tx, {
+      userId,
+      minerId: miner.id,
+      minerName: miner.name,
+      level: 1,
+      hashRate: Number(miner.baseHashRate || 0),
+      slotSize: Number(miner.slotSize || 1),
+      imageUrl: miner.imageUrl || "/machines/reward1.png",
+      acquiredAt: now,
+      updatedAt: now,
     });
     return { kind: REWARD_SHOP_MINER, minerName: miner.name };
   }
@@ -63,18 +62,16 @@ export async function fulfillMiniPassLevelReward(tx, { userId, reward }) {
     if (!eventMinerId) throw new Error("EVENT_MINER_REQUIRED");
     const em = await tx.eventMiner.findUnique({ where: { id: eventMinerId } });
     if (!em) throw new Error("EVENT_MINER_NOT_FOUND");
-    await tx.userInventory.create({
-      data: {
-        userId,
-        minerId: null,
-        minerName: em.name,
-        level: 1,
-        hashRate: Number(em.hashRate || 0),
-        slotSize: Number(em.slotSize || 1),
-        imageUrl: em.imageUrl || "/machines/reward1.png",
-        acquiredAt: now,
-        updatedAt: now
-      }
+    await createInventoryWithOwnedMachineTx(tx, {
+      userId,
+      minerId: null,
+      minerName: em.name,
+      level: 1,
+      hashRate: Number(em.hashRate || 0),
+      slotSize: Number(em.slotSize || 1),
+      imageUrl: em.imageUrl || "/machines/reward1.png",
+      acquiredAt: now,
+      updatedAt: now,
     });
     return { kind: REWARD_EVENT_MINER, minerName: em.name };
   }

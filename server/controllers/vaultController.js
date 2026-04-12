@@ -6,6 +6,14 @@ import { createNotification } from "./notificationController.js";
 import prisma from "../src/db/prisma.js";
 import { releaseUserMinerFromRacksTx } from "../utils/rackMinerRelease.js";
 import loggerLib from "../utils/logger.js";
+import {
+  MachineLocation,
+  createInventoryWithOwnedMachineTx,
+  ensureOwnedMachineForInventoryTx,
+  ensureOwnedMachineForUserMinerTx,
+  ensureOwnedMachineForVaultTx,
+  syncOwnedMachineSnapshotTx,
+} from "../services/userOwnedMachineService.js";
 
 const logger = loggerLib.child("VaultController");
 
@@ -65,6 +73,7 @@ export async function moveToVault(req, res) {
 
       await prisma.$transaction(async (tx) => {
         const minerId = await safeVaultMinerId(tx, inventoryItem.minerId);
+        const omId = await ensureOwnedMachineForInventoryTx(tx, inventoryItem);
         await tx.userVault.create({
           data: {
             userId: req.user.id,
@@ -74,15 +83,24 @@ export async function moveToVault(req, res) {
             hashRate: inventoryItem.hashRate,
             slotSize: inventoryItem.slotSize,
             imageUrl: inventoryItem.imageUrl,
-            storedAt: now
-          }
+            storedAt: now,
+            ownedMachineId: omId,
+          },
         });
-
-        // Remove from inventory
+        await syncOwnedMachineSnapshotTx(tx, omId, MachineLocation.WAREHOUSE, {
+          minerId,
+          minerName: inventoryItem.minerName,
+          level: inventoryItem.level,
+          hashRate: inventoryItem.hashRate,
+          slotSize: inventoryItem.slotSize ?? 1,
+          imageUrl: inventoryItem.imageUrl,
+        });
         await tx.userInventory.delete({
           where: { id: itemId, userId: req.user.id },
         });
       });
+
+      await syncMiningProfileBestEffort(req.user.id);
 
     } else if (source === "rack") {
       // Move from rack to vault
@@ -99,21 +117,35 @@ export async function moveToVault(req, res) {
       }
 
       await prisma.$transaction(async (tx) => {
+        const omId = await ensureOwnedMachineForUserMinerTx(
+          tx,
+          userMiner,
+          userMiner.miner?.name || "Miner",
+        );
         await releaseUserMinerFromRacksTx(tx, req.user.id, userMiner.id);
         const minerId = await safeVaultMinerId(tx, userMiner.minerId);
+        const displayName = userMiner.miner?.name || "Miner";
         await tx.userVault.create({
           data: {
             userId: req.user.id,
             minerId,
-            minerName: userMiner.miner?.name || "Miner",
+            minerName: displayName,
             level: userMiner.level,
             hashRate: userMiner.hashRate,
             slotSize: userMiner.slotSize,
             imageUrl: userMiner.imageUrl || userMiner.miner?.imageUrl || null,
-            storedAt: now
-          }
+            storedAt: now,
+            ownedMachineId: omId,
+          },
         });
-
+        await syncOwnedMachineSnapshotTx(tx, omId, MachineLocation.WAREHOUSE, {
+          minerId,
+          minerName: displayName,
+          level: userMiner.level,
+          hashRate: userMiner.hashRate,
+          slotSize: userMiner.slotSize ?? 1,
+          imageUrl: userMiner.imageUrl || userMiner.miner?.imageUrl || null,
+        });
         await tx.userMiner.delete({
           where: { id: userMiner.id },
         });
@@ -182,6 +214,7 @@ export async function retrieveFromVault(req, res) {
     if (destination === "inventory") {
       await prisma.$transaction(async (tx) => {
         const minerId = await safeVaultMinerId(tx, vaultItem.minerId);
+        const omId = await ensureOwnedMachineForVaultTx(tx, vaultItem);
         await tx.userInventory.create({
           data: {
             userId: req.user.id,
@@ -191,13 +224,20 @@ export async function retrieveFromVault(req, res) {
             hashRate: vaultItem.hashRate,
             slotSize: vaultItem.slotSize,
             imageUrl: vaultItem.imageUrl,
-            acquiredAt: now
-          }
+            acquiredAt: now,
+            ownedMachineId: omId,
+          },
         });
-
-        // Remove from vault
+        await syncOwnedMachineSnapshotTx(tx, omId, MachineLocation.INVENTORY, {
+          minerId,
+          minerName: vaultItem.minerName,
+          level: vaultItem.level,
+          hashRate: vaultItem.hashRate,
+          slotSize: vaultItem.slotSize ?? 1,
+          imageUrl: vaultItem.imageUrl,
+        });
         await tx.userVault.delete({
-          where: { id: vaultId, userId: req.user.id }
+          where: { id: vaultId, userId: req.user.id },
         });
       });
 
@@ -226,23 +266,23 @@ export async function retrieveFromVault(req, res) {
         if (existingMachines.length > 0) {
           for (const m of existingMachines) {
             await releaseUserMinerFromRacksTx(tx, req.user.id, m.id);
-            await tx.userInventory.create({
-              data: {
-                userId: req.user.id,
-                minerName: m.miner?.name || m.minerName || 'Miner',
-                level: m.level,
-                hashRate: m.hashRate,
-                slotSize: m.slotSize,
-                minerId: m.minerId || null,
-                imageUrl: m.imageUrl || m.miner?.imageUrl || null,
-                acquiredAt: now
-              }
+            await createInventoryWithOwnedMachineTx(tx, {
+              userId: req.user.id,
+              minerName: m.miner?.name || m.minerName || "Miner",
+              level: m.level,
+              hashRate: m.hashRate,
+              slotSize: m.slotSize,
+              minerId: m.minerId || null,
+              imageUrl: m.imageUrl || m.miner?.imageUrl || null,
+              acquiredAt: now,
+              updatedAt: now,
             });
             await tx.userMiner.delete({ where: { id: m.id } });
           }
         }
 
         const minerId = await safeVaultMinerId(tx, vaultItem.minerId);
+        const omId = await ensureOwnedMachineForVaultTx(tx, vaultItem);
         await tx.userMiner.create({
           data: {
             userId: req.user.id,
@@ -252,13 +292,20 @@ export async function retrieveFromVault(req, res) {
             isActive: true,
             slotSize,
             minerId,
-            imageUrl: vaultItem.imageUrl
-          }
+            imageUrl: vaultItem.imageUrl,
+            ownedMachineId: omId,
+          },
         });
-
-        // Remove from vault
+        await syncOwnedMachineSnapshotTx(tx, omId, MachineLocation.RACK, {
+          minerId,
+          minerName: vaultItem.minerName,
+          level: vaultItem.level,
+          hashRate: vaultItem.hashRate,
+          slotSize: vaultItem.slotSize ?? 1,
+          imageUrl: vaultItem.imageUrl,
+        });
         await tx.userVault.delete({
-          where: { id: vaultId, userId: req.user.id }
+          where: { id: vaultId, userId: req.user.id },
         });
       });
 

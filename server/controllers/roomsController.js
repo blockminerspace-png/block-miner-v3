@@ -4,6 +4,12 @@ import { getMiningEngine } from "../src/miningEngineInstance.js";
 import { syncUserBaseHashRate } from "../models/minerProfileModel.js";
 import { createNotification } from "./notificationController.js";
 import loggerLib from "../utils/logger.js";
+import {
+  MachineLocation,
+  ensureOwnedMachineForInventoryTx,
+  ensureOwnedMachineForUserMinerTx,
+  syncOwnedMachineSnapshotTx,
+} from "../services/userOwnedMachineService.js";
 
 const logger = loggerLib.child("Rooms");
 
@@ -254,6 +260,7 @@ export async function installMiner(req, res) {
     const slotIndex = rackSlotIndex(rack.room.roomNumber, rack.position);
 
     await prisma.$transaction(async (tx) => {
+      const omId = await ensureOwnedMachineForInventoryTx(tx, inventoryItem);
       const newMiner = await tx.userMiner.create({
         data: {
           userId,
@@ -264,6 +271,7 @@ export async function installMiner(req, res) {
           slotSize: inventoryItem.slotSize,
           imageUrl: inventoryItem.imageUrl,
           isActive: true,
+          ownedMachineId: omId,
         },
       });
 
@@ -282,6 +290,15 @@ export async function installMiner(req, res) {
           data: { blockedByMinerId: newMiner.id },
         });
       }
+
+      await syncOwnedMachineSnapshotTx(tx, omId, MachineLocation.RACK, {
+        minerId: inventoryItem.minerId,
+        minerName: inventoryItem.minerName,
+        level: inventoryItem.level,
+        hashRate: inventoryItem.hashRate,
+        slotSize: inventoryItem.slotSize ?? 1,
+        imageUrl: inventoryItem.imageUrl,
+      });
 
       await tx.userInventory.delete({ where: { id: inventoryId } });
     });
@@ -348,6 +365,7 @@ export async function uninstallMiner(req, res) {
         data: { blockedByMinerId: null },
       });
 
+      const omId = await ensureOwnedMachineForUserMinerTx(tx, miner, minerName);
       await tx.userInventory.create({
         data: {
           userId,
@@ -358,7 +376,16 @@ export async function uninstallMiner(req, res) {
           slotSize: miner.slotSize,
           imageUrl: miner.imageUrl ?? miner.miner?.imageUrl ?? null,
           acquiredAt: new Date(),
+          ownedMachineId: omId,
         },
+      });
+      await syncOwnedMachineSnapshotTx(tx, omId, MachineLocation.INVENTORY, {
+        minerId: miner.minerId,
+        minerName,
+        level: miner.level,
+        hashRate: miner.hashRate,
+        slotSize: miner.slotSize ?? 1,
+        imageUrl: miner.imageUrl ?? miner.miner?.imageUrl ?? null,
       });
 
       await tx.userMiner.delete({ where: { id: miner.id } });

@@ -3,6 +3,7 @@ import prisma from '../src/db/prisma.js';
 import loggerLib from "../utils/logger.js";
 import { createAuditLog } from "../models/auditLogModel.js";
 import { INTERNAL_SHORTLINK_TYPE } from "../models/shortlinkRewardModel.js";
+import { createInventoryWithOwnedMachineTx } from "../services/userOwnedMachineService.js";
 
 const logger = loggerLib.child("ShortlinkController");
 const TOTAL_STEPS = 3;
@@ -156,16 +157,16 @@ export async function completeShortlinkStep(req, res) {
         }
 
         const miner = shortlinkReward.miner;
-        await tx.userInventory.create({
-          data: {
-            userId,
-            minerId: miner.id,
-            minerName: miner.name,
-            hashRate: miner.baseHashRate,
-            slotSize: miner.slotSize,
-            imageUrl: miner.imageUrl,
-            acquiredAt: now
-          }
+        await createInventoryWithOwnedMachineTx(tx, {
+          userId,
+          minerId: miner.id,
+          minerName: miner.name,
+          level: 1,
+          hashRate: miner.baseHashRate,
+          slotSize: miner.slotSize,
+          imageUrl: miner.imageUrl,
+          acquiredAt: now,
+          updatedAt: now,
         });
         reward = { message: `${miner.name} adicionada ao inventário!` };
       }

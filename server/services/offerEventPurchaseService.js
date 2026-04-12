@@ -9,6 +9,7 @@ import {
   normalizeOfferCurrency,
   userBalanceFieldForCurrency
 } from "./offerEventHelpers.js";
+import { bulkCreateInventoryWithOwnedMachinesTx } from "./userOwnedMachineService.js";
 
 const DEFAULT_MINER_IMAGE_URL = "/machines/reward1.png";
 
@@ -152,19 +153,20 @@ export async function purchaseEventMinerForUser(userId, eventMinerId, quantity =
         });
       }
 
-      await tx.userInventory.createMany({
-        data: Array.from({ length: quantity }, () => ({
-          userId,
+      await bulkCreateInventoryWithOwnedMachinesTx(
+        tx,
+        userId,
+        {
           minerId: null,
           minerName: `[Event] ${em.name}`,
           level: 1,
           hashRate: em.hashRate,
           slotSize,
           imageUrl: em.imageUrl || DEFAULT_MINER_IMAGE_URL,
-          acquiredAt: now,
-          updatedAt: now
-        }))
-      });
+        },
+        quantity,
+        now,
+      );
 
       const updatedUser = await tx.user.findUnique({ where: { id: userId } });
       return {

@@ -1,4 +1,5 @@
 import prisma from '../src/db/prisma.js';
+import { createInventoryWithOwnedMachineTx } from '../services/userOwnedMachineService.js';
 
 const DEFAULT_MINER_IMAGE_URL = "/machines/reward1.png";
 
@@ -19,8 +20,10 @@ export async function getInventoryItem(userId, inventoryId) {
 }
 
 export async function addInventoryItem(userId, minerName, level, hashRate, slotSize, acquiredAt, updatedAt, minerId = null, imageUrl = null) {
-  return prisma.userInventory.create({
-    data: {
+  const a = new Date(acquiredAt);
+  const u = new Date(updatedAt);
+  return prisma.$transaction((tx) =>
+    createInventoryWithOwnedMachineTx(tx, {
       userId,
       minerId,
       minerName,
@@ -28,10 +31,10 @@ export async function addInventoryItem(userId, minerName, level, hashRate, slotS
       hashRate,
       slotSize,
       imageUrl,
-      acquiredAt: new Date(acquiredAt),
-      updatedAt: new Date(updatedAt)
-    }
-  });
+      acquiredAt: a,
+      updatedAt: u,
+    }),
+  );
 }
 
 export async function removeInventoryItem(userId, inventoryId) {

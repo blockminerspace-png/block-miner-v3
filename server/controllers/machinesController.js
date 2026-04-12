@@ -5,6 +5,12 @@ import { getOrCreateMinerProfile, syncUserBaseHashRate } from "../models/minerPr
 import { getMiningEngine } from "../src/miningEngineInstance.js";
 import prisma from '../src/db/prisma.js';
 import { releaseUserMinerFromRacksTx } from "../utils/rackMinerRelease.js";
+import {
+  MachineLocation,
+  createInventoryWithOwnedMachineTx,
+  ensureOwnedMachineForUserMinerTx,
+  syncOwnedMachineSnapshotTx,
+} from "../services/userOwnedMachineService.js";
 
 const DEFAULT_MINER_IMAGE_URL = "/machines/reward1.png";
 
@@ -40,23 +46,38 @@ export async function toggleMachine(req, res) {
 export async function removeMachine(req, res) {
   try {
     const { machineId } = req.body;
-    const machine = await machineModel.getMachineById(req.user.id, machineId);
-    if (!machine) return res.status(404).json({ ok: false, message: "Miner not found." });
+    const fullMiner = await prisma.userMiner.findFirst({
+      where: { id: machineId, userId: req.user.id },
+      include: { miner: true },
+    });
+    if (!fullMiner) return res.status(404).json({ ok: false, message: "Miner not found." });
 
     const now = new Date();
+
     await prisma.$transaction(async (tx) => {
       await releaseUserMinerFromRacksTx(tx, req.user.id, machineId);
+      const displayName = fullMiner.miner?.name || "Miner";
+      const omId = await ensureOwnedMachineForUserMinerTx(tx, fullMiner, displayName);
       await tx.userInventory.create({
         data: {
           userId: req.user.id,
-          minerName: machine.miner_name || machine.minerName || 'Miner',
-          level: machine.level,
-          hashRate: machine.hashRate,
-          slotSize: machine.slotSize,
-          minerId: machine.minerId || null,
-          imageUrl: machine.image_url || machine.imageUrl || null,
-          acquiredAt: now
-        }
+          minerName: displayName,
+          level: fullMiner.level,
+          hashRate: fullMiner.hashRate,
+          slotSize: fullMiner.slotSize,
+          minerId: fullMiner.minerId || null,
+          imageUrl: fullMiner.imageUrl || fullMiner.miner?.imageUrl || null,
+          acquiredAt: now,
+          ownedMachineId: omId,
+        },
+      });
+      await syncOwnedMachineSnapshotTx(tx, omId, MachineLocation.INVENTORY, {
+        minerId: fullMiner.minerId,
+        minerName: displayName,
+        level: fullMiner.level,
+        hashRate: fullMiner.hashRate,
+        slotSize: fullMiner.slotSize ?? 1,
+        imageUrl: fullMiner.imageUrl || fullMiner.miner?.imageUrl || null,
       });
       await tx.userMiner.delete({ where: { id: machineId } });
     });
@@ -106,17 +127,16 @@ export async function moveMachine(req, res) {
       if (existingMachines.length > 0) {
         for (const m of existingMachines) {
           await releaseUserMinerFromRacksTx(tx, req.user.id, m.id);
-          await tx.userInventory.create({
-            data: {
-              userId: req.user.id,
-              minerName: m.miner?.name,
-              level: m.level,
-              hashRate: m.hashRate,
-              slotSize: m.slotSize,
-              minerId: m.minerId,
-              imageUrl: m.imageUrl || m.miner?.imageUrl,
-              acquiredAt: now
-            }
+          await createInventoryWithOwnedMachineTx(tx, {
+            userId: req.user.id,
+            minerName: m.miner?.name || "Miner",
+            level: m.level,
+            hashRate: m.hashRate,
+            slotSize: m.slotSize,
+            minerId: m.minerId,
+            imageUrl: m.imageUrl || m.miner?.imageUrl,
+            acquiredAt: now,
+            updatedAt: now,
           });
           await tx.userMiner.delete({ where: { id: m.id } });
         }
@@ -134,17 +154,16 @@ export async function moveMachine(req, res) {
         });
         if (prevMachine && prevMachine.slotSize === 2) {
           await releaseUserMinerFromRacksTx(tx, req.user.id, prevMachine.id);
-          await tx.userInventory.create({
-            data: {
-              userId: req.user.id,
-              minerName: prevMachine.miner?.name,
-              level: prevMachine.level,
-              hashRate: prevMachine.hashRate,
-              slotSize: prevMachine.slotSize,
-              minerId: prevMachine.minerId,
-              imageUrl: prevMachine.imageUrl || prevMachine.miner?.imageUrl,
-              acquiredAt: now
-            }
+          await createInventoryWithOwnedMachineTx(tx, {
+            userId: req.user.id,
+            minerName: prevMachine.miner?.name || "Miner",
+            level: prevMachine.level,
+            hashRate: prevMachine.hashRate,
+            slotSize: prevMachine.slotSize,
+            minerId: prevMachine.minerId,
+            imageUrl: prevMachine.imageUrl || prevMachine.miner?.imageUrl,
+            acquiredAt: now,
+            updatedAt: now,
           });
           await tx.userMiner.delete({ where: { id: prevMachine.id } });
         }

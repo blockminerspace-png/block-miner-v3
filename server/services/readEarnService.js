@@ -11,6 +11,7 @@ import {
   REDEEM_ALREADY,
   REDEEM_GENERIC
 } from "../utils/readEarnConstants.js";
+import { createInventoryWithOwnedMachineTx } from "./userOwnedMachineService.js";
 
 class RedeemAbort extends Error {
   /**
@@ -182,18 +183,18 @@ export async function redeemReadEarnCampaign({
           throw new RedeemAbort(REDEEM_GENERIC);
         }
         const level = Math.max(1, Math.min(100, Math.floor(amt) || 1));
-        await tx.userInventory.create({
-          data: {
-            userId,
-            minerId: miner.id,
-            minerName: miner.name,
-            level,
-            hashRate: miner.baseHashRate,
-            slotSize: miner.slotSize,
-            imageUrl: miner.imageUrl,
-            acquiredAt: new Date(),
-            expiresAt: null
-          }
+        const t = new Date();
+        await createInventoryWithOwnedMachineTx(tx, {
+          userId,
+          minerId: miner.id,
+          minerName: miner.name,
+          level,
+          hashRate: miner.baseHashRate,
+          slotSize: miner.slotSize,
+          imageUrl: miner.imageUrl,
+          acquiredAt: t,
+          updatedAt: t,
+          expiresAt: null,
         });
         needsHashReload = true;
       } else {

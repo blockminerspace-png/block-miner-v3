@@ -2,6 +2,7 @@ import prisma from '../src/db/prisma.js';
 import loggerLib from "../utils/logger.js";
 import { syncUserBaseHashRate } from '../models/minerProfileModel.js';
 import { getMiningEngine } from '../src/miningEngineInstance.js';
+import { createInventoryWithOwnedMachineTx } from "../services/userOwnedMachineService.js";
 
 const logger = loggerLib.child("AutoMiningGpuController");
 
@@ -123,17 +124,17 @@ export async function claimGPUHandler(req, res) {
 
       // ADD TO INVENTORY AS A TEMPORARY MACHINE
       const reward = gpuWithReward.reward;
-      await tx.userInventory.create({
-        data: {
-          userId,
-          minerName: reward?.name || "Pulse GPU v1",
-          level: 1,
-          hashRate: gpu.gpuHashRate,
-          slotSize: 1,
-          imageUrl: reward?.imageUrl || "/machines/reward2.png",
-          acquiredAt: now,
-          expiresAt: expiresAt
-        }
+      await createInventoryWithOwnedMachineTx(tx, {
+        userId,
+        minerId: null,
+        minerName: reward?.name || "Pulse GPU v1",
+        level: 1,
+        hashRate: gpu.gpuHashRate,
+        slotSize: 1,
+        imageUrl: reward?.imageUrl || "/machines/reward2.png",
+        acquiredAt: now,
+        updatedAt: now,
+        expiresAt,
       });
 
       await tx.autoMiningGpuLog.create({

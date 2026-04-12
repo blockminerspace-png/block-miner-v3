@@ -4,6 +4,7 @@ import prisma from "../src/db/prisma.js";
 import { applyUserBalanceDelta } from "../src/runtime/miningRuntime.js";
 import { createNotification } from "./notificationController.js";
 import { getMiningEngine } from "../src/miningEngineInstance.js";
+import { bulkCreateInventoryWithOwnedMachinesTx } from "../services/userOwnedMachineService.js";
 
 const DEFAULT_MINER_IMAGE_URL = "/machines/reward1.png";
 
@@ -87,19 +88,20 @@ export async function purchaseMiner(req, res) {
           data: { polBalance: { decrement: totalPrice } }
         });
 
-        await tx.userInventory.createMany({
-          data: Array.from({ length: quantity }, () => ({
-            userId: req.user.id,
+        await bulkCreateInventoryWithOwnedMachinesTx(
+          tx,
+          req.user.id,
+          {
             minerId: miner.id,
             minerName: miner.name,
             level: 1,
             hashRate: baseHashRate,
-            slotSize: slotSize,
+            slotSize,
             imageUrl: miner.imageUrl || DEFAULT_MINER_IMAGE_URL,
-            acquiredAt: now,
-            updatedAt: now
-          }))
-        });
+          },
+          quantity,
+          now,
+        );
 
         return newUser;
       });

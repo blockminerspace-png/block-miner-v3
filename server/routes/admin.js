@@ -22,6 +22,7 @@ import * as adminDailyTasksController from "../controllers/adminDailyTasksContro
 import * as adminInternalOfferwallController from "../controllers/adminInternalOfferwallController.js";
 import { adminYoutubeStreamRouter } from "./admin-youtube-stream.js";
 import prisma from "../src/db/prisma.js";
+import { bulkCreateInventoryWithOwnedMachinesTx } from "../services/userOwnedMachineService.js";
 import path from "path";
 import fs from "fs/promises";
 import { mkdirSync } from "fs";
@@ -772,18 +773,21 @@ adminRouter.post("/users/:id/send-miner", async (req, res) => {
             const eventMiner = await prisma.eventMiner.findUnique({ where: { id: eventMinerId } });
             if (!eventMiner) return res.status(404).json({ ok: false, message: 'Máquina de evento não encontrada.' });
 
-            await prisma.userInventory.createMany({
-                data: Array.from({ length: quantity }, () => ({
+            await prisma.$transaction(async (tx) => {
+                await bulkCreateInventoryWithOwnedMachinesTx(
+                    tx,
                     userId,
-                    minerId: null,
-                    minerName: eventMiner.name,
-                    level: 1,
-                    hashRate: Number(eventMiner.hashRate),
-                    slotSize: Number(eventMiner.slotSize || 1),
-                    imageUrl: eventMiner.imageUrl || '/machines/reward1.png',
-                    acquiredAt: now,
-                    updatedAt: now
-                }))
+                    {
+                        minerId: null,
+                        minerName: eventMiner.name,
+                        level: 1,
+                        hashRate: Number(eventMiner.hashRate),
+                        slotSize: Number(eventMiner.slotSize || 1),
+                        imageUrl: eventMiner.imageUrl || "/machines/reward1.png",
+                    },
+                    quantity,
+                    now,
+                );
             });
             res.json({ ok: true, message: `${quantity}x ${eventMiner.name} enviado(s) para ${user.username || user.email}.` });
         } else {
@@ -792,18 +796,21 @@ adminRouter.post("/users/:id/send-miner", async (req, res) => {
             const miner = await prisma.miner.findUnique({ where: { id: minerId } });
             if (!miner) return res.status(404).json({ ok: false, message: 'Máquina não encontrada.' });
 
-            await prisma.userInventory.createMany({
-                data: Array.from({ length: quantity }, () => ({
+            await prisma.$transaction(async (tx) => {
+                await bulkCreateInventoryWithOwnedMachinesTx(
+                    tx,
                     userId,
-                    minerId: miner.id,
-                    minerName: miner.name,
-                    level: 1,
-                    hashRate: Number(miner.baseHashRate),
-                    slotSize: Number(miner.slotSize || 1),
-                    imageUrl: miner.imageUrl || '/machines/reward1.png',
-                    acquiredAt: now,
-                    updatedAt: now
-                }))
+                    {
+                        minerId: miner.id,
+                        minerName: miner.name,
+                        level: 1,
+                        hashRate: Number(miner.baseHashRate),
+                        slotSize: Number(miner.slotSize || 1),
+                        imageUrl: miner.imageUrl || "/machines/reward1.png",
+                    },
+                    quantity,
+                    now,
+                );
             });
             res.json({ ok: true, message: `${quantity}x ${miner.name} enviado(s) para ${user.username || user.email}.` });
         }

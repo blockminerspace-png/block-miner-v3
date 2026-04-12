@@ -2,6 +2,7 @@ import prisma from '../src/db/prisma.js';
 import * as inventoryModel from "../models/inventoryModel.js";
 import * as minersModel from "../models/minersModel.js";
 import { getBrazilCheckinDateKey } from "../utils/checkinDate.js";
+import { createInventoryWithOwnedMachineTx } from "../services/userOwnedMachineService.js";
 
 const DEFAULT_MINER_IMAGE_URL = "/machines/reward1.png";
 const DEFAULT_FAUCET_COOLDOWN_MS = 60 * 60 * 1000;
@@ -155,18 +156,17 @@ export async function claim(req, res) {
     await prisma.$transaction(async (tx) => {
       const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 Hours
 
-      await tx.userInventory.create({
-        data: {
-          userId,
-          minerId: miner.id,
-          minerName: miner.name,
-          level: 1,
-          hashRate: miner.baseHashRate,
-          slotSize: miner.slotSize,
-          imageUrl: miner.imageUrl || DEFAULT_MINER_IMAGE_URL,
-          acquiredAt: now,
-          expiresAt: expiresAt
-        }
+      await createInventoryWithOwnedMachineTx(tx, {
+        userId,
+        minerId: miner.id,
+        minerName: miner.name,
+        level: 1,
+        hashRate: miner.baseHashRate,
+        slotSize: miner.slotSize,
+        imageUrl: miner.imageUrl || DEFAULT_MINER_IMAGE_URL,
+        acquiredAt: now,
+        updatedAt: now,
+        expiresAt,
       });
 
       await tx.faucetClaim.upsert({

@@ -174,9 +174,13 @@ test("installMiner instala mÃ¡quina do inventÃ¡rio no rack vazio", async () 
   });
   prisma.$transaction = async (fn) => {
     const fakeTx = {
+      userOwnedMachine: {
+        create: async () => ({ id: 1001 }),
+        update: async () => ({}),
+      },
       userMiner: { create: async () => ({ id: 55 }) },
       userRack: { update: async () => {} },
-      userInventory: { delete: async () => {} },
+      userInventory: { delete: async () => {}, update: async () => ({}) },
     };
     return fn(fakeTx);
   };
@@ -237,7 +241,17 @@ test("uninstallMiner remove mÃ¡quina do rack e devolve ao inventÃ¡rio", asyn
   const origYtPower = prisma.youtubeWatchPower?.findMany;
   const origGpuPower = prisma.autoMiningGpu?.findMany;
 
-  const mockMiner = { id: 55, minerId: 3, level: 1, hashRate: 500, slotSize: 1, imageUrl: null };
+  const mockMiner = {
+    id: 55,
+    userId: 1,
+    minerId: 3,
+    level: 1,
+    hashRate: 500,
+    slotSize: 1,
+    imageUrl: null,
+    ownedMachineId: null,
+    miner: { name: "GPU-X" },
+  };
   prisma.userRack.findFirst = async () => ({
     id: 10,
     userId: 1,
@@ -246,9 +260,13 @@ test("uninstallMiner remove mÃ¡quina do rack e devolve ao inventÃ¡rio", asyn
   });
   prisma.$transaction = async (fn) => {
     const fakeTx = {
+      userOwnedMachine: {
+        create: async () => ({ id: 2002 }),
+        update: async () => ({}),
+      },
       userRack: { update: async () => {}, updateMany: async () => ({ count: 0 }) },
-      userInventory: { create: async () => {} },
-      userMiner: { delete: async () => {} },
+      userInventory: { create: async () => ({}) },
+      userMiner: { update: async () => ({}), delete: async () => {} },
     };
     return fn(fakeTx);
   };

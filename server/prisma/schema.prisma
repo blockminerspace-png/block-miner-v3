@@ -45,6 +45,7 @@ model User {
   // Relationships
   miners        UserMiner[]
   inventory     UserInventory[]
+  ownedMachines UserOwnedMachine[]
   vault         UserVault[]
   transactions  Transaction[]
   payouts       Payout[]
@@ -328,9 +329,10 @@ model Miner {
   showInShop   Boolean  @default(true) @map("show_in_shop")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  userMiners    UserMiner[]
-  userInventory UserInventory[]
-  userVault     UserVault[]
+  userMiners        UserMiner[]
+  userInventory     UserInventory[]
+  userOwnedMachines UserOwnedMachine[]
+  userVault         UserVault[]
   readEarnCampaigns ReadEarnCampaign[]
   faucetReward  FaucetReward?
   shortlinkRew  ShortlinkReward?
@@ -351,10 +353,12 @@ model UserMiner {
   imageUrl    String?  @map("image_url")
   isActive    Boolean  @default(true) @map("is_active")
   purchasedAt DateTime @default(now()) @map("purchased_at")
+  ownedMachineId Int?  @unique @map("owned_machine_id")
 
-  user     User      @relation(fields: [userId], references: [id])
-  miner    Miner?    @relation(fields: [minerId], references: [id])
-  userRack UserRack?
+  user         User             @relation(fields: [userId], references: [id])
+  miner        Miner?           @relation(fields: [minerId], references: [id])
+  ownedMachine UserOwnedMachine? @relation(fields: [ownedMachineId], references: [id], onDelete: Restrict)
+  userRack     UserRack?
 
   @@unique([userId, slotIndex])
   @@index([userId])
@@ -373,9 +377,11 @@ model UserInventory {
   acquiredAt DateTime @default(now()) @map("acquired_at")
   expiresAt  DateTime? @map("expires_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
+  ownedMachineId Int? @unique @map("owned_machine_id")
 
-  user  User   @relation(fields: [userId], references: [id])
-  miner Miner? @relation(fields: [minerId], references: [id])
+  user         User             @relation(fields: [userId], references: [id])
+  miner        Miner?           @relation(fields: [minerId], references: [id])
+  ownedMachine UserOwnedMachine? @relation(fields: [ownedMachineId], references: [id], onDelete: Restrict)
 
   @@index([userId])
   @@map("user_inventory")
@@ -392,12 +398,44 @@ model UserVault {
   imageUrl   String?  @map("image_url")
   storedAt   DateTime @default(now()) @map("stored_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
+  ownedMachineId Int? @unique @map("owned_machine_id")
 
-  user  User   @relation(fields: [userId], references: [id])
-  miner Miner? @relation(fields: [minerId], references: [id])
+  user         User             @relation(fields: [userId], references: [id])
+  miner        Miner?           @relation(fields: [minerId], references: [id])
+  ownedMachine UserOwnedMachine? @relation(fields: [ownedMachineId], references: [id], onDelete: Restrict)
 
   @@index([userId])
   @@map("user_vault")
+}
+
+/// Canonical owned machine instance: exactly one of inventory / rack miner / vault row points here.
+enum MachineInstanceLocation {
+  INVENTORY
+  RACK
+  WAREHOUSE
+}
+
+model UserOwnedMachine {
+  id         Int                     @id @default(autoincrement())
+  userId     Int                     @map("user_id")
+  location   MachineInstanceLocation
+  minerId    Int?                    @map("miner_id")
+  minerName  String                  @map("miner_name")
+  level      Int                     @default(1)
+  hashRate   Float                   @map("hash_rate")
+  slotSize   Int                     @default(1) @map("slot_size")
+  imageUrl   String?                 @map("image_url")
+  createdAt  DateTime                @default(now()) @map("created_at")
+  updatedAt  DateTime                @updatedAt @map("updated_at")
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  miner          Miner?          @relation(fields: [minerId], references: [id], onDelete: SetNull)
+  inventoryRow   UserInventory?
+  rackMiner      UserMiner?
+  vaultRow       UserVault?
+
+  @@index([userId, location])
+  @@map("user_owned_machines")
 }
 
 model Transaction {

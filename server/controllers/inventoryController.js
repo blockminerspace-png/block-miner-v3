@@ -7,6 +7,12 @@ import { getSlotSizeForMiner } from "../utils/minerUtils.js";
 import { createNotification } from "./notificationController.js";
 import prisma from "../src/db/prisma.js";
 import { releaseUserMinerFromRacksTx } from "../utils/rackMinerRelease.js";
+import {
+  MachineLocation,
+  createInventoryWithOwnedMachineTx,
+  ensureOwnedMachineForInventoryTx,
+  syncOwnedMachineSnapshotTx,
+} from "../services/userOwnedMachineService.js";
 
 const DEFAULT_MINER_IMAGE_URL = "/machines/reward1.png";
 const SLOTS_PER_RACK = 8;
@@ -70,17 +76,16 @@ export async function installInventoryItem(req, res) {
       if (existingMachines.length > 0) {
         for (const m of existingMachines) {
           await releaseUserMinerFromRacksTx(tx, req.user.id, m.id);
-          await tx.userInventory.create({
-            data: {
-              userId: req.user.id,
-              minerName: m.miner?.name || m.minerName || 'Miner',
-              level: m.level,
-              hashRate: m.hashRate,
-              slotSize: m.slotSize,
-              minerId: m.minerId || null,
-              imageUrl: m.imageUrl || m.miner?.imageUrl || null,
-              acquiredAt: now
-            }
+          await createInventoryWithOwnedMachineTx(tx, {
+            userId: req.user.id,
+            minerName: m.miner?.name || m.minerName || "Miner",
+            level: m.level,
+            hashRate: m.hashRate,
+            slotSize: m.slotSize,
+            minerId: m.minerId || null,
+            imageUrl: m.imageUrl || m.miner?.imageUrl || null,
+            acquiredAt: now,
+            updatedAt: now,
           });
           await tx.userMiner.delete({ where: { id: m.id } });
         }
@@ -93,22 +98,22 @@ export async function installInventoryItem(req, res) {
         });
         if (prevMachine && prevMachine.slotSize === 2) {
           await releaseUserMinerFromRacksTx(tx, req.user.id, prevMachine.id);
-          await tx.userInventory.create({
-            data: {
-              userId: req.user.id,
-              minerName: prevMachine.miner?.name || prevMachine.minerName || 'Miner',
-              level: prevMachine.level,
-              hashRate: prevMachine.hashRate,
-              slotSize: prevMachine.slotSize,
-              minerId: prevMachine.minerId || null,
-              imageUrl: prevMachine.imageUrl || prevMachine.miner?.imageUrl || null,
-              acquiredAt: now
-            }
+          await createInventoryWithOwnedMachineTx(tx, {
+            userId: req.user.id,
+            minerName: prevMachine.miner?.name || prevMachine.minerName || "Miner",
+            level: prevMachine.level,
+            hashRate: prevMachine.hashRate,
+            slotSize: prevMachine.slotSize,
+            minerId: prevMachine.minerId || null,
+            imageUrl: prevMachine.imageUrl || prevMachine.miner?.imageUrl || null,
+            acquiredAt: now,
+            updatedAt: now,
           });
           await tx.userMiner.delete({ where: { id: prevMachine.id } });
         }
       }
 
+      const omId = await ensureOwnedMachineForInventoryTx(tx, inventoryItem);
       await tx.userMiner.create({
         data: {
           userId: req.user.id,
@@ -118,8 +123,17 @@ export async function installInventoryItem(req, res) {
           isActive: true,
           slotSize,
           minerId: inventoryItem.minerId,
-          imageUrl: inventoryItem.imageUrl || DEFAULT_MINER_IMAGE_URL
-        }
+          imageUrl: inventoryItem.imageUrl || DEFAULT_MINER_IMAGE_URL,
+          ownedMachineId: omId,
+        },
+      });
+      await syncOwnedMachineSnapshotTx(tx, omId, MachineLocation.RACK, {
+        minerId: inventoryItem.minerId,
+        minerName: inventoryItem.minerName,
+        level: inventoryItem.level,
+        hashRate: inventoryItem.hashRate,
+        slotSize: inventoryItem.slotSize ?? 1,
+        imageUrl: inventoryItem.imageUrl || DEFAULT_MINER_IMAGE_URL,
       });
 
       await tx.userInventory.delete({ where: { id: inventoryId, userId: req.user.id } });
@@ -150,9 +164,24 @@ export async function installInventoryItem(req, res) {
 export async function removeInventoryItem(req, res) {
   try {
     const inventoryId = Number(req.body?.inventoryId);
-    await prisma.userInventory.delete({ where: { id: inventoryId, userId: req.user.id } });
+    await prisma.$transaction(async (tx) => {
+      const row = await tx.userInventory.findFirst({
+        where: { id: inventoryId, userId: req.user.id },
+        select: { id: true, ownedMachineId: true },
+      });
+      if (!row) {
+        throw new Error("NOT_FOUND");
+      }
+      await tx.userInventory.delete({ where: { id: inventoryId, userId: req.user.id } });
+      if (row.ownedMachineId != null) {
+        await tx.userOwnedMachine.delete({ where: { id: row.ownedMachineId } });
+      }
+    });
     res.json({ ok: true, message: "Item removed." });
   } catch (error) {
+    if (error?.message === "NOT_FOUND") {
+      return res.status(404).json({ ok: false, message: "Item not found." });
+    }
     res.status(500).json({ ok: false, message: "Error removing item." });
   }
 }
