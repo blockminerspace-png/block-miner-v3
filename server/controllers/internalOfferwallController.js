@@ -85,7 +85,12 @@ export async function postSubmit(req, res) {
       message: out.message
     });
   } catch (e) {
-    console.error("internalOfferwall postSubmit", e);
+    console.error("internalOfferwall postSubmit", {
+      message: e?.message,
+      code: e?.code,
+      name: e?.name,
+      meta: e?.meta
+    });
     res.status(500).json({ ok: false, message: "Failed to submit attempt." });
   }
 }

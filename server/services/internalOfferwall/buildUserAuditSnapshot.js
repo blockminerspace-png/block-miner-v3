@@ -21,10 +21,11 @@ export async function buildUserAuditSnapshotJson(userId) {
         where: { isActive: true },
         select: {
           id: true,
-          minerName: true,
+          slotIndex: true,
           imageUrl: true,
           level: true,
-          hashRate: true
+          hashRate: true,
+          miner: { select: { name: true, slug: true } }
         }
       },
       inventory: {
@@ -45,6 +46,15 @@ export async function buildUserAuditSnapshotJson(userId) {
     }
   });
   if (!user) return JSON.stringify({ error: "user_not_found", userId });
+  const activeMinerSample = user.miners.map((m) => ({
+    id: m.id,
+    slotIndex: m.slotIndex,
+    minerName: m.miner?.name ?? null,
+    minerSlug: m.miner?.slug ?? null,
+    imageUrl: m.imageUrl,
+    level: m.level,
+    hashRate: m.hashRate
+  }));
   const snap = {
     userId: user.id,
     email: user.email,
@@ -53,7 +63,7 @@ export async function buildUserAuditSnapshotJson(userId) {
     polBalance: user.polBalance?.toString?.() ?? String(user.polBalance),
     blkBalance: user.blkBalance?.toString?.() ?? String(user.blkBalance),
     createdAt: user.createdAt?.toISOString?.() ?? null,
-    activeMinerSample: user.miners,
+    activeMinerSample,
     inventorySample: user.inventory,
     transactionCount: user._count.transactions,
     payoutCount: user._count.payouts,

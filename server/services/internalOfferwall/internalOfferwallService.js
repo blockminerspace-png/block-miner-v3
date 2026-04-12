@@ -509,14 +509,37 @@ export async function userSubmitAttempt(userId, attemptId) {
     if (String(e.message) === "CONFLICT") {
       return { ok: false, status: 409, code: "CONFLICT", message: "Attempt was already updated." };
     }
+    const msg = String(e.message || "");
+    if (
+      msg === "REWARD_BLK_INVALID" ||
+      msg === "REWARD_POL_INVALID" ||
+      msg === "REWARD_HASHRATE_INVALID" ||
+      msg === "REWARD_KIND_UNSUPPORTED"
+    ) {
+      return {
+        ok: false,
+        status: 400,
+        code: "REWARD_CONFIG_INVALID",
+        message: "This offer has an invalid reward configuration."
+      };
+    }
     throw e;
   }
 
-  await bumpDailyTasksForUser(userId, TASK_INTERNAL_OFFERWALL, {
-    dedupeKey: `iof-complete:${attemptId}`,
-    delta: 1,
-    internalOfferwallOfferId: attempt.offerId
-  });
+  try {
+    await bumpDailyTasksForUser(userId, TASK_INTERNAL_OFFERWALL, {
+      dedupeKey: `iof-complete:${attemptId}`,
+      delta: 1,
+      internalOfferwallOfferId: attempt.offerId
+    });
+  } catch (bumpErr) {
+    console.error("internalOfferwall userSubmitAttempt: bumpDailyTasksForUser failed after grant", {
+      userId,
+      attemptId,
+      offerId: attempt.offerId,
+      message: bumpErr?.message
+    });
+  }
 
   const { syncUserBaseHashRate } = await import("../../models/minerProfileModel.js");
   const { getMiningEngine } = await import("../../src/miningEngineInstance.js");
@@ -582,11 +605,20 @@ export async function adminApproveAttempt(attemptId) {
     });
   });
 
-  await bumpDailyTasksForUser(attempt.userId, TASK_INTERNAL_OFFERWALL, {
-    dedupeKey: `iof-complete:${attemptId}`,
-    delta: 1,
-    internalOfferwallOfferId: attempt.offerId
-  });
+  try {
+    await bumpDailyTasksForUser(attempt.userId, TASK_INTERNAL_OFFERWALL, {
+      dedupeKey: `iof-complete:${attemptId}`,
+      delta: 1,
+      internalOfferwallOfferId: attempt.offerId
+    });
+  } catch (bumpErr) {
+    console.error("internalOfferwall adminApproveAttempt: bumpDailyTasksForUser failed after grant", {
+      userId: attempt.userId,
+      attemptId,
+      offerId: attempt.offerId,
+      message: bumpErr?.message
+    });
+  }
 
   const { syncUserBaseHashRate } = await import("../../models/minerProfileModel.js");
   const { getMiningEngine } = await import("../../src/miningEngineInstance.js");

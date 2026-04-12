@@ -225,6 +225,8 @@ export default function InternalOfferwall() {
         toast.error(d.message || t('internalOfferwallPage.load_error'));
       } else if (d?.code === 'PARTNER_NOT_OPENED') {
         toast.error(t('internalOfferwallPage.partner_not_opened'));
+      } else if (d?.code === 'REWARD_CONFIG_INVALID') {
+        toast.error(t('internalOfferwallPage.submit_reward_config_error'));
       } else {
         toast.error(d?.message || t('internalOfferwallPage.load_error'));
       }
@@ -234,6 +236,8 @@ export default function InternalOfferwall() {
         toast.error(d?.message || t('internalOfferwallPage.load_error'));
       } else if (d?.code === 'PARTNER_NOT_OPENED') {
         toast.error(t('internalOfferwallPage.partner_not_opened'));
+      } else if (d?.code === 'REWARD_CONFIG_INVALID') {
+        toast.error(t('internalOfferwallPage.submit_reward_config_error'));
       } else {
         toast.error(d?.message || t('internalOfferwallPage.load_error'));
       }

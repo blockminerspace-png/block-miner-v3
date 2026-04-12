@@ -546,6 +546,7 @@
     "open_partner_new_window": "Abrir página del socio (nueva pestaña)",
     "popup_blocked": "Se bloqueó la nueva pestaña. Permite ventanas emergentes para este sitio o pulsa el botón de abajo para abrir al socio.",
     "partner_not_opened": "Abre primero la página del socio con el botón, espera aquí el temporizador y luego envía.",
+    "submit_reward_config_error": "Esta tarea tiene una configuración de recompensa no válida. Contacta con soporte.",
     "submit_ok": "Recompensa concedida.",
     "submit_pending": "Enviado para revisión.",
     "daily_limit": "Has alcanzado el límite diario de esta oferta.",

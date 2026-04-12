@@ -909,6 +909,7 @@
     "open_partner_new_window": "Abrir página do parceiro (nova aba)",
     "popup_blocked": "A nova aba foi bloqueada. Permita pop-ups para este site ou toque no botão abaixo para abrir o parceiro.",
     "partner_not_opened": "Abra a página do parceiro com o botão primeiro, aguarde aqui o cronômetro e só então envie.",
+    "submit_reward_config_error": "Esta tarefa tem uma configuração de recompensa inválida. Contacte o suporte.",
     "submit_ok": "Recompensa concedida.",
     "submit_pending": "Enviado para revisão.",
     "daily_limit": "Você atingiu o limite diário desta oferta.",
