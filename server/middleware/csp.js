@@ -60,6 +60,9 @@ function baseDirectives({ allowWebSockets }) {
       "https://www.youtube-nocookie.com",
       "https://ad.a-ads.com",
       "https://zerads.com",
+      "https://www.tradingview.com",
+      "https://s.tradingview.com",
+      "https://*.tradingview.com",
       ...internalOfferwallFrameHosts
     ],
     objectSrc: ["'none'"],
@@ -93,7 +96,10 @@ function baseDirectives({ allowWebSockets }) {
       "https://cdn.jsdelivr.net",
       "https://www.googletagmanager.com",
       "https://www.youtube.com",
-      "https://s.ytimg.com"
+      "https://s.ytimg.com",
+      "https://s3.tradingview.com",
+      "https://www.tradingview.com",
+      "https://s.tradingview.com"
     ],
     styleSrc: [
       "'self'",

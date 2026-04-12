@@ -9,7 +9,7 @@ describe("streamAdminValidation", () => {
   it("accepts valid create payload", () => {
     const r = parseCreateStreamDestination({
       label: "Main",
-      captureUrl: "https://blockminer.space/dashboardcrypto",
+      captureUrl: "https://blockminer.space/dashboardcrypto/",
       streamKey: "abcd-efgh"
     });
     assert.equal(r.ok, true);
