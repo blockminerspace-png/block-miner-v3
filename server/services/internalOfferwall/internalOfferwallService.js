@@ -232,6 +232,26 @@ export async function adminListAttempts({ status, offerId, limit }) {
   });
 }
 
+/**
+ * Removes STARTED attempts that were left open for too long so users get a clean "Start" again.
+ * @param {number} userId
+ * @param {string} periodKey
+ */
+async function abandonStaleStartedAttempts(userId, periodKey) {
+  const raw = String(process.env.INTERNAL_OFFERWALL_ABANDON_STARTED_AFTER_SEC || "").trim();
+  const parsed = raw ? parseInt(raw, 10) : 86400;
+  const sec = Number.isFinite(parsed) && parsed >= 300 ? parsed : 86400;
+  const cutoff = new Date(Date.now() - sec * 1000);
+  await prisma.internalOfferwallAttempt.deleteMany({
+    where: {
+      userId,
+      periodKey,
+      status: ATTEMPT_STATUS_STARTED,
+      startedAt: { lt: cutoff }
+    }
+  });
+}
+
 function publicOfferShape(row) {
   return {
     id: row.id,
@@ -256,6 +276,7 @@ export async function userListOffers(userId) {
     return { ok: false, code: "FEATURE_DISABLED", offers: [], openAttempts: [] };
   }
   const periodKey = getDailyTaskPeriodKey();
+  await abandonStaleStartedAttempts(userId, periodKey);
   const offers = await prisma.internalOfferwallOffer.findMany({
     where: { isActive: true },
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }]

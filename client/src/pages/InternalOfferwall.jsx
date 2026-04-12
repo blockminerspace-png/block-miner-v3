@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -279,8 +279,23 @@ function OfferCard({
 }) {
   const isPtc = String(offer.kind).toUpperCase() === KIND_PTC;
   const minSec = Number(offer.minViewSeconds) || 0;
-  const timerActive = attempt?.status === STATUS_STARTED && Boolean(attempt?.startedAt);
-  const elapsed = useElapsedSeconds(attempt?.startedAt || '', timerActive);
+
+  // Min-view timer: baseline = max(server startedAt, first paint for this attempt) so a
+  // stale STARTED row does not show "time up" immediately after reload.
+  /** @type {import('react').MutableRefObject<{ attemptId: number; iso: string } | null>} */
+  const minViewClockRef = useRef(null);
+  if (attempt?.status === STATUS_STARTED && attempt.startedAt && Number.isInteger(attempt.id)) {
+    if (!minViewClockRef.current || minViewClockRef.current.attemptId !== attempt.id) {
+      const serverMs = new Date(attempt.startedAt).getTime();
+      const baselineMs = Math.max(serverMs, Date.now());
+      minViewClockRef.current = { attemptId: attempt.id, iso: new Date(baselineMs).toISOString() };
+    }
+  } else {
+    minViewClockRef.current = null;
+  }
+
+  const timerActive = attempt?.status === STATUS_STARTED && Boolean(minViewClockRef.current?.iso);
+  const elapsed = useElapsedSeconds(minViewClockRef.current?.iso || attempt?.startedAt || '', timerActive);
   const canSubmit = attempt?.status === STATUS_STARTED && elapsed >= minSec;
   const modeSelf = String(offer.completionMode || '') !== MODE_ADMIN;
   const remaining = Math.max(0, Math.ceil(minSec - elapsed));
